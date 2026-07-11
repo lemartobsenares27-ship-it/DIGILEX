@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Employees — DIGILEX HR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div id="header-root"></div>
+    <div class="page-body">
+
+      <div id="emp-list-view">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+          <div>
+            <div style="font-weight:700;font-size:1.05rem" id="emp-count">0 employees</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-secondary" id="btn-export-csv"><i class="fa-solid fa-download"></i> Export CSV</button>
+            <button class="btn btn-primary" id="btn-add-employee"><i class="fa-solid fa-plus"></i> Add Employee</button>
+          </div>
+        </div>
+
+        <div class="dlx-card" style="margin-bottom:16px">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <input type="text" id="emp-search" class="field-input" placeholder="Search name, position, department..." style="max-width:280px">
+            <select id="filter-department" class="field-select" style="max-width:190px"></select>
+            <select id="filter-type" class="field-select" style="max-width:170px">
+              <option value="">All Types</option>
+              <option>Regular</option><option>Probationary</option><option>Contractual</option><option>Part-time</option>
+            </select>
+            <select id="filter-status" class="field-select" style="max-width:150px">
+              <option value="">All Status</option>
+              <option>Active</option><option>On Leave</option><option>Resigned</option><option>Terminated</option>
+            </select>
+            <select id="sort-by" class="field-select" style="max-width:170px">
+              <option value="name">Sort: Name</option>
+              <option value="dateHired">Sort: Date Hired</option>
+              <option value="salary">Sort: Salary</option>
+            </select>
+            <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:#64748B"><input type="checkbox" id="chk-archived"> Show archived</label>
+            <div class="view-toggle" style="margin-left:auto">
+              <button id="btn-view-list" class="active"><i class="fa-solid fa-list"></i></button>
+              <button id="btn-view-card"><i class="fa-solid fa-grip"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <div id="emp-list-container"></div>
+      </div>
+
+      <div id="emp-profile-view" style="display:none">
+        <div id="emp-root"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Employee Modal -->
+<div class="modal-backdrop" id="emp-modal" data-modal-id="emp-modal">
+  <div class="modal-box modal-lg">
+    <div class="modal-head">
+      <div class="modal-title" id="emp-modal-title">Add Employee</div>
+      <button class="modal-close" data-modal-close="emp-modal"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form id="emp-form">
+      <input type="hidden" id="emp-form-id">
+      <div class="modal-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="field-group"><label class="field-label">First Name *</label><input class="field-input" id="emp-f-firstName" required></div>
+          <div class="field-group"><label class="field-label">Last Name *</label><input class="field-input" id="emp-f-lastName" required></div>
+          <div class="field-group"><label class="field-label">Position *</label><input class="field-input" id="emp-f-position" required></div>
+          <div class="field-group">
+            <label class="field-label">Department *</label>
+            <select class="field-select" id="emp-f-department" required>
+              <option>Executives</option><option>Admin</option><option>Sales & Marketing</option>
+              <option>Customer Service</option><option>Warehouse</option><option>Logistics</option><option>Business Development</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Employment Type</label>
+            <select class="field-select" id="emp-f-employmentType">
+              <option>Regular</option><option>Probationary</option><option>Contractual</option><option>Part-time</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Status</label>
+            <select class="field-select" id="emp-f-status">
+              <option>Active</option><option>On Leave</option><option>Resigned</option><option>Terminated</option>
+            </select>
+          </div>
+          <div class="field-group"><label class="field-label">Date Hired</label><input type="date" class="field-input" id="emp-f-dateHired"></div>
+          <div class="field-group"><label class="field-label">Date Regularized</label><input type="date" class="field-input" id="emp-f-dateRegularized"></div>
+          <div class="field-group"><label class="field-label">Basic Monthly Salary (₱)</label><input type="number" min="0" step="0.01" class="field-input" id="emp-f-monthlySalary"></div>
+          <div class="field-group"><label class="field-label">Contact Number</label><input class="field-input" id="emp-f-contact"></div>
+          <div class="field-group"><label class="field-label">Personal Email</label><input type="email" class="field-input" id="emp-f-email"></div>
+          <div class="field-group"><label class="field-label">Birthday</label><input type="date" class="field-input" id="emp-f-birthday"></div>
+          <div class="field-group" style="grid-column:1/-1"><label class="field-label">Address</label><input class="field-input" id="emp-f-address"></div>
+          <div class="field-group"><label class="field-label">Emergency Contact Name</label><input class="field-input" id="emp-f-emergencyContactName"></div>
+          <div class="field-group"><label class="field-label">Emergency Contact Number</label><input class="field-input" id="emp-f-emergencyContactNumber"></div>
+          <div class="field-group">
+            <label class="field-label">Civil Status</label>
+            <select class="field-select" id="emp-f-civilStatus"><option>Single</option><option>Married</option><option>Widowed</option><option>Separated</option></select>
+          </div>
+          <div class="field-group"><label class="field-label">SSS Number</label><input class="field-input" id="emp-f-sss"></div>
+          <div class="field-group"><label class="field-label">PhilHealth Number</label><input class="field-input" id="emp-f-philhealth"></div>
+          <div class="field-group"><label class="field-label">Pag-IBIG Number</label><input class="field-input" id="emp-f-pagibig"></div>
+          <div class="field-group"><label class="field-label">TIN</label><input class="field-input" id="emp-f-tin"></div>
+          <div class="field-group"><label class="field-label">Bank Name</label><input class="field-input" id="emp-f-bankName"></div>
+          <div class="field-group"><label class="field-label">Bank Account Number</label><input class="field-input" id="emp-f-bankAccount"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button type="button" class="btn btn-secondary" data-modal-close="emp-modal">Cancel</button>
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check"></i> Save Employee</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="../js/data.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/employees.js"></script>
+</body>
+</html>

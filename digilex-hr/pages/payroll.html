@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Payroll — DIGILEX HR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div id="header-root"></div>
+    <div class="page-body">
+
+      <div class="dlx-card no-print" style="margin-bottom:16px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <select id="pr-month" class="field-select" style="max-width:150px"></select>
+          <input type="number" id="pr-year" class="field-input" style="max-width:100px">
+          <select id="pr-half" class="field-select" style="max-width:190px">
+            <option value="1">First Half (1st–15th)</option>
+            <option value="2">Second Half (16th–30th/31st)</option>
+          </select>
+          <div style="font-weight:700;margin-left:6px" id="payroll-period-label"></div>
+          <span class="badge badge-red no-print" id="payroll-lock-badge" style="display:none"><i class="fa-solid fa-lock"></i> Locked</span>
+          <button class="btn btn-primary" id="btn-process-payroll" style="margin-left:auto"><i class="fa-solid fa-lock"></i> Process Payroll</button>
+        </div>
+      </div>
+
+      <div id="payroll-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px" class="no-print"></div>
+
+      <div class="dlx-card no-print" style="padding:0;overflow-x:auto">
+        <table class="dlx-table">
+          <thead><tr>
+            <th>Employee</th><th>Days</th><th>Basic Pay</th><th>OT (hrs × rate)</th><th>Holiday Pay</th><th>Transport</th><th>Meal</th><th>Other Allow</th>
+            <th>Gross Pay</th><th>SSS</th><th>PhilHealth</th><th>Pag-IBIG</th><th>Tax</th><th>Other Ded.</th><th>Total Ded.</th><th>Net Pay</th><th>Payslip</th>
+          </tr></thead>
+          <tbody id="payroll-body"></tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Payslip Modal -->
+<div class="modal-backdrop" id="payslip-modal" data-modal-id="payslip-modal">
+  <div class="modal-box modal-lg">
+    <div class="modal-head no-print">
+      <div class="modal-title" id="payslip-modal-title">Payslip</div>
+      <button class="modal-close" data-modal-close="payslip-modal"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="payslip-print-area"></div>
+    </div>
+    <div class="modal-foot no-print">
+      <button type="button" class="btn btn-secondary" data-modal-close="payslip-modal">Close</button>
+      <button type="button" class="btn btn-primary" id="btn-print-payslip"><i class="fa-solid fa-print"></i> Print / Download as PDF</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/data.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/payroll.js"></script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — DIGILEX HR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div id="header-root"></div>
+    <div class="page-body">
+
+      <div id="dash-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:20px"></div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px">
+        <a href="pages/employees.html?add=1" class="btn btn-primary"><i class="fa-solid fa-user-plus"></i> Add Employee</a>
+        <a href="pages/attendance.html" class="btn btn-secondary"><i class="fa-solid fa-calendar-check"></i> Log Attendance</a>
+        <a href="pages/payroll.html" class="btn btn-secondary"><i class="fa-solid fa-money-check-dollar"></i> Process Payroll</a>
+        <a href="pages/leave.html" class="btn btn-secondary"><i class="fa-solid fa-plane-departure"></i> New Leave Request</a>
+      </div>
+
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start;margin-bottom:16px">
+        <div style="display:grid;gap:16px">
+          <div class="dlx-card">
+            <div style="font-weight:700;margin-bottom:12px">Department Headcount</div>
+            <canvas id="chart-department" height="160"></canvas>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="dlx-card">
+              <div style="font-weight:700;margin-bottom:12px">Monthly Attendance Rate (6 mo.)</div>
+              <canvas id="chart-attendance-trend" height="180"></canvas>
+            </div>
+            <div class="dlx-card">
+              <div style="font-weight:700;margin-bottom:12px">Leave Type Distribution</div>
+              <canvas id="chart-leave-donut" height="180"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:grid;gap:16px">
+          <div class="dlx-card">
+            <div style="font-weight:700;margin-bottom:10px">Activity Feed</div>
+            <div id="dash-activity-feed"></div>
+          </div>
+          <div class="dlx-card">
+            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.85rem"><span>Pending Leave Requests</span><strong id="dash-pending-leave">0</strong></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.85rem;border-top:1px solid #F1F5F9"><span>Next Payroll In</span><strong id="dash-payroll-countdown">—</strong></div>
+            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.85rem;border-top:1px solid #F1F5F9"><span>New Hires This Month</span><strong id="dash-new-hires">0</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dlx-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-weight:700"><i class="fa-solid fa-bullhorn"></i> Company Announcements</div>
+        </div>
+        <div id="announcement-editor" contenteditable="true" class="field-input" style="min-height:70px;margin-bottom:10px" data-placeholder="Write an announcement..."></div>
+        <button class="btn btn-primary btn-sm" id="btn-save-announcement"><i class="fa-solid fa-paper-plane"></i> Post Announcement</button>
+        <div id="dash-announcements" style="margin-top:16px"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>
