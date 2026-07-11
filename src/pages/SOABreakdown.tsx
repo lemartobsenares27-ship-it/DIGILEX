@@ -24,7 +24,7 @@ export default function SOABreakdown() {
     <div>
       <PageHeader
         title="SOA Breakdown & Verification"
-        description="Proving Digilex remitted you the correct amount — independent recalculation of every SOA batch."
+        description="Proving NPMCM remitted you the correct amount — independent recalculation of every SOA batch."
       />
 
       <Card
@@ -66,14 +66,14 @@ export default function SOABreakdown() {
 
       <Card
         title="Per-Batch SOA Arithmetic Verification"
-        description="Recalculating Digilex's own math from raw figures, independent of their summary line"
+        description="Recalculating NPMCM's own math from raw figures, independent of their summary line"
         className="mb-4"
       >
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-xs">
             <thead>
               <tr style={{ background: 'color-mix(in srgb, var(--text-primary) 3%, transparent)' }}>
-                {['SOA Batch', 'Total COD', 'Recalc COGS', 'Recalc Net COD', 'Recalc Logistics', 'Recalc Payout', 'Digilex Payout', 'Verified?'].map(
+                {['SOA Batch', 'Total COD', 'Recalc COGS', 'Recalc Net COD', 'Recalc Logistics', 'Recalc Payout', 'NPMCM Payout', 'Verified?'].map(
                   (h) => (
                     <th key={h} className="whitespace-nowrap px-2 py-2 text-left font-semibold" style={{ color: 'var(--text-secondary)' }}>
                       {h}
@@ -104,7 +104,7 @@ export default function SOABreakdown() {
                     {formatCurrency(r['Expected Payout (recalc)'])}
                   </td>
                   <td className="px-2 py-1.5 text-right tabular" style={{ color: 'var(--text-primary)' }}>
-                    {formatCurrency(r['Expected Payout per Digilex SOA'])}
+                    {formatCurrency(r['Expected Payout per NPMCM SOA'])}
                   </td>
                   <td className="px-2 py-1.5" style={{ color: 'var(--status-good)' }}>
                     {r['Verified?']}
@@ -143,7 +143,7 @@ export default function SOABreakdown() {
                       {formatCurrency(r['Correct Remittance (confirmed both sides)'])}
                     </td>
                     <td className="px-2 py-1.5 text-right tabular" style={{ color: 'var(--text-primary)' }}>
-                      {formatCurrency(r['Remitted So Far (per Digilex)'])}
+                      {formatCurrency(r['Remitted So Far (per NPMCM)'])}
                     </td>
                     <td className="px-2 py-1.5 text-right tabular font-semibold" style={{ color: 'var(--status-critical)' }}>
                       {formatCurrency(r['Still Outstanding'])}

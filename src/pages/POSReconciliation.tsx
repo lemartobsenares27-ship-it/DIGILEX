@@ -13,8 +13,8 @@ const COLUMNS: ColumnDef<POSReconciliationRow>[] = [
   { key: 'Receiver (POS)', label: 'Receiver', editable: true },
   { key: 'POS Status', label: 'POS Status', type: 'badge', editable: true },
   { key: 'POS Order Price', label: 'Order Price', type: 'currency', editable: true, align: 'right' },
-  { key: 'Digilex Status', label: 'Digilex Status', type: 'badge', editable: true },
-  { key: 'Digilex COD Amount Paid', label: 'COD Paid', type: 'currency', editable: true, align: 'right' },
+  { key: 'NPMCM Status', label: 'NPMCM Status', type: 'badge', editable: true },
+  { key: 'NPMCM COD Amount Paid', label: 'COD Paid', type: 'currency', editable: true, align: 'right' },
   { key: 'Action Needed', label: 'Action Needed', editable: true, width: '260px' },
   { key: 'Date Created (POS)', label: 'Date Created', type: 'date', editable: true },
 ]
@@ -31,7 +31,7 @@ export default function POSReconciliation() {
         ))}
       </div>
 
-      <Card title="Exact RTS Rate" description="Based on your POS's own status field, not Digilex's data" className="mb-4">
+      <Card title="Exact RTS Rate" description="Based on your POS's own status field, not NPMCM's data" className="mb-4">
         <div className="flex flex-wrap items-center gap-6">
           <div>
             <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -75,8 +75,8 @@ export default function POSReconciliation() {
             'Receiver (POS)': '',
             'POS Status': 'Delivered',
             'POS Order Price': 0,
-            'Digilex Status': 'Not yet in Digilex',
-            'Digilex COD Amount Paid': 0,
+            'NPMCM Status': 'Not yet in NPMCM',
+            'NPMCM COD Amount Paid': 0,
             'Action Needed': '',
             'RTS-Eligible Source (Y=full-status export)': 'Y',
             'Pre-Apr-10 Order? (status may be unreliable)': null,

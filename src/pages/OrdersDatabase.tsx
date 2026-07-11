@@ -38,7 +38,7 @@ export default function OrdersDatabase() {
     <div>
       <PageHeader
         title="Orders Database"
-        description="Source: Digilex fulfillment SOAs. Status 'Delivered' means a matching COD collection record was found anywhere across all uploaded SOAs, by tracking number."
+        description="Source: NPMCM fulfillment SOAs. Status 'Delivered' means a matching COD collection record was found anywhere across all uploaded SOAs, by tracking number."
       />
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile label="Total Orders" value={formatNumber(rows.length)} />

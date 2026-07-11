@@ -63,7 +63,7 @@ export async function exportFullWorkbook(): Promise<void> {
     ['Fulfillment Verification', fulfillmentVerification],
     ['POS Order Reconciliation', posReconciliation],
     ['Evidence - Not in SOA', evidence],
-    ['Digilex Follow-Up List', followUp],
+    ['NPMCM Follow-Up List', followUp],
     ['Product Settings', products],
     ['Fixed Monthly Expenses', fixedExpenses],
   ]

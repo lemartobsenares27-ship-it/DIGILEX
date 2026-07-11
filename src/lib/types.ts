@@ -161,7 +161,7 @@ export interface SOAReconciliationRow {
 export interface FulfillmentVerificationRow {
   id?: number
   'Batch Period': string | null
-  'Parcels Fulfilled (Digilex)': number | null
+  'Parcels Fulfilled (NPMCM)': number | null
   'Matched to POS': number | null
   Unmatched: number | null
   'Fee at Risk': number | null
@@ -175,8 +175,8 @@ export interface POSReconciliationRow {
   'Receiver (POS)': string | null
   'POS Status': string | null
   'POS Order Price': number | null
-  'Digilex Status': string | null
-  'Digilex COD Amount Paid': number | null
+  'NPMCM Status': string | null
+  'NPMCM COD Amount Paid': number | null
   'Action Needed': string | null
   'RTS-Eligible Source (Y=full-status export)': string | null
   'Pre-Apr-10 Order? (status may be unreliable)': string | null
@@ -190,8 +190,8 @@ export interface EvidenceRow {
   Product: string | null
   'POS Price': number | null
   'POS Order ID': number | null
-  'Digilex Status': string | null
-  'Digilex Batch (if any)': string | null
+  'NPMCM Status': string | null
+  'NPMCM Batch (if any)': string | null
   'Likely Reason': string | null
   'Date Created (POS)': string | null
   'Date Updated (POS)': string | null
@@ -208,5 +208,5 @@ export interface FollowUpRow {
   'Date Created': string | null
   Reason: string | null
   'Internal Note (remove before sending)': string | null
-  'Digilex Response / Notes': string | null
+  'NPMCM Response / Notes': string | null
 }

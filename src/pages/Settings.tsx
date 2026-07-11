@@ -77,7 +77,7 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        <Card title="Fee Benchmarks" description="Observed averages from Digilex SOAs — for reference only">
+        <Card title="Fee Benchmarks" description="Observed averages from NPMCM SOAs — for reference only">
           <div className="flex flex-col gap-2 text-sm">
             {feeBenchmarks.map((fb) => (
               <div key={fb.label} className="flex items-center justify-between border-b py-1.5 last:border-0" style={{ borderColor: 'var(--border-hairline)' }}>

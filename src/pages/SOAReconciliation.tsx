@@ -26,7 +26,7 @@ export default function SOAReconciliation() {
   const rows = useLiveTable(db.soaReconciliation)
   return (
     <div>
-      <PageHeader title="Fulfillment SOA Reconciliation" description="Each row = one Statement of Account (SOA) batch Digilex sent you." />
+      <PageHeader title="Fulfillment SOA Reconciliation" description="Each row = one Statement of Account (SOA) batch NPMCM sent you." />
       {seed.warning && <NoteBanner>{seed.warning}</NoteBanner>}
       <DataTable
         columns={COLUMNS}

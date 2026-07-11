@@ -49,7 +49,7 @@ export default function IncomeTracker() {
     <div>
       <PageHeader
         title="Income Tracker"
-        description="Every delivered order, sourced from your Digilex fulfillment SOAs. Double-click any cell to edit; totals recalculate automatically."
+        description="Every delivered order, sourced from your NPMCM fulfillment SOAs. Double-click any cell to edit; totals recalculate automatically."
       />
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-5">
         <StatTile label="Today" value={formatCurrency(totals.today)} />
@@ -70,14 +70,14 @@ export default function IncomeTracker() {
         onAdd={() =>
           db.income.add({
             Date: new Date().toISOString().slice(0, 10),
-            Source: 'Digilex COD Sale',
+            Source: 'NPMCM COD Sale',
             'Order ID': '',
             Product: '',
             Customer: '',
             'Selling Price': 0,
             Courier: 'J&T Express',
             'Tracking Number': '',
-            'Fulfillment Company': 'Digilex',
+            'Fulfillment Company': 'NPMCM',
             Status: 'Pending / Unmatched',
             'Amount Received': null,
             'Payout Date': null,

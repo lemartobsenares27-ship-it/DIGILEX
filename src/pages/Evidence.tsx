@@ -12,8 +12,8 @@ const COLUMNS: ColumnDef<EvidenceRow>[] = [
   { key: 'Receiver', label: 'Receiver', editable: true },
   { key: 'Product', label: 'Product', editable: true },
   { key: 'POS Price', label: 'POS Price', type: 'currency', editable: true, align: 'right' },
-  { key: 'Digilex Status', label: 'Digilex Status', type: 'badge', editable: true },
-  { key: 'Digilex Batch (if any)', label: 'Digilex Batch', editable: true },
+  { key: 'NPMCM Status', label: 'NPMCM Status', type: 'badge', editable: true },
+  { key: 'NPMCM Batch (if any)', label: 'NPMCM Batch', editable: true },
   { key: 'Likely Reason', label: 'Likely Reason', editable: true, width: '320px' },
   { key: 'Date Created (POS)', label: 'Date Created', type: 'date', editable: true },
 ]

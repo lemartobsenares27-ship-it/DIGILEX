@@ -10,7 +10,7 @@ import seed from '../data/fulfillmentVerification.json'
 
 const COLUMNS: ColumnDef<FulfillmentVerificationRow>[] = [
   { key: 'Batch Period', label: 'Batch Period', editable: true, width: '180px' },
-  { key: 'Parcels Fulfilled (Digilex)', label: 'Fulfilled', type: 'number', editable: true, align: 'right' },
+  { key: 'Parcels Fulfilled (NPMCM)', label: 'Fulfilled', type: 'number', editable: true, align: 'right' },
   { key: 'Matched to POS', label: 'Matched', type: 'number', editable: true, align: 'right' },
   { key: 'Unmatched', label: 'Unmatched', type: 'number', editable: true, align: 'right' },
   { key: 'Fee at Risk', label: 'Fee at Risk', type: 'currency', editable: true, align: 'right' },
@@ -45,7 +45,7 @@ export default function FulfillmentVerification() {
         onAdd={() =>
           db.fulfillmentVerification.add({
             'Batch Period': '',
-            'Parcels Fulfilled (Digilex)': 0,
+            'Parcels Fulfilled (NPMCM)': 0,
             'Matched to POS': 0,
             Unmatched: 0,
             'Fee at Risk': 0,

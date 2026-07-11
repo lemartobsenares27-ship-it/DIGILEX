@@ -42,7 +42,7 @@ export default function ExpenseTracker() {
     <div>
       <PageHeader
         title="Expense Tracker"
-        description="Rows from your bank statements, Digilex's per-batch deductions, and credit-card statements. Double-click a cell to edit."
+        description="Rows from your bank statements, NPMCM's per-batch deductions, and credit-card statements. Double-click a cell to edit."
       />
 
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">

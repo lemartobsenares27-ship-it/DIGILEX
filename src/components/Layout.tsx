@@ -67,7 +67,7 @@ const NAV: NavGroup[] = [
       { to: '/fulfillment-verification', label: 'Fulfillment Verification', icon: PackageSearch },
       { to: '/pos-reconciliation', label: 'POS Order Reconciliation', icon: ListChecks },
       { to: '/evidence', label: 'Evidence - Not in SOA', icon: FileWarning },
-      { to: '/follow-up', label: 'Digilex Follow-Up List', icon: Send },
+      { to: '/follow-up', label: 'NPMCM Follow-Up List', icon: Send },
     ],
   },
   {

@@ -14,7 +14,7 @@ const COLUMNS: ColumnDef<FollowUpRow>[] = [
   { key: 'Amount (PHP)', label: 'Amount', type: 'currency', editable: true, align: 'right' },
   { key: 'Date Created', label: 'Date Created', type: 'date', editable: true },
   { key: 'Reason', label: 'Reason', editable: true, width: '300px' },
-  { key: 'Digilex Response / Notes', label: 'Digilex Response', editable: true, width: '260px' },
+  { key: 'NPMCM Response / Notes', label: 'NPMCM Response', editable: true, width: '260px' },
 ]
 
 export default function FollowUpList() {
@@ -22,7 +22,7 @@ export default function FollowUpList() {
   return (
     <div>
       <PageHeader
-        title="For Digilex — Follow-Up List"
+        title="For NPMCM — Follow-Up List"
         description={seed.meta.purpose}
         actions={
           <button
@@ -30,7 +30,7 @@ export default function FollowUpList() {
             className="rounded-lg border px-3 py-1.5 text-xs font-medium"
             style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-secondary)' }}
           >
-            Print / Export for Digilex
+            Print / Export for NPMCM
           </button>
         }
       />
@@ -56,7 +56,7 @@ export default function FollowUpList() {
             'Date Created': new Date().toISOString().slice(0, 10),
             Reason: '',
             'Internal Note (remove before sending)': null,
-            'Digilex Response / Notes': null,
+            'NPMCM Response / Notes': null,
           })
         }
       />
