@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Download, RotateCcw } from 'lucide-react'
+import { Download, RotateCcw, Plus, Trash2 } from 'lucide-react'
 import { db, resetAndReseed } from '../lib/db'
 import { useLiveTable } from '../hooks/useLiveTable'
 import { useMeta } from '../hooks/useMeta'
@@ -7,6 +7,7 @@ import PageHeader from '../components/PageHeader'
 import Card from '../components/Card'
 import DataTable, { type ColumnDef } from '../components/DataTable'
 import { exportFullWorkbook } from '../lib/exportWorkbook'
+import { applyRules } from '../lib/import/categorize'
 import type { ProductRow, FixedExpenseRow } from '../lib/db'
 
 interface Business {
@@ -24,6 +25,7 @@ interface FeeBenchmark {
 
 const PRODUCT_COLUMNS: ColumnDef<ProductRow>[] = [
   { key: 'Product / SKU', label: 'Product / SKU', editable: true, width: '260px' },
+  { key: 'quantityOnHand', label: 'Stock on Hand', type: 'number', editable: true, align: 'right' },
   { key: 'Selling Price', label: 'Selling Price', type: 'currency', editable: true, align: 'right' },
   { key: 'Base Product Cost', label: 'Base Cost', type: 'currency', editable: true, align: 'right' },
   { key: 'Markup %', label: 'Markup %', type: 'percent', editable: true, align: 'right' },
@@ -100,6 +102,7 @@ export default function SettingsPage() {
           onAdd={() =>
             db.products.add({
               'Product / SKU': '',
+              quantityOnHand: 0,
               'Selling Price': 0,
               'Base Product Cost': 0,
               'Markup %': 0.15,
@@ -121,6 +124,8 @@ export default function SettingsPage() {
           onAdd={() => db.fixedExpenses.add({ Item: '', 'Monthly Amount': 0 })}
         />
       </Card>
+
+      <CategorizationRulesCard />
 
       <Card title="Data Management">
         <div className="flex flex-wrap gap-3">
@@ -148,5 +153,144 @@ export default function SettingsPage() {
         </p>
       </Card>
     </div>
+  )
+}
+
+function CategorizationRulesCard() {
+  const rules = useLiveTable(db.categorizationRules)
+  const [testInput, setTestInput] = useState('')
+  const [newKeywords, setNewKeywords] = useState('')
+  const [newCategory, setNewCategory] = useState('')
+  const [newDepartment, setNewDepartment] = useState('')
+
+  const testResult = testInput ? applyRules(testInput, rules) : null
+
+  async function addRule() {
+    if (!newKeywords.trim() || !newCategory.trim()) return
+    await db.categorizationRules.add({
+      keywords: newKeywords.split(',').map((k) => k.trim()).filter(Boolean),
+      category: newCategory.trim(),
+      department: newDepartment.trim() || 'Admin',
+    })
+    setNewKeywords('')
+    setNewCategory('')
+    setNewDepartment('')
+  }
+
+  return (
+    <Card
+      title="Categorization Rules"
+      description="Keyword rules the Import Center uses to auto-categorize bank/expense transactions. Applied to every future import automatically."
+      className="mb-4"
+    >
+      <div className="mb-4 flex flex-wrap items-end gap-2 rounded-lg border p-3" style={{ borderColor: 'var(--border-hairline)' }}>
+        <label className="flex flex-col gap-1 text-xs">
+          <span style={{ color: 'var(--text-muted)' }}>Test a description</span>
+          <input
+            value={testInput}
+            onChange={(e) => setTestInput(e.target.value)}
+            placeholder="e.g. FACEBK *AB12CD3 FACEBOOK.COM"
+            className="w-64 rounded-lg border px-2.5 py-1.5"
+            style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)', background: 'var(--surface-page)' }}
+          />
+        </label>
+        {testResult && (
+          <div className="text-xs" style={{ color: testResult.matchedRule ? 'var(--status-good)' : 'var(--text-muted)' }}>
+            → {testResult.category} / {testResult.department}
+            {!testResult.matchedRule && ' (no rule matched — fallback)'}
+          </div>
+        )}
+      </div>
+
+      <div className="mb-4 overflow-x-auto">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr style={{ background: 'color-mix(in srgb, var(--text-primary) 3%, transparent)' }}>
+              {['Keywords', 'Category', 'Department', ''].map((h) => (
+                <th key={h} className="whitespace-nowrap px-3 py-2 text-left text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rules.map((r) => (
+              <tr key={r.id} className="border-t" style={{ borderColor: 'var(--border-hairline)' }}>
+                <td className="px-3 py-2">
+                  <input
+                    defaultValue={r.keywords.join(', ')}
+                    onBlur={(e) =>
+                      db.categorizationRules.update(r.id!, {
+                        keywords: e.target.value.split(',').map((k) => k.trim()).filter(Boolean),
+                      })
+                    }
+                    className="w-full min-w-[200px] rounded border bg-transparent px-1.5 py-1 text-xs"
+                    style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)' }}
+                  />
+                </td>
+                <td className="px-3 py-2">
+                  <input
+                    defaultValue={r.category}
+                    onBlur={(e) => db.categorizationRules.update(r.id!, { category: e.target.value })}
+                    className="w-full min-w-[160px] rounded border bg-transparent px-1.5 py-1 text-xs"
+                    style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)' }}
+                  />
+                </td>
+                <td className="px-3 py-2">
+                  <input
+                    defaultValue={r.department}
+                    onBlur={(e) => db.categorizationRules.update(r.id!, { department: e.target.value })}
+                    className="w-full min-w-[140px] rounded border bg-transparent px-1.5 py-1 text-xs"
+                    style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)' }}
+                  />
+                </td>
+                <td className="px-3 py-2 text-right">
+                  <button onClick={() => db.categorizationRules.delete(r.id!)} style={{ color: 'var(--text-muted)' }}>
+                    <Trash2 size={14} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-2 rounded-lg border p-3" style={{ borderColor: 'var(--border-hairline)' }}>
+        <label className="flex flex-col gap-1 text-xs">
+          <span style={{ color: 'var(--text-muted)' }}>Keywords (comma-separated)</span>
+          <input
+            value={newKeywords}
+            onChange={(e) => setNewKeywords(e.target.value)}
+            className="w-56 rounded-lg border px-2.5 py-1.5"
+            style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)', background: 'var(--surface-page)' }}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          <span style={{ color: 'var(--text-muted)' }}>Category</span>
+          <input
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            className="w-48 rounded-lg border px-2.5 py-1.5"
+            style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)', background: 'var(--surface-page)' }}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          <span style={{ color: 'var(--text-muted)' }}>Department</span>
+          <input
+            value={newDepartment}
+            onChange={(e) => setNewDepartment(e.target.value)}
+            className="w-40 rounded-lg border px-2.5 py-1.5"
+            style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)', background: 'var(--surface-page)' }}
+          />
+        </label>
+        <button
+          onClick={addRule}
+          className="flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium"
+          style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-secondary)' }}
+        >
+          <Plus size={14} /> Add rule
+        </button>
+      </div>
+    </Card>
   )
 }

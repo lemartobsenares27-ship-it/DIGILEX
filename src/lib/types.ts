@@ -13,6 +13,7 @@ export interface IncomeRow {
   'Amount Received': number | null
   'Payout Date': string | null
   Notes: string | null
+  Department?: string | null
 }
 
 export interface ExpenseRow {
@@ -25,6 +26,7 @@ export interface ExpenseRow {
   Supplier: string | null
   'Reference Number': string | null
   Notes: string | null
+  Department?: string | null
 }
 
 export interface FBAccountRow {
@@ -48,6 +50,15 @@ export interface FBTxnRow {
   'Data Source': string | null
   'On File Card Statement?': string | null
   Notes: string | null
+  Campaign?: string | null
+  'Ad Set'?: string | null
+  Impressions?: number | null
+  'Link Clicks'?: number | null
+  CTR?: number | null
+  CPC?: number | null
+  CPM?: number | null
+  Results?: number | null
+  ROAS?: number | null
 }
 
 export interface CreditCardRow {

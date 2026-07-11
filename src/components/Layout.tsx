@@ -15,6 +15,7 @@ import {
   ListChecks,
   FileWarning,
   Send,
+  Upload,
   Settings as SettingsIcon,
   Sun,
   Moon,
@@ -22,11 +23,14 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTheme } from '../hooks/useTheme'
+import { useLiveTable } from '../hooks/useLiveTable'
+import { db } from '../lib/db'
 
 interface NavItem {
   to: string
   label: string
   icon: typeof LayoutDashboard
+  badge?: number
 }
 
 interface NavGroup {
@@ -72,9 +76,25 @@ const NAV: NavGroup[] = [
   },
 ]
 
+function todaysImportCount(batches: { importedAt: string }[]): number {
+  const today = new Date().toDateString()
+  return batches.filter((b) => new Date(b.importedAt).toDateString() === today).length
+}
+
 export default function Layout() {
   const [theme, toggleTheme] = useTheme()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const importBatches = useLiveTable(db.importBatches)
+  const importCountToday = todaysImportCount(importBatches)
+
+  const nav: NavGroup[] = [
+    ...NAV.slice(0, 3),
+    {
+      title: 'Data Import',
+      items: [{ to: '/import-center', label: 'Import Center', icon: Upload, badge: importCountToday || undefined }],
+    },
+    ...NAV.slice(3),
+  ]
 
   return (
     <div className="flex min-h-screen" style={{ background: 'var(--surface-page)' }}>
@@ -103,7 +123,7 @@ export default function Layout() {
           </div>
         </div>
         <nav className="px-3 pb-8">
-          {NAV.map((group) => (
+          {nav.map((group) => (
             <div key={group.title} className="mb-5">
               <div
                 className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wide"
@@ -112,7 +132,7 @@ export default function Layout() {
                 {group.title}
               </div>
               <div className="flex flex-col gap-0.5">
-                {group.items.map(({ to, label, icon: Icon }) => (
+                {group.items.map(({ to, label, icon: Icon, badge }) => (
                   <NavLink
                     key={to}
                     to={to}
@@ -129,7 +149,15 @@ export default function Layout() {
                     })}
                   >
                     <Icon size={16} strokeWidth={2} />
-                    <span className="truncate">{label}</span>
+                    <span className="flex-1 truncate">{label}</span>
+                    {!!badge && (
+                      <span
+                        className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                        style={{ background: 'var(--series-blue)' }}
+                      >
+                        {badge}
+                      </span>
+                    )}
                   </NavLink>
                 ))}
               </div>

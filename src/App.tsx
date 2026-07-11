@@ -19,6 +19,7 @@ const FulfillmentVerification = lazy(() => import('./pages/FulfillmentVerificati
 const POSReconciliation = lazy(() => import('./pages/POSReconciliation'))
 const Evidence = lazy(() => import('./pages/Evidence'))
 const FollowUpList = lazy(() => import('./pages/FollowUpList'))
+const ImportCenter = lazy(() => import('./pages/ImportCenter'))
 const SettingsPage = lazy(() => import('./pages/Settings'))
 
 function LoadingScreen({ label }: { label: string }) {
@@ -62,6 +63,7 @@ export default function App() {
           <Route path="/pos-reconciliation" element={<POSReconciliation />} />
           <Route path="/evidence" element={<Evidence />} />
           <Route path="/follow-up" element={<FollowUpList />} />
+          <Route path="/import-center" element={<ImportCenter />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

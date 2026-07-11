@@ -16,6 +16,7 @@ import type {
   EvidenceRow,
   FollowUpRow,
 } from './types'
+import { DEFAULT_CATEGORIZATION_RULES } from './import/defaultRules'
 
 export interface KeyValueRow {
   key: string
@@ -30,6 +31,47 @@ export interface ProductRow {
   'Markup %': number | null
   'Total Cost of Goods': number | null
   Notes: string | null
+  quantityOnHand?: number | null
+}
+
+export interface ImportBatchRow {
+  id?: number
+  type: 'bank-soa' | 'facebook-ads' | 'courier' | 'pancake-pos' | 'purchase-order'
+  fileName: string
+  importedAt: string
+  status: 'success' | 'partial' | 'failed' | 'reversed'
+  recordsImported: number
+  recordsSkipped: number
+  summary: string
+  reversedAt?: string | null
+}
+
+export interface ImportAuditLogRow {
+  id?: number
+  batchId: number
+  tableName: 'income' | 'expenses' | 'cashFlow' | 'orders' | 'products' | 'fbTxns'
+  action: 'insert' | 'update'
+  rowId: number
+  previousValues: Record<string, unknown> | null
+}
+
+export interface CategorizationRuleRow {
+  id?: number
+  keywords: string[]
+  category: string
+  department: string
+}
+
+export interface CourierColumnMappingRow {
+  id?: number
+  courierName: string
+  mapping: Record<string, string>
+}
+
+export interface ProductNameMappingRow {
+  id?: number
+  rawName: string
+  mappedSku: string
 }
 
 export interface FixedExpenseRow {
@@ -68,6 +110,11 @@ class DigilexDB extends Dexie {
   products!: Table<ProductRow, number>
   fixedExpenses!: Table<FixedExpenseRow, number>
   meta!: Table<KeyValueRow, string>
+  importBatches!: Table<ImportBatchRow, number>
+  importAuditLog!: Table<ImportAuditLogRow, number>
+  categorizationRules!: Table<CategorizationRuleRow, number>
+  courierColumnMappings!: Table<CourierColumnMappingRow, number>
+  productNameMappings!: Table<ProductNameMappingRow, number>
 
   constructor() {
     super('digilex-financial-control-center')
@@ -91,6 +138,13 @@ class DigilexDB extends Dexie {
       products: '++id',
       fixedExpenses: '++id',
       meta: 'key',
+    })
+    this.version(2).stores({
+      importBatches: '++id, type, importedAt',
+      importAuditLog: '++id, batchId',
+      categorizationRules: '++id',
+      courierColumnMappings: '++id, courierName',
+      productNameMappings: '++id, rawName',
     })
   }
 }
@@ -116,7 +170,10 @@ export function ensureSeeded(): Promise<void> {
 
 async function ensureSeededOnce(): Promise<void> {
   const seeded = await db.meta.get('seeded')
-  if (seeded?.value) return
+  if (seeded?.value) {
+    await ensureDefaultCategorizationRules()
+    return
+  }
 
   const [
     incomeTracker,
@@ -224,6 +281,13 @@ async function ensureSeededOnce(): Promise<void> {
       await db.meta.put({ key: 'seeded', value: true })
     },
   )
+  await ensureDefaultCategorizationRules()
+}
+
+export async function ensureDefaultCategorizationRules(): Promise<void> {
+  const count = await db.categorizationRules.count()
+  if (count > 0) return
+  await db.categorizationRules.bulkAdd(DEFAULT_CATEGORIZATION_RULES.map((r) => ({ ...r })))
 }
 
 export async function resetAndReseed(): Promise<void> {
@@ -246,7 +310,13 @@ export async function resetAndReseed(): Promise<void> {
     db.followUp.clear(),
     db.products.clear(),
     db.fixedExpenses.clear(),
+    db.importBatches.clear(),
+    db.importAuditLog.clear(),
+    db.categorizationRules.clear(),
+    db.courierColumnMappings.clear(),
+    db.productNameMappings.clear(),
   ])
   await db.meta.delete('seeded')
+  seedingPromise = null
   await ensureSeeded()
 }
