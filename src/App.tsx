@@ -22,25 +22,61 @@ const FollowUpList = lazy(() => import('./pages/FollowUpList'))
 const ImportCenter = lazy(() => import('./pages/ImportCenter'))
 const SettingsPage = lazy(() => import('./pages/Settings'))
 
-function LoadingScreen({ label }: { label: string }) {
+function LoadingScreen({ label, error }: { label: string; error?: string | null }) {
   return (
-    <div className="flex h-screen items-center justify-center" style={{ background: 'var(--surface-page)' }}>
+    <div className="flex h-screen flex-col items-center justify-center gap-3 px-6 text-center" style={{ background: 'var(--surface-page)' }}>
       <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
         {label}
       </div>
+      {error && (
+        <>
+          <p className="max-w-md text-sm" style={{ color: 'var(--status-critical)' }}>
+            {error}
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
+            style={{ background: 'var(--series-blue)' }}
+          >
+            Reload
+          </button>
+        </>
+      )}
     </div>
   )
 }
 
 export default function App() {
   const [ready, setReady] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    ensureSeeded().then(() => setReady(true))
+    let settled = false
+    const timeout = setTimeout(() => {
+      if (!settled) {
+        setError(
+          'This is taking longer than expected. If this app is open in another browser tab, close that tab and reload. Otherwise, try reloading this page.',
+        )
+      }
+    }, 12000)
+
+    ensureSeeded()
+      .then(() => {
+        settled = true
+        clearTimeout(timeout)
+        setReady(true)
+      })
+      .catch((err: unknown) => {
+        settled = true
+        clearTimeout(timeout)
+        setError(err instanceof Error ? err.message : 'Something went wrong while loading your data. Please reload.')
+      })
+
+    return () => clearTimeout(timeout)
   }, [])
 
   if (!ready) {
-    return <LoadingScreen label="Loading Digilex Financial Control Center…" />
+    return <LoadingScreen label="Loading Digilex Financial Control Center…" error={error} />
   }
 
   return (

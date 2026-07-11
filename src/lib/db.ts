@@ -151,6 +151,17 @@ class DigilexDB extends Dexie {
 
 export const db = new DigilexDB()
 
+// If another tab has an older schema version open, IndexedDB blocks this
+// tab's upgrade indefinitely until that connection closes. Ask the older
+// tab to close itself, and surface the (otherwise silent) block here.
+db.on('versionchange', () => {
+  db.close()
+  window.location.reload()
+})
+db.on('blocked', () => {
+  console.warn('Digilex database upgrade is blocked by another open tab of this app.')
+})
+
 async function loadJson<T>(name: string): Promise<T> {
   const mod = (await import(`../data/${name}.json`)) as { default: T }
   return mod.default
