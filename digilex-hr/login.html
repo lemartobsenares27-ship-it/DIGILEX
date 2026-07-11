@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign In — DIGILEX HR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body style="background:var(--dlx-primary);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px">
+
+  <div style="width:100%;max-width:400px">
+    <div style="text-align:center;margin-bottom:24px">
+      <div class="brand-mark" style="width:52px;height:52px;font-size:1.4rem;margin:0 auto 12px">D</div>
+      <div style="color:#fff;font-weight:800;font-size:1.3rem;letter-spacing:.03em">DIGILEX HR</div>
+      <div style="color:#94A3B8;font-size:.82rem;margin-top:2px">Sign in to your account</div>
+    </div>
+
+    <div class="dlx-card">
+      <form id="login-form">
+        <div class="field-group">
+          <label class="field-label">Employee ID</label>
+          <input class="field-input" id="login-username" placeholder="e.g. DLX-002" autocomplete="username" required>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <input type="password" class="field-input" id="login-password" placeholder="••••••••" autocomplete="current-password" required>
+        </div>
+        <div id="login-error" style="display:none;color:var(--dlx-danger);font-size:.8rem;margin-bottom:14px"></div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
+      </form>
+    </div>
+
+    <div class="dlx-card" style="margin-top:14px;background:#F8FAFC">
+      <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#64748B;margin-bottom:8px">Demo accounts</div>
+      <div style="font-size:.8rem;color:#475569;line-height:1.6">
+        <strong>Admin</strong> — ID <code>DLX-001</code>, password <code>digilex123</code><br>
+        <strong>Employee</strong> — any other ID (e.g. <code>DLX-002</code>), password <code>digilex123</code>
+      </div>
+    </div>
+  </div>
+
+<script src="js/data.js"></script>
+<script src="js/auth.js"></script>
+<script>
+  (function () {
+    var existing = DigilexAuth.getSession();
+    if (existing) { location.href = DigilexAuth.landingPageFor(existing.role); return; }
+
+    document.getElementById("login-form").addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var username = document.getElementById("login-username").value;
+      var password = document.getElementById("login-password").value;
+      var account = DigilexAuth.login(username, password);
+      var errEl = document.getElementById("login-error");
+      if (!account) {
+        errEl.textContent = "Invalid Employee ID or password.";
+        errEl.style.display = "block";
+        return;
+      }
+      location.href = DigilexAuth.landingPageFor(account.role);
+    });
+  })();
+</script>
+</body>
+</html>

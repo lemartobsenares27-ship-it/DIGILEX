@@ -49,6 +49,8 @@
 
   function resetDemoData() {
     Object.keys(STORE_KEYS).forEach(function (k) { localStorage.removeItem(STORE_KEYS[k]); });
+    localStorage.removeItem("digilex_hr_accounts");
+    if (global.DigilexAuth) global.DigilexAuth.ensureAccountsSeeded(true); // session is left intact
     ensureSeeded();
   }
 
@@ -267,9 +269,21 @@
     { key: "settings", label: "Settings", icon: "fa-gear", href: navHref("settings", "settings.html") },
   ];
 
+  function currentUser() {
+    var session = global.DigilexAuth ? global.DigilexAuth.getSession() : null;
+    var employee = session ? Store.getEmployees().find(function (e) { return e.id === session.employeeId; }) : null;
+    if (!employee) return { name: "Lee Obseñares", initials: "LO", role: "Admin" };
+    return {
+      name: employee.firstName + " " + employee.lastName,
+      initials: initials(employee.firstName, employee.lastName),
+      role: session.role === "admin" ? "Admin" : "Employee",
+    };
+  }
+
   function renderChrome(activeKey, pageTitle) {
     var sidebarRoot = document.getElementById("sidebar-root");
     var collapsed = localStorage.getItem("digilex_hr_sidebar_collapsed") === "1";
+    var user = currentUser();
 
     if (sidebarRoot) {
       var navHtml = NAV_ITEMS.map(function (item) {
@@ -290,8 +304,9 @@
         "</div>" +
         '<nav class="sidebar-nav">' + navHtml + "</nav>" +
         '<div class="sidebar-user">' +
-        '<div class="avatar" style="background:#F97316">LO</div>' +
-        '<div class="sidebar-user-info"><div class="sidebar-user-name">Lee Obseñares</div><div class="sidebar-user-role">Admin</div></div>' +
+        '<div class="avatar" style="background:#F97316">' + user.initials + "</div>" +
+        '<div class="sidebar-user-info"><div class="sidebar-user-name">' + escapeHtml(user.name) + '</div><div class="sidebar-user-role">' + user.role + "</div></div>" +
+        '<button class="sidebar-toggle" id="sidebar-logout" title="Logout" style="margin-left:auto"><i class="fa-solid fa-right-from-bracket"></i></button>' +
         "</div>" +
         "</aside>" +
         '<div class="mobile-nav">' +
@@ -307,6 +322,12 @@
           var sidebar = document.getElementById("sidebar");
           var isCollapsed = sidebar.classList.toggle("collapsed");
           localStorage.setItem("digilex_hr_sidebar_collapsed", isCollapsed ? "1" : "0");
+        });
+      }
+      var logoutBtn = document.getElementById("sidebar-logout");
+      if (logoutBtn) {
+        logoutBtn.addEventListener("click", function () {
+          if (global.DigilexAuth) global.DigilexAuth.logout();
         });
       }
     }
@@ -333,7 +354,7 @@
           : '<div class="notif-row notif-empty">You\'re all caught up.</div>') +
         "</div>" +
         "</div>" +
-        '<div class="avatar avatar-sm" style="background:#F97316">LO</div>' +
+        '<div class="avatar avatar-sm" style="background:#F97316">' + user.initials + "</div>" +
         "</div>" +
         "</header>";
 

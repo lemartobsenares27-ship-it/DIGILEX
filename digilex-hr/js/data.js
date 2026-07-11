@@ -448,7 +448,24 @@
     holidays: PH_HOLIDAYS_2026,
   };
 
+  // ---------------------------------------------------------------------
+  // Seed: Employee login accounts (one per employee; DLX-001/Lee is admin)
+  // ---------------------------------------------------------------------
+  var DEFAULT_PASSWORD = "digilex123";
+  function generateSeedAccounts() {
+    return SEED_EMPLOYEES.map(function (e) {
+      return {
+        employeeId: e.id,
+        username: e.id,
+        password: DEFAULT_PASSWORD,
+        role: e.id === "DLX-001" ? "admin" : "employee",
+      };
+    });
+  }
+
   global.DigilexData = {
+    DEFAULT_PASSWORD: DEFAULT_PASSWORD,
+    generateSeedAccounts: generateSeedAccounts,
     DEPARTMENTS: DEPARTMENTS,
     LEAVE_TYPES: LEAVE_TYPES,
     PH_HOLIDAYS: PH_HOLIDAYS_2026,

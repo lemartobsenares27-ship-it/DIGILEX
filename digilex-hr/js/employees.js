@@ -145,9 +145,14 @@
       "</div>" +
       '<div style="display:flex;gap:8px">' +
       '<button class="btn btn-secondary" id="btn-profile-edit"><i class="fa-solid fa-pen"></i> Edit</button>' +
+      '<button class="btn btn-secondary" id="btn-profile-reset-password"><i class="fa-solid fa-key"></i> Reset Password</button>' +
       "</div>" +
       "</div>" +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">' +
+      profileSection("Login Access", [
+        ["Employee ID / Username", e.id],
+        ["Password", "Hidden — use Reset Password"],
+      ]) +
       profileSection("Employment", [
         ["Employee ID", e.id],
         ["Date Hired", X.fmtDate(e.dateHired)],
@@ -185,6 +190,11 @@
       renderMain();
     });
     document.getElementById("btn-profile-edit").addEventListener("click", function () { openEmployeeModal(e.id); });
+    document.getElementById("btn-profile-reset-password").addEventListener("click", function () {
+      if (!confirm("Reset " + fullName(e) + "'s password to the default (digilex123)?")) return;
+      var newPassword = window.DigilexAuth ? window.DigilexAuth.resetPassword(e.id) : null;
+      X.toast(newPassword ? "Password reset to \"" + newPassword + "\"." : "Could not reset password.", newPassword ? "success" : "danger");
+    });
   }
 
   function profileSection(title, rows) {
@@ -239,7 +249,8 @@
       data.id = X.nextEmployeeId(employees);
       data.archived = false;
       employees.push(data);
-      X.toast("Employee added.", "success");
+      if (window.DigilexAuth) window.DigilexAuth.ensureAccountFor(data.id, "employee");
+      X.toast("Employee added. Login account created (default password).", "success");
     }
     Store.setEmployees(employees);
     X.closeModal("emp-modal");

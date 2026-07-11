@@ -198,7 +198,8 @@
     };
     employees.push(newEmp);
     Store.setEmployees(employees);
-    X.toast(newEmp.firstName + " " + newEmp.lastName + " added as employee " + newEmp.id + ".", "success");
+    if (window.DigilexAuth) window.DigilexAuth.ensureAccountFor(newEmp.id, "employee");
+    X.toast(newEmp.firstName + " " + newEmp.lastName + " added as employee " + newEmp.id + " with a login account.", "success");
     X.closeModal("convert-modal");
   }
 

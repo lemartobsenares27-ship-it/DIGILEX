@@ -10,10 +10,33 @@ with Chart.js for the dashboard charts.
 
 ## Opening the app
 
-Double-click `digilex-hr/index.html` (or open it via File → Open in Chrome). That's it —
-the Dashboard loads, and the sidebar links to every module (`pages/*.html`). All data is
-seeded automatically on first load and persisted to `localStorage` from then on, so your
-edits survive a page refresh or browser restart (they live only in that browser profile).
+Double-click `digilex-hr/login.html` (or open it via File → Open in Chrome). You'll land
+on the sign-in screen first — see **Logging in** below. All data is seeded automatically
+on first load and persisted to `localStorage` from then on, so your edits survive a page
+refresh or browser restart (they live only in that browser profile).
+
+## Logging in
+
+Every employee gets their own account (Employee ID as username), so the system knows who's
+logging attendance. Two roles:
+
+- **Admin** (Lee, `DLX-001`) — signs in and lands on the full Dashboard/sidebar app: every
+  module described below.
+- **Employee** (everyone else) — signs in and lands on a lightweight **My Attendance**
+  portal (`pages/portal.html`): their own profile, a Time In / Time Out clock, this
+  month's attendance stats, and their attendance history. They cannot reach the admin
+  pages — trying to open `index.html` or any `pages/*.html` directly redirects them back
+  to their portal.
+
+Default password for every seeded account is **`digilex123`**. From an employee's profile
+in **Employees → [name] → Reset Password**, an admin can reset that employee's password
+back to the default at any time (shown once in a toast so it can be relayed to them).
+New employees (added manually or converted from a job applicant in Recruitment) get a
+login account automatically with the same default password.
+
+This is a client-side demo login (accounts and passwords live in `localStorage`, not a
+real backend) — good enough to gate who can log attendance in an internal tool, not a
+substitute for real authentication if this were ever put on a public server.
 
 > The app is built as a classic multi-page site (each module is its own `.html` file)
 > rather than a single-page app. This is intentional: browsers block `fetch()` between
@@ -25,22 +48,26 @@ edits survive a page refresh or browser restart (they live only in that browser 
 
 ```
 digilex-hr/
-├── index.html          Dashboard (KPIs, charts, activity feed, announcements)
-├── css/styles.css       Design system on top of Tailwind
+├── login.html           Sign-in screen (entry point)
+├── index.html            Admin Dashboard (KPIs, charts, activity feed, announcements)
+├── css/styles.css         Design system on top of Tailwind
 ├── js/
-│   ├── data.js           Seed data + SSS/PhilHealth/Pag-IBIG/TRAIN tax tables
-│   ├── app.js             Shared store, sidebar/header, toasts, modals, utilities
-│   ├── dashboard.js        index.html logic
-│   ├── employees.js        Employee directory
-│   ├── attendance.js       Attendance matrix + logging
-│   ├── payroll.js          Payroll runs + payslips
-│   ├── leave.js             Leave requests, balances, calendar
-│   ├── performance.js       Scorecards + history
-│   ├── recruitment.js       Kanban applicant tracker
-│   ├── documents.js         Document library
-│   └── settings.js          Company settings
+│   ├── data.js              Seed data + SSS/PhilHealth/Pag-IBIG/TRAIN tax tables
+│   ├── auth.js               Login accounts, sessions, role guards
+│   ├── app.js                 Shared store, sidebar/header, toasts, modals, utilities
+│   ├── dashboard.js            index.html logic
+│   ├── employees.js            Employee directory
+│   ├── attendance.js           Attendance matrix + logging (admin)
+│   ├── payroll.js               Payroll runs + payslips
+│   ├── leave.js                  Leave requests, balances, calendar
+│   ├── performance.js            Scorecards + history
+│   ├── recruitment.js            Kanban applicant tracker
+│   ├── documents.js               Document library
+│   ├── settings.js                 Company settings
+│   └── portal.js                    Employee self-service (time in/out)
 └── pages/                  employees.html, attendance.html, payroll.html, leave.html,
-                              performance.html, recruitment.html, documents.html, settings.html
+                              performance.html, recruitment.html, documents.html, settings.html,
+                              portal.html (employee self-service)
 ```
 
 ## Adding an employee
