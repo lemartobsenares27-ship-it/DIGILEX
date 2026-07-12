@@ -12,6 +12,7 @@ import type {
   OrderRow,
   SOAReconciliationRow,
   FulfillmentVerificationRow,
+  UnmatchedFulfillmentFeeRow,
   POSReconciliationRow,
   EvidenceRow,
   FollowUpRow,
@@ -104,6 +105,7 @@ class DigilexDB extends Dexie {
   soaReconciliation!: Table<SOAReconciliationRow, number>
   soaBatches!: Table<SoaBatchRow, number>
   fulfillmentVerification!: Table<FulfillmentVerificationRow, number>
+  unmatchedFulfillmentFees!: Table<UnmatchedFulfillmentFeeRow, number>
   posReconciliation!: Table<POSReconciliationRow, number>
   evidence!: Table<EvidenceRow, number>
   followUp!: Table<FollowUpRow, number>
@@ -146,6 +148,9 @@ class DigilexDB extends Dexie {
       courierColumnMappings: '++id, courierName',
       productNameMappings: '++id, rawName',
     })
+    this.version(3).stores({
+      unmatchedFulfillmentFees: '++id',
+    })
   }
 }
 
@@ -183,6 +188,7 @@ async function ensureSeededOnce(): Promise<void> {
   const seeded = await db.meta.get('seeded')
   if (seeded?.value) {
     await ensureDefaultCategorizationRules()
+    await ensureUnmatchedFulfillmentFeesBackfill()
     return
   }
 
@@ -221,7 +227,7 @@ async function ensureSeededOnce(): Promise<void> {
     loadJson<{ rows: OrderRow[] }>('ordersDatabase'),
     loadJson<{ rows: SOAReconciliationRow[] }>('fulfillmentSOAReconciliation'),
     loadJson<{ batchTable: SoaBatchRow[] }>('soaBreakdown'),
-    loadJson<{ rows: FulfillmentVerificationRow[] }>('fulfillmentVerification'),
+    loadJson<{ rows: FulfillmentVerificationRow[]; unmatchedDetail: UnmatchedFulfillmentFeeRow[] }>('fulfillmentVerification'),
     loadJson<{ rows: POSReconciliationRow[] }>('posOrderReconciliation'),
     loadJson<{ rows: EvidenceRow[] }>('evidenceNotInSOA'),
     loadJson<{ rows: FollowUpRow[] }>('followUpList'),
@@ -259,6 +265,7 @@ async function ensureSeededOnce(): Promise<void> {
       db.soaReconciliation,
       db.soaBatches,
       db.fulfillmentVerification,
+      db.unmatchedFulfillmentFees,
       db.posReconciliation,
       db.evidence,
       db.followUp,
@@ -280,6 +287,7 @@ async function ensureSeededOnce(): Promise<void> {
       await db.soaReconciliation.bulkAdd(fulfillmentSOAReconciliation.rows)
       await db.soaBatches.bulkAdd(soaBreakdown.batchTable)
       await db.fulfillmentVerification.bulkAdd(fulfillmentVerification.rows)
+      await db.unmatchedFulfillmentFees.bulkAdd(fulfillmentVerification.unmatchedDetail)
       await db.posReconciliation.bulkAdd(posOrderReconciliation.rows)
       await db.evidence.bulkAdd(evidenceNotInSOA.rows)
       await db.followUp.bulkAdd(followUpList.rows)
@@ -301,6 +309,13 @@ export async function ensureDefaultCategorizationRules(): Promise<void> {
   await db.categorizationRules.bulkAdd(DEFAULT_CATEGORIZATION_RULES.map((r) => ({ ...r })))
 }
 
+async function ensureUnmatchedFulfillmentFeesBackfill(): Promise<void> {
+  const count = await db.unmatchedFulfillmentFees.count()
+  if (count > 0) return
+  const data = await loadJson<{ unmatchedDetail: UnmatchedFulfillmentFeeRow[] }>('fulfillmentVerification')
+  await db.unmatchedFulfillmentFees.bulkAdd(data.unmatchedDetail)
+}
+
 export async function resetAndReseed(): Promise<void> {
   await Promise.all([
     db.income.clear(),
@@ -316,6 +331,7 @@ export async function resetAndReseed(): Promise<void> {
     db.soaReconciliation.clear(),
     db.soaBatches.clear(),
     db.fulfillmentVerification.clear(),
+    db.unmatchedFulfillmentFees.clear(),
     db.posReconciliation.clear(),
     db.evidence.clear(),
     db.followUp.clear(),

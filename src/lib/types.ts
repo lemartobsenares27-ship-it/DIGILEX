@@ -170,6 +170,16 @@ export interface FulfillmentVerificationRow {
   Status: string | null
 }
 
+export interface UnmatchedFulfillmentFeeRow {
+  id?: number
+  'Tracking Number': string | null
+  Product: string | null
+  Receiver: string | null
+  'Ship Date': string | null
+  'Fee Charged': number | null
+  'Batch Period': string | null
+}
+
 export interface POSReconciliationRow {
   id?: number
   'J&T Tracking Number': string | null
