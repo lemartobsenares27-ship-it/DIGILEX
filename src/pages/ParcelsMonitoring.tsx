@@ -7,6 +7,7 @@ import StatTile from '../components/StatTile'
 import Card from '../components/Card'
 import NoteBanner from '../components/NoteBanner'
 import DataTable, { type ColumnDef } from '../components/DataTable'
+import ParcelsDateRangeFilter, { type MonthOption } from '../components/ParcelsDateRangeFilter'
 import type { OrderRow, SOAReconciliationRow } from '../lib/types'
 import { formatCurrency, formatDate, formatNumber } from '../lib/format'
 
@@ -33,6 +34,24 @@ function isDelivered(status: string | null): boolean {
 
 function isRTS(status: string | null): boolean {
   return (status ?? '').toLowerCase().includes('rts')
+}
+
+function monthOptionsFromDates(dates: string[], minDate: string, maxDate: string): MonthOption[] {
+  const keys = new Set<string>()
+  for (const d of dates) keys.add(d.slice(0, 7))
+  return [...keys].sort().map((key) => {
+    const [y, m] = key.split('-').map(Number)
+    const first = `${key}-01`
+    const lastDay = new Date(y, m, 0).getDate()
+    const last = `${key}-${String(lastDay).padStart(2, '0')}`
+    const label = new Date(`${key}-01T00:00:00`).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    return {
+      key,
+      label,
+      start: first < minDate ? minDate : first,
+      end: last > maxDate ? maxDate : last,
+    }
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -335,7 +354,10 @@ function RemittanceTab({ orders, soaRows }: { orders: OrderRow[]; soaRows: SOARe
           accent={soaTotals.difference < 0 ? 'var(--status-critical)' : 'var(--status-good)'}
         />
       </div>
-      <Card title="Courier SOA Rollup" description="Totals across every uploaded Statement of Account batch">
+      <Card
+        title="Courier SOA Rollup"
+        description="All-time totals across every uploaded Statement of Account batch — not affected by the date filter above"
+      >
         <div className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
           <div>
             <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -383,14 +405,41 @@ function RemittanceTab({ orders, soaRows }: { orders: OrderRow[]; soaRows: SOARe
 // ---------------------------------------------------------------------------
 export default function ParcelsMonitoring() {
   const [tab, setTab] = useState<TabKey>('daily')
+  const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null)
   const orders = useLiveTable(db.orders)
   const soaRows = useLiveTable(db.soaReconciliation)
+
+  const shippedDates = useMemo(
+    () => orders.map((o) => o['Date Ordered (Shipped)']).filter((d): d is string => !!d).sort(),
+    [orders],
+  )
+  const minDate = shippedDates[0] ?? new Date().toISOString().slice(0, 10)
+  const maxDate = shippedDates[shippedDates.length - 1] ?? new Date().toISOString().slice(0, 10)
+  const monthOptions = useMemo(() => monthOptionsFromDates(shippedDates, minDate, maxDate), [shippedDates, minDate, maxDate])
+
+  const { start: rangeStart, end: rangeEnd } = dateRange ?? { start: minDate, end: maxDate }
+
+  const filteredOrders = useMemo(
+    () => orders.filter((o) => {
+      const d = o['Date Ordered (Shipped)']
+      return !!d && d >= rangeStart && d <= rangeEnd
+    }),
+    [orders, rangeStart, rangeEnd],
+  )
 
   return (
     <div>
       <PageHeader
         title="Parcels Monitoring"
         description="Every parcel from your POS orders, tracked end to end — shipped, delivered, RTS, and reconciled against courier remittance, so your bookkeeping stays fully transparent."
+      />
+      <ParcelsDateRangeFilter
+        startDate={rangeStart}
+        endDate={rangeEnd}
+        minDate={minDate}
+        maxDate={maxDate}
+        monthOptions={monthOptions}
+        onChange={(start, end) => setDateRange({ start, end })}
       />
       <div className="mb-4 flex flex-wrap gap-1 border-b" style={{ borderColor: 'var(--border-hairline)' }}>
         {TABS.map((t) => (
@@ -408,10 +457,10 @@ export default function ParcelsMonitoring() {
         ))}
       </div>
 
-      {tab === 'daily' && <DailyOverviewTab orders={orders} />}
-      {tab === 'repeat-customers' && <RepeatCustomersTab orders={orders} />}
-      {tab === 'rts' && <RTSCenterTab orders={orders} />}
-      {tab === 'remittance' && <RemittanceTab orders={orders} soaRows={soaRows} />}
+      {tab === 'daily' && <DailyOverviewTab orders={filteredOrders} />}
+      {tab === 'repeat-customers' && <RepeatCustomersTab orders={filteredOrders} />}
+      {tab === 'rts' && <RTSCenterTab orders={filteredOrders} />}
+      {tab === 'remittance' && <RemittanceTab orders={filteredOrders} soaRows={soaRows} />}
     </div>
   )
 }
