@@ -190,6 +190,7 @@ async function ensureSeededOnce(): Promise<void> {
     await ensureDefaultCategorizationRules()
     await ensureUnmatchedFulfillmentFeesBackfill()
     await ensureRenamedFieldsMigration()
+    await ensureMonthlyPLJuneCorrection()
     return
   }
 
@@ -342,6 +343,37 @@ async function ensureRenamedFieldsMigration(): Promise<void> {
   await migrateTableKey(db.evidence, 'Digilex Status', 'NPMCM Status')
   await migrateTableKey(db.evidence, 'Digilex Batch (if any)', 'NPMCM Batch (if any)')
   await migrateTableKey(db.followUp, 'Digilex Response / Notes', 'NPMCM Response / Notes')
+}
+
+// Browsers seeded before the Jun 30-Jul 6 SOA batch was folded into Orders
+// Database still carry the June 2026 / Total P&L figures as they stood before
+// that batch existed. Correct those specific cells in place, but only where
+// the stored value still exactly matches the stale pre-batch figure — if a
+// user has since typed over a cell themselves, that edit is left alone.
+const MONTHLY_PL_JUNE_CORRECTIONS: Record<string, { stale: { Jun: number; Total: number }; correct: { Jun: number; Total: number } }> = {
+  'Revenue (Delivered COD Sales)': { stale: { Jun: 300010, Total: 1575578 }, correct: { Jun: 307994, Total: 1583562 } },
+  'Cost of Goods Sold': { stale: { Jun: 53227.75, Total: 257550.55 }, correct: { Jun: 54665.25, Total: 258988.05 } },
+  'Fulfillment Cost': { stale: { Jun: 11505, Total: 56970 }, correct: { Jun: 11820, Total: 57285 } },
+  'Courier Fees': { stale: { Jun: 40050.3, Total: 197669.24 }, correct: { Jun: 41185.71, Total: 198804.65 } },
+  'GROSS PROFIT': { stale: { Jun: 99994.95, Total: 706972.62 }, correct: { Jun: 105091.04, Total: 712068.71 } },
+  'Total Expenses (COGS+Ads+Fulfillment+Courier+OpEx)': { stale: { Jun: 219613.34, Total: 937683.36 }, correct: { Jun: 222501.25, Total: 940571.27 } },
+  'NET PROFIT': { stale: { Jun: 80396.66, Total: 637894.64 }, correct: { Jun: 85492.75, Total: 642990.73 } },
+  'Profit Margin %': { stale: { Jun: 0.2679799340022, Total: 0.404863891219603 }, correct: { Jun: 0.27757927102476, Total: 0.406040767585987 } },
+}
+
+async function ensureMonthlyPLJuneCorrection(): Promise<void> {
+  const rows = await db.monthlyPL.toArray()
+  await Promise.all(
+    rows.map(async (r) => {
+      const fix = MONTHLY_PL_JUNE_CORRECTIONS[r['Line Item'] ?? '']
+      if (!fix || r.id == null) return
+      const jun = r['Jun 2026']
+      const total = r['Total']
+      if (jun === fix.stale.Jun && total === fix.stale.Total) {
+        await db.monthlyPL.update(r.id, { 'Jun 2026': fix.correct.Jun, Total: fix.correct.Total })
+      }
+    }),
+  )
 }
 
 export async function resetAndReseed(): Promise<void> {
