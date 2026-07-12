@@ -191,6 +191,7 @@ async function ensureSeededOnce(): Promise<void> {
     await ensureUnmatchedFulfillmentFeesBackfill()
     await ensureRenamedFieldsMigration()
     await ensureMonthlyPLJuneCorrection()
+    await ensureAprilAdSpendBackfill()
     return
   }
 
@@ -374,6 +375,92 @@ async function ensureMonthlyPLJuneCorrection(): Promise<void> {
       }
     }),
   )
+}
+
+// April's real Facebook ad spend was understated: 11 real Meta charges from
+// Apr 9-24 (PHP 80,419.62) sat in Credit Card Reconciliation flagged "outside
+// data window" (MariBank coverage only starts Apr 25) and never reached
+// Expense Tracker / Monthly Bookkeeping / Monthly P&L. This backfills those
+// rows and corrects the dependent P&L lines once, guarded by a meta flag
+// since it adds new rows rather than just patching existing cells.
+const APRIL_AD_SPEND_NEW_EXPENSES: ExpenseRow[] = [
+  { Date: '2026-04-09', Category: 'Facebook Ads (confirmed)', Description: 'RCBC VISA Platinum ...8003 - FACEBK *G352DK5JU2 FACEBOOK.COM IR', Amount: 13332, 'Payment Method': 'Credit Card', Supplier: null, 'Reference Number': null, Notes: 'Confirmed real Meta ad charge from itemized RCBC ...8003 statement. Previously missing from this tracker and Monthly P&L - now posted.' },
+  { Date: '2026-04-10', Category: 'Facebook Ads (confirmed)', Description: 'RCBC VISA Platinum ...8003 - FACEBK *468ZKLHJU2 DUBLIN IR', Amount: 5523.87, 'Payment Method': 'Credit Card', Supplier: null, 'Reference Number': null, Notes: 'Confirmed real Meta ad charge from itemized RCBC ...8003 statement. Previously missing from this tracker and Monthly P&L - now posted.' },
+  { Date: '2026-04-13', Category: 'Facebook Ads (confirmed)', Description: 'RCBC VISA Platinum ...8003 - FACEBK *SVXYTLDJU2 DUBLIN IR', Amount: 3333.06, 'Payment Method': 'Credit Card', Supplier: null, 'Reference Number': null, Notes: 'Confirmed real Meta ad charge from itemized RCBC ...8003 statement. Previously missing from this tracker and Monthly P&L - now posted.' },
+  { Date: '2026-04-13', Category: 'Facebook Ads (confirmed)', Description: 'RCBC VISA Platinum ...8003 - FACEBK *Q9PNCLRJU2 FB.ME/ADS IR', Amount: 1666.53, 'Payment Method': 'Credit Card', Supplier: null, 'Reference Number': null, Notes: 'Confirmed real Meta ad charge from itemized RCBC ...8003 statement. Previously missing from this tracker and Monthly P&L - now posted.' },
+  { Date: '2026-04-13', Category: 'Facebook Ads (confirmed)', Description: 'PNB Mastercard ...7683 - FACEBK *BHD7FN9TD2 FB.ME/ADS IRL', Amount: 640.85, 'Payment Method': 'Credit Card', Supplier: null, 'Reference Number': null, Notes: 'Confirmed real Meta ad charge from itemized PNB ...7683 statement. Previously missing from this tracker and Monthly P&L - now posted.' },
+  { Date: '2026-04-13', Category: 'Facebook Ads (confirmed)', Description: 'PNB Mastercard ...7683 - FACEBK *7DNUGJRSD2 FB.ME/ADS IRL', Amount: 17450, 'Payment Method': 'Credit Card', Supplier: null, 'Reference Number': null, Notes: 'Confirmed real Meta ad charge from itemized PNB ...7683 statement. Previously missing from this tracker and Monthly P&L - now posted.' },
+  { Date: '2026-04-13', Category: 'Facebook Ads (confirmed)', Description: 'PNB Mastercard ...7683 - FACEBK *NUYYNJ9JU2 FB.ME/ADS IRL', Amount: 8332.7, 'Payment Method': 'Credit Card', Supplier: null, 'Reference Number': null, Notes: 'Confirmed real Meta ad charge from itemized PNB ...7683 statement. Previously missing from this tracker and Monthly P&L - now posted.' },
+  { Date: '2026-04-21', Category: 'Facebook Ads (confirmed)', Description: 'BPI Rewards Card ...0222 - Facebk *F9mnulmsd2 Dublin', Amount: 13510.22, 'Payment Method': 'Credit Card', Supplier: null, 'Reference Number': null, Notes: 'Confirmed real Meta ad charge from itemized BPI ...0222 statement. Previously missing from this tracker and Monthly P&L - now posted.' },
+  { Date: '2026-04-21', Category: 'Facebook Ads (confirmed)', Description: 'BPI Rewards Card ...0222 - Facebk *B6pblmhju2 Dublin', Amount: 13465.32, 'Payment Method': 'Credit Card', Supplier: null, 'Reference Number': null, Notes: 'Confirmed real Meta ad charge from itemized BPI ...0222 statement. Previously missing from this tracker and Monthly P&L - now posted.' },
+  { Date: '2026-04-24', Category: 'Facebook Ads (confirmed)', Description: 'RCBC VISA Platinum ...8003 - FACEBK *7HDGHLMJU2 FB.ME/ADS IR', Amount: 1668.06, 'Payment Method': 'Credit Card', Supplier: null, 'Reference Number': null, Notes: 'Confirmed real Meta ad charge from itemized RCBC ...8003 statement. Previously missing from this tracker and Monthly P&L - now posted.' },
+  { Date: '2026-04-24', Category: 'Facebook Ads (confirmed)', Description: 'PNB Mastercard ...7683 - FACEBK *F2Z2MKRSD2 FB.ME/ADS IRL', Amount: 1497.01, 'Payment Method': 'Credit Card', Supplier: null, 'Reference Number': null, Notes: 'Confirmed real Meta ad charge from itemized PNB ...7683 statement. Previously missing from this tracker and Monthly P&L - now posted.' },
+]
+
+const APRIL_AD_SPEND_NEW_BOOKKEEPING: Omit<BookkeepingEntry, 'id'>[] = APRIL_AD_SPEND_NEW_EXPENSES.map((e) => ({
+  month: 'April 2026',
+  section: 'EXPENSES',
+  date: e.Date,
+  type: 'Expense',
+  category: e.Category,
+  description: e.Description,
+  amount: e.Amount,
+  notes: e.Notes,
+}))
+
+const APRIL_AD_SPEND_CC_TARGETS: [string, number][] = [
+  ['2026-04-09', 13332], ['2026-04-10', 5523.87], ['2026-04-13', 3333.06], ['2026-04-13', 1666.53],
+  ['2026-04-13', 640.85], ['2026-04-13', 17450], ['2026-04-13', 8332.7], ['2026-04-21', 13465.32],
+  ['2026-04-21', 13510.22], ['2026-04-24', 1668.06], ['2026-04-24', 1497.01],
+]
+
+const MONTHLY_PL_APRIL_CORRECTIONS: Record<
+  string,
+  { staleApr: number; staleTotalOptions: number[]; correctApr: number; correctTotal: number }
+> = {
+  'Advertising Cost (Facebook Ads)': { staleApr: 28654, staleTotalOptions: [356415.59], correctApr: 109073.62, correctTotal: 436835.21 },
+  'GROSS PROFIT': { staleApr: 541629.4, staleTotalOptions: [706972.62, 712068.71], correctApr: 461209.78, correctTotal: 631649.09 },
+  'Total Expenses (COGS+Ads+Fulfillment+Courier+OpEx)': { staleApr: 304811.6, staleTotalOptions: [937683.36, 940571.27], correctApr: 385231.22, correctTotal: 1020990.89 },
+  'NET PROFIT': { staleApr: 517091.4, staleTotalOptions: [637894.64, 642990.73], correctApr: 436671.78, correctTotal: 562571.11 },
+  'Profit Margin %': { staleApr: 0.629139204991343, staleTotalOptions: [0.404863891219603, 0.406040767585987], correctApr: 0.531293571139173, correctTotal: 0.355256762918029 },
+}
+
+async function ensureAprilAdSpendBackfill(): Promise<void> {
+  const flag = await db.meta.get('aprilAdSpendBackfillV1')
+  if (flag?.value) return
+
+  const expenses = await db.expenses.toArray()
+  const alreadyPosted = expenses.some((r) => r.Date === '2026-04-09' && r.Amount === 13332 && r.Category === 'Facebook Ads (confirmed)')
+  if (!alreadyPosted) {
+    await db.expenses.bulkAdd(APRIL_AD_SPEND_NEW_EXPENSES)
+    await db.bookkeeping.bulkAdd(APRIL_AD_SPEND_NEW_BOOKKEEPING as BookkeepingEntry[])
+
+    const ccRows = await db.creditCard.toArray()
+    await Promise.all(
+      ccRows.map(async (r) => {
+        if (r.id == null) return
+        const isTarget = APRIL_AD_SPEND_CC_TARGETS.some(([date, amount]) => r['Sale Date'] === date && r.Amount === amount)
+        if (isTarget && r['Review Status'] === 'Unverifiable (outside data window)') {
+          await db.creditCard.update(r.id, { 'Review Status': 'Confirmed - posted to Expense Tracker (Apr 2026 Facebook Ads)' })
+        }
+      }),
+    )
+
+    const plRows = await db.monthlyPL.toArray()
+    await Promise.all(
+      plRows.map(async (r) => {
+        const fix = MONTHLY_PL_APRIL_CORRECTIONS[r['Line Item'] ?? '']
+        if (!fix || r.id == null) return
+        const apr = r['Apr 2026']
+        const total = r['Total']
+        if (apr === fix.staleApr && fix.staleTotalOptions.includes(total as number)) {
+          await db.monthlyPL.update(r.id, { 'Apr 2026': fix.correctApr, Total: fix.correctTotal })
+        }
+      }),
+    )
+  }
+
+  await db.meta.put({ key: 'aprilAdSpendBackfillV1', value: true })
 }
 
 export async function resetAndReseed(): Promise<void> {

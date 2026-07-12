@@ -61,13 +61,13 @@ export default function MonthlyBookkeeping() {
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div>
               <h4 className="mb-1 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--status-good)' }}>
-                Income
+                Gross Revenue (before fees — see Expenses, then NET below)
               </h4>
               {m.income.map((e) => (
                 <Row key={e.id} entry={e} />
               ))}
               <div className="mt-2 flex justify-between border-t pt-2 text-sm font-semibold" style={{ borderColor: 'var(--border-strong)', color: 'var(--text-primary)' }}>
-                <span>Total Income (excl. Owner Transfer)</span>
+                <span>Total Gross Revenue (excl. Owner Transfer)</span>
                 <span className="tabular">{formatCurrency(m.incomeTotal)}</span>
               </div>
             </div>
