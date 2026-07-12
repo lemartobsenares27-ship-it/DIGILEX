@@ -189,6 +189,7 @@ async function ensureSeededOnce(): Promise<void> {
   if (seeded?.value) {
     await ensureDefaultCategorizationRules()
     await ensureUnmatchedFulfillmentFeesBackfill()
+    await ensureRenamedFieldsMigration()
     return
   }
 
@@ -314,6 +315,33 @@ async function ensureUnmatchedFulfillmentFeesBackfill(): Promise<void> {
   if (count > 0) return
   const data = await loadJson<{ unmatchedDetail: UnmatchedFulfillmentFeeRow[] }>('fulfillmentVerification')
   await db.unmatchedFulfillmentFees.bulkAdd(data.unmatchedDetail)
+}
+
+// Browsers seeded before certain fields were renamed (e.g. "Digilex Status" ->
+// "NPMCM Status") still have rows carrying the old key, which the current
+// code no longer reads — those columns render blank even though the data is
+// there. Repair rows in place (preserving every other field, including any
+// user edits or imports) rather than requiring a full reset.
+async function migrateTableKey<T extends { id?: number }>(table: Table<T, number>, oldKey: string, newKey: string): Promise<void> {
+  const all = await table.toArray()
+  const stale = all.filter((r) => Object.prototype.hasOwnProperty.call(r, oldKey))
+  if (stale.length === 0) return
+  await Promise.all(
+    stale.map((r) => {
+      const rec = r as unknown as Record<string, unknown>
+      const { [oldKey]: value, ...rest } = rec
+      return table.put({ ...rest, [newKey]: value } as T)
+    }),
+  )
+}
+
+async function ensureRenamedFieldsMigration(): Promise<void> {
+  await migrateTableKey(db.fulfillmentVerification, 'Parcels Fulfilled (Digilex)', 'Parcels Fulfilled (NPMCM)')
+  await migrateTableKey(db.posReconciliation, 'Digilex Status', 'NPMCM Status')
+  await migrateTableKey(db.posReconciliation, 'Digilex COD Amount Paid', 'NPMCM COD Amount Paid')
+  await migrateTableKey(db.evidence, 'Digilex Status', 'NPMCM Status')
+  await migrateTableKey(db.evidence, 'Digilex Batch (if any)', 'NPMCM Batch (if any)')
+  await migrateTableKey(db.followUp, 'Digilex Response / Notes', 'NPMCM Response / Notes')
 }
 
 export async function resetAndReseed(): Promise<void> {
