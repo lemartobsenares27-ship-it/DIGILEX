@@ -306,7 +306,8 @@
         '<div class="sidebar-user">' +
         '<div class="avatar" style="background:#F97316">' + user.initials + "</div>" +
         '<div class="sidebar-user-info"><div class="sidebar-user-name">' + escapeHtml(user.name) + '</div><div class="sidebar-user-role">' + user.role + "</div></div>" +
-        '<button class="sidebar-toggle" id="sidebar-logout" title="Logout" style="margin-left:auto"><i class="fa-solid fa-right-from-bracket"></i></button>' +
+        '<button class="sidebar-toggle" id="sidebar-change-password" title="Change Password" style="margin-left:auto"><i class="fa-solid fa-key"></i></button>' +
+        '<button class="sidebar-toggle" id="sidebar-logout" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>' +
         "</div>" +
         "</aside>" +
         '<div class="mobile-nav">' +
@@ -328,6 +329,12 @@
       if (logoutBtn) {
         logoutBtn.addEventListener("click", function () {
           if (global.DigilexAuth) global.DigilexAuth.logout();
+        });
+      }
+      var changePasswordBtn = document.getElementById("sidebar-change-password");
+      if (changePasswordBtn) {
+        changePasswordBtn.addEventListener("click", function () {
+          if (global.DigilexAuth) global.DigilexAuth.openChangePasswordModal();
         });
       }
     }

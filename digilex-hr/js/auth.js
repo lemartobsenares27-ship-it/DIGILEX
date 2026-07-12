@@ -97,6 +97,74 @@
     return session;
   }
 
+  // ---------------------------------------------------------------------
+  // Self-service "Change Password" modal (injected on first use so any
+  // page that loads auth.js + app.js can offer it without extra markup)
+  // ---------------------------------------------------------------------
+  function injectChangePasswordModal() {
+    if (document.getElementById("dlx-cp-modal")) return;
+    var wrap = document.createElement("div");
+    wrap.innerHTML =
+      '<div class="modal-backdrop" id="dlx-cp-modal" data-modal-id="dlx-cp-modal">' +
+      '<div class="modal-box" style="max-width:400px">' +
+      '<div class="modal-head"><div class="modal-title">Change Password</div>' +
+      '<button type="button" class="modal-close" data-modal-close="dlx-cp-modal"><i class="fa-solid fa-xmark"></i></button></div>' +
+      '<form id="dlx-cp-form">' +
+      '<div class="modal-body">' +
+      '<div id="dlx-cp-error" style="display:none;color:var(--dlx-danger);font-size:.8rem;margin-bottom:12px"></div>' +
+      '<div class="field-group"><label class="field-label">Current Password</label><input type="password" class="field-input" id="dlx-cp-current" autocomplete="current-password" required></div>' +
+      '<div class="field-group"><label class="field-label">New Password</label><input type="password" class="field-input" id="dlx-cp-new" autocomplete="new-password" required></div>' +
+      '<div class="field-group"><label class="field-label">Confirm New Password</label><input type="password" class="field-input" id="dlx-cp-confirm" autocomplete="new-password" required></div>' +
+      "</div>" +
+      '<div class="modal-foot">' +
+      '<button type="button" class="btn btn-secondary" data-modal-close="dlx-cp-modal">Cancel</button>' +
+      '<button type="submit" class="btn btn-primary"><i class="fa-solid fa-key"></i> Update Password</button>' +
+      "</div>" +
+      "</form></div></div>";
+    document.body.appendChild(wrap.firstElementChild);
+
+    document.getElementById("dlx-cp-form").addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var session = getSession();
+      var errEl = document.getElementById("dlx-cp-error");
+      errEl.style.display = "none";
+      var current = document.getElementById("dlx-cp-current").value;
+      var next = document.getElementById("dlx-cp-new").value;
+      var confirmVal = document.getElementById("dlx-cp-confirm").value;
+      if (next.length < 4) {
+        errEl.textContent = "New password must be at least 4 characters.";
+        errEl.style.display = "block";
+        return;
+      }
+      if (next !== confirmVal) {
+        errEl.textContent = "New passwords do not match.";
+        errEl.style.display = "block";
+        return;
+      }
+      var ok = session && changePassword(session.employeeId, current, next);
+      if (!ok) {
+        errEl.textContent = "Current password is incorrect.";
+        errEl.style.display = "block";
+        return;
+      }
+      document.getElementById("dlx-cp-form").reset();
+      if (global.Digilex) {
+        global.Digilex.closeModal("dlx-cp-modal");
+        global.Digilex.toast("Password changed successfully.", "success");
+      } else {
+        document.getElementById("dlx-cp-modal").classList.remove("open");
+      }
+    });
+  }
+
+  function openChangePasswordModal() {
+    injectChangePasswordModal();
+    document.getElementById("dlx-cp-form").reset();
+    document.getElementById("dlx-cp-error").style.display = "none";
+    if (global.Digilex) global.Digilex.openModal("dlx-cp-modal");
+    else document.getElementById("dlx-cp-modal").classList.add("open");
+  }
+
   global.DigilexAuth = {
     ensureAccountsSeeded: ensureAccountsSeeded,
     getAccounts: getAccounts,
@@ -107,6 +175,7 @@
     ensureAccountFor: ensureAccountFor,
     resetPassword: resetPassword,
     changePassword: changePassword,
+    openChangePasswordModal: openChangePasswordModal,
     requireRole: requireRole,
     landingPageFor: landingPageFor,
   };

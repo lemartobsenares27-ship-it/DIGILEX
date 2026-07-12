@@ -147,5 +147,6 @@
     document.getElementById("btn-time-in").addEventListener("click", timeIn);
     document.getElementById("btn-time-out").addEventListener("click", timeOut);
     document.getElementById("btn-portal-logout").addEventListener("click", function () { window.DigilexAuth.logout(); });
+    document.getElementById("btn-portal-change-password").addEventListener("click", function () { window.DigilexAuth.openChangePasswordModal(); });
   });
 })();
