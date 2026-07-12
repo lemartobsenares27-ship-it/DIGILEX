@@ -22,6 +22,8 @@ const COLUMNS: ColumnDef<OrderRow>[] = [
     options: ['Delivered', 'Pending / Unmatched', 'Confirmed RTS', 'Cancelled'],
   },
   { key: 'Delivered Date', label: 'Delivered', type: 'date', editable: true },
+  { key: 'RTS Date', label: 'RTS Date', type: 'date', editable: true },
+  { key: 'RTS Reason', label: 'RTS Reason', editable: true, width: '220px' },
   { key: 'Cost of Goods', label: 'COGS', type: 'currency', editable: true, align: 'right' },
   { key: 'Logistics Fee', label: 'Logistics Fee', type: 'currency', editable: true, align: 'right' },
   { key: 'Net Order Profit', label: 'Net Profit', type: 'currency', editable: true, align: 'right' },

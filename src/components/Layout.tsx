@@ -15,6 +15,7 @@ import {
   ListChecks,
   FileWarning,
   Send,
+  Truck,
   Upload,
   Settings as SettingsIcon,
   Sun,
@@ -62,6 +63,7 @@ const NAV: NavGroup[] = [
     title: 'Operations & Audit',
     items: [
       { to: '/orders', label: 'Orders Database', icon: Database },
+      { to: '/parcels-monitoring', label: 'Parcels Monitoring', icon: Truck },
       { to: '/soa-reconciliation', label: 'Fulfillment SOA Reconciliation', icon: ClipboardCheck },
       { to: '/soa-breakdown', label: 'SOA Breakdown & Verification', icon: FileWarning },
       { to: '/fulfillment-verification', label: 'Fulfillment Verification', icon: PackageSearch },

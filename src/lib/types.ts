@@ -136,6 +136,7 @@ export interface OrderRow {
   'Courier Fee (SF+Insurance)': number | null
   'Fulfillment Fee': number | null
   'Duplicate Check': string | null
+  'RTS Reason'?: string | null
 }
 
 export interface SOAReconciliationRow {

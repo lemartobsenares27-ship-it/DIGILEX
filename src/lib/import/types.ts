@@ -74,6 +74,9 @@ export interface POSSaleDraft {
   codFee: number
   shippingFee: number
   notes: string | null
+  /** Date the order's status last changed (e.g. Pancake's "Day updated") — used to
+   *  set Delivered Date / RTS Date when the source file has no separate columns for those. */
+  statusDate: string | null
   include: boolean
   isDuplicate: boolean
 }

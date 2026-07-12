@@ -330,9 +330,17 @@ export async function postPancakePOS(drafts: POSSaleDraft[], fileName: string): 
     return 'Pending / Unmatched'
   }
 
+  const [products, feeBenchmarks] = await Promise.all([db.products.toArray(), db.meta.get('feeBenchmarks')])
+  const productBySku = new Map(products.filter((p) => p['Product / SKU']).map((p) => [p['Product / SKU'], p]))
+  const benchmarks = (feeBenchmarks?.value as { label: string; value: unknown }[] | undefined) ?? []
+  const avgFulfillmentFee = Number(benchmarks.find((b) => b.label.includes('Fulfillment Fee'))?.value ?? 15)
+
   for (const d of included) {
     const amount = d.netAmount || d.totalAmount
     const status = mapStatus(d.status)
+    const product = d.matchedProductSku ? productBySku.get(d.matchedProductSku) : undefined
+    const cogs = product?.['Total Cost of Goods'] ?? 0
+    const logisticsFee = d.shippingFee + avgFulfillmentFee
 
     const incomeId = await db.income.add({
       Date: d.date,
@@ -363,28 +371,29 @@ export async function postPancakePOS(drafts: POSSaleDraft[], fileName: string): 
       Province: null,
       Courier: d.courier,
       Status: status,
-      'Delivered Date': null,
-      'RTS Date': null,
-      'Cost of Goods': 0,
-      'Logistics Fee': d.shippingFee,
-      'Net Order Profit': null,
+      'Delivered Date': status === 'Delivered' ? (d.statusDate ?? d.date) : null,
+      'RTS Date': status === 'Confirmed RTS' ? (d.statusDate ?? d.date) : null,
+      'Cost of Goods': cogs,
+      'Logistics Fee': logisticsFee,
+      'Net Order Profit': amount - cogs - logisticsFee,
       'Payout Batch': null,
-      'Courier Fee (SF+Insurance)': 0,
-      'Fulfillment Fee': 0,
+      'Courier Fee (SF+Insurance)': d.shippingFee,
+      'Fulfillment Fee': avgFulfillmentFee,
       'Duplicate Check': null,
+      'RTS Reason': status === 'Confirmed RTS' ? d.notes : null,
     })
     await logInsert(batchId, 'orders', orderId)
 
-    if (d.matchedProductSku) {
-      const product = (await db.products.toArray()).find((p) => p['Product / SKU'] === d.matchedProductSku)
-      if (product?.id) {
-        const previous = { ...product }
-        const nextQty = (product.quantityOnHand ?? 0) - d.quantity
-        await db.products.update(product.id, { quantityOnHand: nextQty })
-        await logUpdate(batchId, 'products', product.id, previous)
-      }
-    } else {
+    if (!d.matchedProductSku) {
       needsReview++
+    } else if (product?.id) {
+      const previous = { ...product }
+      const nextQty = (product.quantityOnHand ?? 0) - d.quantity
+      await db.products.update(product.id, { quantityOnHand: nextQty })
+      await logUpdate(batchId, 'products', product.id, previous)
+      // Keep the local snapshot in sync so a repeat SKU later in this same
+      // batch decrements from the right running total, not the pre-import one.
+      productBySku.set(d.matchedProductSku, { ...product, quantityOnHand: nextQty })
     }
   }
 
