@@ -439,8 +439,8 @@
   ];
 
   var SEED_SETTINGS = {
-    companyName: "DIGILEX",
-    companyAddress: "Quezon City, Metro Manila, Philippines",
+    companyName: "DIGILEX Solutions Inc.",
+    companyAddress: "Taguig City, Metro Manila, Philippines",
     payrollCutoffDays: [15, 30],
     workHoursStart: "09:00",
     workHoursEnd: "18:00",
