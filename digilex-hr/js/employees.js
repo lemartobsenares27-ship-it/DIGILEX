@@ -322,7 +322,13 @@
     X.renderChrome("employees", "Employee Directory");
     populateFilterOptions();
     bindListEvents();
+    var params = new URLSearchParams(location.search);
+    var deptParam = params.get("department");
+    if (deptParam) {
+      state.department = deptParam;
+      document.getElementById("filter-department").value = deptParam;
+    }
     renderMain();
-    if (new URLSearchParams(location.search).get("add")) openEmployeeModal(null);
+    if (params.get("add")) openEmployeeModal(null);
   });
 })();
