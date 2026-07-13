@@ -16,6 +16,7 @@ import {
   FileWarning,
   Send,
   Truck,
+  Target,
   Upload,
   Settings as SettingsIcon,
   Sun,
@@ -40,6 +41,10 @@ interface NavGroup {
 }
 
 const NAV: NavGroup[] = [
+  {
+    title: 'Business Scorecard',
+    items: [{ to: '/kpi-scorecard', label: 'KPI Scorecard', icon: Target }],
+  },
   {
     title: 'Financials',
     items: [

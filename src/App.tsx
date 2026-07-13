@@ -4,6 +4,7 @@ import Layout from './components/Layout'
 import { ensureSeeded } from './lib/db'
 
 const Overview = lazy(() => import('./pages/Overview'))
+const KPIScorecard = lazy(() => import('./pages/KPIScorecard'))
 const IncomeTracker = lazy(() => import('./pages/IncomeTracker'))
 const ExpenseTracker = lazy(() => import('./pages/ExpenseTracker'))
 const CashFlow = lazy(() => import('./pages/CashFlow'))
@@ -85,6 +86,7 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<Overview />} />
+          <Route path="/kpi-scorecard" element={<KPIScorecard />} />
           <Route path="/income" element={<IncomeTracker />} />
           <Route path="/expenses" element={<ExpenseTracker />} />
           <Route path="/cash-flow" element={<CashFlow />} />
