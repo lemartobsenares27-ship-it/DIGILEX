@@ -79,8 +79,10 @@
     var grossPay = basicPay + otPay + holidayPay + transport + meal + otherAllow;
 
     // No statutory deductions when there's nothing earned this period
-    // (e.g. an owner on ₱0 draw, or a new hire with no attendance logged yet).
-    var hasEarnings = (e.monthlySalary || 0) > 0 && grossPay > 0;
+    // (e.g. an owner on ₱0 draw, or a new hire with no attendance logged yet),
+    // or when the employee is explicitly marked exempt (e.g. an agreed
+    // no-deductions training/trial arrangement).
+    var hasEarnings = (e.monthlySalary || 0) > 0 && grossPay > 0 && !e.noGovernmentDeductions;
     var sssRow = D.computeSss(e.monthlySalary || 0);
     var sssDeduction = hasEarnings ? sssRow.ee / 2 : 0; // semi-monthly share
     var philhealth = D.computePhilHealth(e.monthlySalary || 0);
@@ -214,7 +216,9 @@
       payslipRow("Meal Allowance", line.meal) +
       payslipRow("Other Allowance", line.otherAllow) +
       "<tr style='border-top:1px solid #E2E8F0'><td style='padding:6px 0;font-weight:700'>GROSS PAY</td><td style='text-align:right;font-weight:700;padding:6px 0'>" + X.peso(line.grossPay) + "</td></tr>" +
-      "<tr><td colspan='2' style='font-weight:700;padding:10px 0 6px'>Deductions</td></tr>" +
+      "<tr><td colspan='2' style='font-weight:700;padding:10px 0 6px'>Deductions" +
+      (e.noGovernmentDeductions ? ' <span style="font-weight:400;font-size:.72rem;color:#94A3B8">(exempt per agreement)</span>' : "") +
+      "</td></tr>" +
       payslipRow("SSS Contribution", line.sssDeduction) +
       payslipRow("PhilHealth Contribution", line.philhealthDeduction) +
       payslipRow("Pag-IBIG Contribution", line.pagibigDeduction) +

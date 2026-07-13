@@ -159,6 +159,7 @@
         ["Date Regularized", e.dateRegularized ? X.fmtDate(e.dateRegularized) : "—"],
         ["Employment Type", e.employmentType],
         ["Status", e.status],
+        ["Gov't Deductions", e.noGovernmentDeductions ? "Exempt (per agreement)" : "Standard"],
       ]) +
       profileSection("Compensation", [
         ["Basic Monthly Salary", X.peso(e.monthlySalary)],
@@ -222,6 +223,7 @@
         var el = document.getElementById("emp-f-" + fld);
         if (el) el.value = e[fld] || "";
       });
+      document.getElementById("emp-f-noGovernmentDeductions").checked = !!e.noGovernmentDeductions;
     }
     X.openModal("emp-modal");
   }
@@ -235,6 +237,7 @@
       data[fld] = document.getElementById("emp-f-" + fld).value.trim();
     });
     data.monthlySalary = Number(document.getElementById("emp-f-monthlySalary").value) || 0;
+    data.noGovernmentDeductions = document.getElementById("emp-f-noGovernmentDeductions").checked;
 
     if (!data.firstName || !data.lastName || !data.position || !data.department) {
       X.toast("Please fill in required fields (name, position, department).", "danger");
