@@ -45,9 +45,13 @@
     </div>
     <form id="upload-form">
       <div class="modal-body">
-        <div class="field-group"><label class="field-label">File Name</label><input class="field-input" id="doc-f-name" placeholder="e.g. Updated Employee Handbook v2.0" required></div>
+        <div class="field-group"><label class="field-label">Document Name</label><input class="field-input" id="doc-f-name" placeholder="e.g. Updated Employee Handbook v2.0" required></div>
         <div class="field-group"><label class="field-label">Category</label><select class="field-select" id="doc-f-category"></select></div>
-        <div style="font-size:.75rem;color:#94A3B8"><i class="fa-solid fa-circle-info"></i> This is a demo file library — no actual file bytes are stored.</div>
+        <div class="field-group">
+          <label class="field-label">File (optional — PDF, image, or doc, max 4MB)</label>
+          <input type="file" class="field-input" id="doc-f-file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg">
+        </div>
+        <div style="font-size:.75rem;color:#94A3B8"><i class="fa-solid fa-circle-info"></i> Attach a file to view/download it later. Files are stored only in this browser (not uploaded anywhere) — leave this blank to just log a document by name.</div>
       </div>
       <div class="modal-foot">
         <button type="button" class="btn btn-secondary" data-modal-close="upload-modal">Cancel</button>
