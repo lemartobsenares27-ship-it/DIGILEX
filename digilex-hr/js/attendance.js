@@ -128,6 +128,34 @@
       '<table class="dlx-table" style="border-collapse:separate;border-spacing:0"><thead><tr>' + head + "</tr></thead><tbody>" + rows + "</tbody></table>";
   }
 
+  function isoOfDate(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
+
+  // Working days actually applicable to this employee within the selected month:
+  // starts no earlier than their hire date, ends no later than today (so a
+  // mid-month hire, or the current partial month, isn't measured against the
+  // full month's working days and doesn't show a misleadingly low rate).
+  function employeeApplicableWorkingDays(e) {
+    var settings = Store.getSettings();
+    var holidays = settings.holidays || D.PH_HOLIDAYS;
+    var monthStart = state.year + "-" + pad2(state.month) + "-01";
+    var monthEnd = state.year + "-" + pad2(state.month) + "-" + pad2(daysInMonth(state.year, state.month));
+    var todayIso = X.todayIso();
+    var rangeStart = e.dateHired && e.dateHired > monthStart ? e.dateHired : monthStart;
+    var rangeEnd = monthEnd < todayIso ? monthEnd : todayIso;
+    if (rangeStart > rangeEnd) return 0;
+    var holidaySet = {};
+    holidays.forEach(function (h) { holidaySet[h.date] = true; });
+    var count = 0;
+    var cur = new Date(rangeStart + "T00:00:00");
+    var end = new Date(rangeEnd + "T00:00:00");
+    while (cur <= end) {
+      var iso = isoOfDate(cur);
+      if (cur.getDay() !== 0 && !holidaySet[iso]) count++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return count;
+  }
+
   function renderSummary() {
     var employees = Store.getEmployees().filter(function (e) {
       if (e.archived) return false;
@@ -135,7 +163,6 @@
       return true;
     });
     var attendance = Store.getAttendance();
-    var wd = computeWorkingDays();
     var rows = employees.map(function (e) {
       var recs = attendance.filter(function (a) {
         return a.employeeId === e.id && a.date.slice(0, 4) === String(state.year) && Number(a.date.slice(5, 7)) === state.month;
@@ -146,6 +173,7 @@
       var onLeave = recs.filter(function (r) { return r.status === "On Leave"; }).length;
       var halfDay = recs.filter(function (r) { return r.status === "Half Day"; }).length;
       var totalHours = recs.reduce(function (s, r) { return s + (Number(r.hoursWorked) || 0); }, 0);
+      var wd = employeeApplicableWorkingDays(e);
       var rate = wd > 0 ? (((present + late + halfDay) / wd) * 100) : 0;
       return (
         "<tr>" +
@@ -155,6 +183,7 @@
         '<td data-label="Absent" style="text-align:center">' + absent + "</td>" +
         '<td data-label="On Leave" style="text-align:center">' + onLeave + "</td>" +
         '<td data-label="Hours Worked" style="text-align:center">' + totalHours.toFixed(1) + "</td>" +
+        '<td data-label="Working Days" style="text-align:center" title="Working days from hire date (or month start) through today">' + wd + "</td>" +
         '<td data-label="Attendance Rate">' +
         '<div style="display:flex;align-items:center;gap:8px"><div class="progress-track" style="flex:1"><div class="progress-fill" style="width:' + Math.min(100, rate) + '%;background:' + (rate >= 90 ? "#22C55E" : rate >= 75 ? "#EAB308" : "#EF4444") + '"></div></div><span style="font-size:.75rem;font-weight:700">' + rate.toFixed(0) + "%</span></div>" +
         "</td>" +

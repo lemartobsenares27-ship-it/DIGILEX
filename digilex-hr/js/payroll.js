@@ -94,6 +94,10 @@
 
     var otherDeductions = Number(entry.otherDeductions) || 0;
     var totalDeductions = sssDeduction + philhealthDeduction + pagibigDeduction + tax + otherDeductions;
+    // Statutory minimum-floor deductions can exceed a very small partial-period
+    // paycheck (e.g. a trainee's first day). A payslip should never show a
+    // negative net pay, so cap deductions at what was actually earned.
+    if (totalDeductions > grossPay) totalDeductions = grossPay;
     var netPay = grossPay - totalDeductions;
 
     return {
