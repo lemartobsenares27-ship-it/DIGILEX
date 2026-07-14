@@ -144,3 +144,50 @@ export function remittanceHealth(rows: SOAReconciliationRow[]) {
   const received = batchRows.reduce((s, r) => s + (r['Amount Actually Received'] ?? 0), 0)
   return { expected, received, gap: expected - received, batchCount: batchRows.length }
 }
+
+export interface MetaReconciliation {
+  hasMetaPerformanceData: boolean
+  metaPurchases: number | null
+  metaRoas: number | null
+  posOrders: number
+  businessRevenue: number
+  businessRoas: number
+  adSpend: number
+  purchaseGapPct: number | null
+  roasGapPct: number | null
+}
+
+// Meta's own Ads Manager export reports "Results" (its self-attributed
+// purchase count) and "Purchase ROAS" per campaign row. Compares those
+// self-reported numbers against what actually shipped per the Orders
+// Database (itself sourced from POS/SOA reconciliation) for the same week,
+// so underreporting is a visible number instead of a gut feeling.
+export function metaVsBusinessReconciliation(orders: OrderRow[], fbTxns: FBTxnRow[], week: string): MetaReconciliation {
+  const weekTxns = fbTxns.filter((t) => weekKeyOf(t.Date) === week)
+
+  const withResults = weekTxns.filter((t) => t.Results != null)
+  const hasMetaPerformanceData = withResults.length > 0
+  const metaPurchases = hasMetaPerformanceData ? withResults.reduce((s, t) => s + (t.Results ?? 0), 0) : null
+
+  const withRoas = weekTxns.filter((t) => t.ROAS != null && (t.Amount ?? 0) > 0)
+  const spendWithRoas = withRoas.reduce((s, t) => s + (t.Amount ?? 0), 0)
+  const metaRoas = spendWithRoas > 0 ? withRoas.reduce((s, t) => s + (t.ROAS ?? 0) * (t.Amount ?? 0), 0) / spendWithRoas : null
+
+  const company = weeklyCompanyKPIs(orders, fbTxns, week)
+  const posOrders = company.ordersPlaced
+
+  const purchaseGapPct = metaPurchases !== null && metaPurchases > 0 ? (posOrders - metaPurchases) / metaPurchases : null
+  const roasGapPct = metaRoas !== null && metaRoas > 0 ? (company.roas - metaRoas) / metaRoas : null
+
+  return {
+    hasMetaPerformanceData,
+    metaPurchases,
+    metaRoas,
+    posOrders,
+    businessRevenue: company.revenue,
+    businessRoas: company.roas,
+    adSpend: company.adSpend,
+    purchaseGapPct,
+    roasGapPct,
+  }
+}

@@ -20,6 +20,7 @@ import {
   allTimeRTSRate,
   fulfillmentFeeHealth,
   remittanceHealth,
+  metaVsBusinessReconciliation,
   type KPIStatus,
 } from '../lib/kpi'
 
@@ -124,6 +125,7 @@ export default function KPIScorecard() {
   const rts = useMemo(() => allTimeRTSRate(posRows), [posRows])
   const fee = useMemo(() => fulfillmentFeeHealth(fulfillmentRows), [fulfillmentRows])
   const remit = useMemo(() => remittanceHealth(soaRows), [soaRows])
+  const metaRecon = useMemo(() => metaVsBusinessReconciliation(orders, fbTxns, activeWeek), [orders, fbTxns, activeWeek])
 
   const spendToRevenue = current.revenue > 0 ? current.adSpend / current.revenue : 0
 
@@ -233,6 +235,44 @@ export default function KPIScorecard() {
           </div>
         </Card>
       </div>
+
+      <Card
+        title="Meta Reported vs Actual Business Results"
+        description="What Meta's own Ads Manager export claims it delivered this week, checked against what actually shipped per your Orders Database — never trust ROAS alone to mean the same thing in both places"
+        className="mt-4"
+      >
+        {!metaRecon.hasMetaPerformanceData ? (
+          <NoteBanner>
+            No Meta Ads Manager performance export (with "Results" / "Purchase ROAS" columns) has been imported for this
+            week yet — only confirmed ad spend is tracked so far. Upload a campaign-level export via Import Center →
+            Facebook Ads to unlock this comparison. Until then, every ROAS figure on this page is Business ROAS
+            (real orders ÷ real spend), which is the one that should drive decisions regardless.
+          </NoteBanner>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <ScoreTile label="Meta-Reported Purchases" value={formatNumber(metaRecon.metaPurchases ?? 0)} sub="from Ads Manager 'Results'" />
+              <ScoreTile label="Actual Orders (POS)" value={formatNumber(metaRecon.posOrders)} sub="from Orders Database" />
+              <ScoreTile
+                label="Purchase Gap"
+                value={metaRecon.purchaseGapPct !== null ? `${metaRecon.purchaseGapPct >= 0 ? '+' : ''}${(metaRecon.purchaseGapPct * 100).toFixed(0)}%` : '—'}
+                status={metaRecon.purchaseGapPct !== null && Math.abs(metaRecon.purchaseGapPct) >= 0.15 ? 'critical' : 'good'}
+                sub="Actual vs Meta-reported"
+              />
+              <ScoreTile
+                label="Meta ROAS vs Business ROAS"
+                value={metaRecon.metaRoas !== null ? `${metaRecon.metaRoas.toFixed(2)}x vs ${metaRecon.businessRoas.toFixed(2)}x` : '—'}
+                status={metaRecon.roasGapPct !== null && Math.abs(metaRecon.roasGapPct) >= 0.15 ? 'critical' : 'good'}
+              />
+            </div>
+            {metaRecon.purchaseGapPct !== null && Math.abs(metaRecon.purchaseGapPct) >= 0.15 && (
+              <NoteBanner>
+                {`Meta ${metaRecon.purchaseGapPct > 0 ? 'underreported' : 'overreported'} purchases by ${Math.abs(metaRecon.purchaseGapPct * 100).toFixed(0)}% this week (${formatNumber(metaRecon.metaPurchases ?? 0)} reported vs ${formatNumber(metaRecon.posOrders)} actual). Optimizing campaigns on Meta's own Purchase count or ROAS would be optimizing on the wrong number — use Business ROAS (${metaRecon.businessRoas.toFixed(2)}x) for scaling/pausing decisions, and treat this gap as a pixel/CAPI/attribution issue to investigate, not a performance issue.`}
+              </NoteBanner>
+            )}
+          </>
+        )}
+      </Card>
 
       <Card title="Remittance Health" description="NPMCM's expected payout vs what you've confirmed received, across every uploaded SOA batch" className="mt-4">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
