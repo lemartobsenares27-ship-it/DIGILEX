@@ -37,6 +37,7 @@ export function listWeeks(orders: OrderRow[]): string[] {
 export interface WeeklyCompanyKPIs {
   week: string
   revenue: number
+  posRevenue: number
   cogs: number
   logisticsFee: number
   adSpend: number
@@ -45,7 +46,12 @@ export interface WeeklyCompanyKPIs {
   ordersDelivered: number
   ordersPending: number
   deliveryRate: number
+  /** Delivered ROAS: revenue actually delivered ÷ spend. What "ROAS" has always meant on this page. */
   roas: number
+  /** POS ROAS: gross order value placed this week (before delivery outcome is known) ÷ spend — the number you'd get checking POS same-day, before RTS/returns net it down. */
+  posRoas: number
+  /** Profit ROAS: contribution profit (already net of ad spend) ÷ spend — pesos of profit per peso spent. */
+  profitRoas: number
   cpa: number
 }
 
@@ -55,24 +61,29 @@ export function weeklyCompanyKPIs(orders: OrderRow[], fbTxns: FBTxnRow[], week: 
   const adSpend = fbTxns.filter((t) => weekKeyOf(t.Date) === week).reduce((s, t) => s + (t.Amount ?? 0), 0)
 
   const revenue = deliveredThisWeek.reduce((s, o) => s + (o['Selling Price (COD)'] ?? 0), 0)
+  const posRevenue = shippedThisWeek.reduce((s, o) => s + (o['Selling Price (COD)'] ?? 0), 0)
   const cogs = deliveredThisWeek.reduce((s, o) => s + (o['Cost of Goods'] ?? 0), 0)
   const logisticsFee = shippedThisWeek.reduce((s, o) => s + (o['Logistics Fee'] ?? 0), 0)
 
   const ordersDelivered = shippedThisWeek.filter((o) => (o.Status ?? '').toLowerCase() === 'delivered').length
   const ordersPending = shippedThisWeek.filter((o) => (o.Status ?? '').toLowerCase().includes('pending')).length
+  const contributionProfit = revenue - cogs - logisticsFee - adSpend
 
   return {
     week,
     revenue,
+    posRevenue,
     cogs,
     logisticsFee,
     adSpend,
-    contributionProfit: revenue - cogs - logisticsFee - adSpend,
+    contributionProfit,
     ordersPlaced: shippedThisWeek.length,
     ordersDelivered,
     ordersPending,
     deliveryRate: ordersDelivered + ordersPending > 0 ? ordersDelivered / (ordersDelivered + ordersPending) : 0,
     roas: adSpend > 0 ? revenue / adSpend : 0,
+    posRoas: adSpend > 0 ? posRevenue / adSpend : 0,
+    profitRoas: adSpend > 0 ? contributionProfit / adSpend : 0,
     cpa: shippedThisWeek.length > 0 ? adSpend / shippedThisWeek.length : NaN,
   }
 }

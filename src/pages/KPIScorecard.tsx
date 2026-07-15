@@ -173,10 +173,25 @@ export default function KPIScorecard() {
           />
           <ScoreTile label="Ad Spend" value={formatCurrency(current.adSpend)} trend={previous && <Trend current={current.adSpend} previous={previous.adSpend} invert />} />
           <ScoreTile
-            label="ROAS"
+            label="POS ROAS"
+            value={current.posRoas ? `${current.posRoas.toFixed(2)}x` : '—'}
+            status={roasStatus(current.posRoas)}
+            trend={previous && previous.posRoas > 0 && <Trend current={current.posRoas} previous={previous.posRoas} />}
+            sub="Gross orders placed ÷ spend — before RTS nets it down"
+          />
+          <ScoreTile
+            label="Delivered ROAS"
             value={current.roas ? `${current.roas.toFixed(2)}x` : '—'}
             status={roasStatus(current.roas)}
             trend={previous && previous.roas > 0 && <Trend current={current.roas} previous={previous.roas} />}
+            sub="Only revenue that actually delivered"
+          />
+          <ScoreTile
+            label="Profit ROAS"
+            value={`${current.profitRoas.toFixed(2)}x`}
+            status={current.profitRoas >= 0 ? 'good' : 'critical'}
+            trend={previous && <Trend current={current.profitRoas} previous={previous.profitRoas} />}
+            sub="Contribution profit ÷ spend"
           />
           <ScoreTile
             label="Cost per Order (CPA)"
@@ -230,7 +245,7 @@ export default function KPIScorecard() {
           actions={<OwnerBadge owner="Ads Manager" />}
         >
           <div className="grid grid-cols-2 gap-3">
-            <ScoreTile label="ROAS" value={current.roas ? `${current.roas.toFixed(2)}x` : '—'} status={roasStatus(current.roas)} />
+            <ScoreTile label="Delivered ROAS" value={current.roas ? `${current.roas.toFixed(2)}x` : '—'} status={roasStatus(current.roas)} />
             <ScoreTile label="Spend ÷ Revenue" value={formatPercent(spendToRevenue)} status={spendToRevenueStatus(spendToRevenue)} />
           </div>
         </Card>
@@ -245,8 +260,8 @@ export default function KPIScorecard() {
           <NoteBanner>
             No Meta Ads Manager performance export (with "Results" / "Purchase ROAS" columns) has been imported for this
             week yet — only confirmed ad spend is tracked so far. Upload a campaign-level export via Import Center →
-            Facebook Ads to unlock this comparison. Until then, every ROAS figure on this page is Business ROAS
-            (real orders ÷ real spend), which is the one that should drive decisions regardless.
+            Facebook Ads to unlock this comparison. Until then, every ROAS figure on this page is Delivered ROAS
+            (real delivered revenue ÷ real spend), which is the one that should drive decisions regardless.
           </NoteBanner>
         ) : showLagCaveat ? (
           <NoteBanner>
@@ -264,14 +279,14 @@ export default function KPIScorecard() {
                 sub="Actual vs Meta-reported"
               />
               <ScoreTile
-                label="Meta ROAS vs Business ROAS"
+                label="Meta ROAS vs Delivered ROAS"
                 value={metaRecon.metaRoas !== null ? `${metaRecon.metaRoas.toFixed(2)}x vs ${metaRecon.businessRoas.toFixed(2)}x` : '—'}
                 status={metaRecon.roasGapPct !== null && Math.abs(metaRecon.roasGapPct) >= 0.15 ? 'critical' : 'good'}
               />
             </div>
             {metaRecon.purchaseGapPct !== null && Math.abs(metaRecon.purchaseGapPct) >= 0.15 && (
               <NoteBanner>
-                {`Meta ${metaRecon.purchaseGapPct > 0 ? 'underreported' : 'overreported'} purchases by ${Math.abs(metaRecon.purchaseGapPct * 100).toFixed(0)}% this week (${formatNumber(metaRecon.metaPurchases ?? 0)} reported vs ${formatNumber(metaRecon.posOrders)} actual). Optimizing campaigns on Meta's own Purchase count or ROAS would be optimizing on the wrong number — use Business ROAS (${metaRecon.businessRoas.toFixed(2)}x) for scaling/pausing decisions, and treat this gap as a pixel/CAPI/attribution issue to investigate, not a performance issue.`}
+                {`Meta ${metaRecon.purchaseGapPct > 0 ? 'underreported' : 'overreported'} purchases by ${Math.abs(metaRecon.purchaseGapPct * 100).toFixed(0)}% this week (${formatNumber(metaRecon.metaPurchases ?? 0)} reported vs ${formatNumber(metaRecon.posOrders)} actual). Optimizing campaigns on Meta's own Purchase count or ROAS would be optimizing on the wrong number — use Delivered ROAS (${metaRecon.businessRoas.toFixed(2)}x) or Profit ROAS for scaling/pausing decisions, and treat this gap as a pixel/CAPI/attribution issue to investigate, not a performance issue.`}
               </NoteBanner>
             )}
           </>

@@ -86,7 +86,7 @@ export default function Overview() {
           accent={monthlyNetProfit >= 0 ? 'var(--status-good)' : 'var(--status-critical)'}
         />
         <StatTile label="Facebook Ad Spend" value={formatCurrency(current.adSpend)} icon={<Megaphone size={16} />} accent="var(--series-violet)" />
-        <StatTile label="ROAS" value={current.roas ? `${current.roas.toFixed(2)}x` : '—'} accent="var(--series-aqua)" />
+        <StatTile label="Delivered ROAS" value={current.roas ? `${current.roas.toFixed(2)}x` : '—'} accent="var(--series-aqua)" />
         <StatTile label="Orders Shipped" value={formatNumber(current.ordersShipped)} icon={<Package size={16} />} accent="var(--series-yellow)" />
         <StatTile label="Delivered Orders" value={formatNumber(current.ordersDelivered)} icon={<Truck size={16} />} accent="var(--status-good)" />
         <StatTile label="Delivery Rate" value={formatPercent(current.deliveryRate)} accent="var(--series-magenta)" />
