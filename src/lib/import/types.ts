@@ -31,6 +31,7 @@ export interface FBAdsRowDraft {
   results: number | null
   costPerResult: number | null
   roas: number | null
+  purchaseValue: number | null
   frequency: number | null
   include: boolean
   isDuplicate: boolean

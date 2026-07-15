@@ -165,13 +165,25 @@ export interface MetaReconciliation {
 export function metaVsBusinessReconciliation(orders: OrderRow[], fbTxns: FBTxnRow[], week: string): MetaReconciliation {
   const weekTxns = fbTxns.filter((t) => weekKeyOf(t.Date) === week)
 
-  const withResults = weekTxns.filter((t) => t.Results != null)
-  const hasMetaPerformanceData = withResults.length > 0
-  const metaPurchases = hasMetaPerformanceData ? withResults.reduce((s, t) => s + (t.Results ?? 0), 0) : null
+  // A row "has performance data" if it came from a campaign-level Ads
+  // Manager export (as opposed to a billing-only receipt/invoice import).
+  const perfTxns = weekTxns.filter((t) => t.Results != null || t.ROAS != null || t['Purchase Value'] != null)
+  const hasMetaPerformanceData = perfTxns.length > 0
+  const metaPurchases = hasMetaPerformanceData ? perfTxns.reduce((s, t) => s + (t.Results ?? 0), 0) : null
 
-  const withRoas = weekTxns.filter((t) => t.ROAS != null && (t.Amount ?? 0) > 0)
-  const spendWithRoas = withRoas.reduce((s, t) => s + (t.Amount ?? 0), 0)
-  const metaRoas = spendWithRoas > 0 ? withRoas.reduce((s, t) => s + (t.ROAS ?? 0) * (t.Amount ?? 0), 0) / spendWithRoas : null
+  // Blended ROAS = total reported purchase value over total spend across
+  // EVERY performance row that week, including rows/campaigns that spent
+  // money but generated zero purchases. Averaging only the rows that had a
+  // recorded ROAS (i.e. only the ones that converted) silently drops the
+  // wasted spend from the denominator and overstates how efficient Meta's
+  // own numbers actually were.
+  const perfSpend = perfTxns.reduce((s, t) => s + (t.Amount ?? 0), 0)
+  const metaRevenue = perfTxns.reduce((s, t) => {
+    if (t['Purchase Value'] != null) return s + t['Purchase Value']
+    if (t.ROAS != null) return s + t.ROAS * (t.Amount ?? 0)
+    return s
+  }, 0)
+  const metaRoas = perfSpend > 0 ? metaRevenue / perfSpend : null
 
   const company = weeklyCompanyKPIs(orders, fbTxns, week)
   const posOrders = company.ordersPlaced

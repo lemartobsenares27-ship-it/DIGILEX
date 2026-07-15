@@ -59,6 +59,7 @@ export interface FBTxnRow {
   CPM?: number | null
   Results?: number | null
   ROAS?: number | null
+  'Purchase Value'?: number | null
 }
 
 export interface CreditCardRow {

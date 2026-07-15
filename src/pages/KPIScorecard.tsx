@@ -248,6 +248,10 @@ export default function KPIScorecard() {
             Facebook Ads to unlock this comparison. Until then, every ROAS figure on this page is Business ROAS
             (real orders ÷ real spend), which is the one that should drive decisions regardless.
           </NoteBanner>
+        ) : showLagCaveat ? (
+          <NoteBanner>
+            {`Meta reports ${formatNumber(metaRecon.metaPurchases ?? 0)} purchases this week, but your Orders Database shows 0 — almost certainly because recent SOA/POS imports haven't caught up yet (see the caveat above), not because Meta overreported. Re-check this comparison once this week's orders are posted.`}
+          </NoteBanner>
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">

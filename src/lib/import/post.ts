@@ -191,6 +191,7 @@ export async function postFacebookAds(
       CPM: d.cpm,
       Results: d.results,
       ROAS: d.roas,
+      'Purchase Value': d.purchaseValue,
     })
     await logInsert(batchId, 'fbTxns', id)
   }

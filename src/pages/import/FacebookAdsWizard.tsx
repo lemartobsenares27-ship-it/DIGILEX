@@ -51,13 +51,17 @@ export default function FacebookAdsWizard({ onBack, onDone }: Props) {
   const totals = useMemo(() => {
     const included = drafts.filter((d) => d.include)
     const spend = included.reduce((s, d) => s + d.amountSpent, 0)
-    const roasVals = included.map((d) => d.roas).filter((v): v is number => v !== null)
+    // Blended ROAS (total purchase value ÷ total spend across every
+    // included row, converting or not) rather than an average of only the
+    // rows that happened to convert — the latter silently ignores spend
+    // that generated zero purchases and overstates efficiency.
+    const revenue = included.reduce((s, d) => s + (d.purchaseValue ?? (d.roas !== null ? d.roas * d.amountSpent : 0)), 0)
     const ctrVals = included.map((d) => d.ctr).filter((v): v is number => v !== null)
     return {
       count: included.length,
       duplicates: drafts.filter((d) => d.isDuplicate).length,
       spend,
-      avgRoas: roasVals.length ? roasVals.reduce((a, b) => a + b, 0) / roasVals.length : null,
+      avgRoas: spend > 0 ? revenue / spend : null,
       avgCtr: ctrVals.length ? ctrVals.reduce((a, b) => a + b, 0) / ctrVals.length : null,
     }
   }, [drafts])
