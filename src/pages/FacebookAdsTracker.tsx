@@ -30,19 +30,35 @@ const TXN_COLUMNS: ColumnDef<FBTxnRow>[] = [
   { key: 'Notes', label: 'Notes', editable: true },
 ]
 
+const PERF_COLUMNS: ColumnDef<FBTxnRow>[] = [
+  { key: 'Date', label: 'Date', type: 'date', editable: true, width: '110px' },
+  { key: 'Campaign', label: 'Campaign', editable: true },
+  { key: 'Amount', label: "Meta's Reported Spend", type: 'currency', editable: true, align: 'right' },
+  { key: 'Results', label: 'Purchases', type: 'number', editable: true, align: 'right' },
+  { key: 'Purchase Value', label: 'Purchase Value', type: 'currency', editable: true, align: 'right' },
+  { key: 'ROAS', label: 'Meta ROAS', editable: true, align: 'right' },
+  { key: 'Impressions', label: 'Impressions', type: 'number', editable: true, align: 'right' },
+]
+
 export default function FacebookAdsTracker() {
   const accounts = useLiveTable(db.fbAccounts)
   const txns = useLiveTable(db.fbTxns)
 
-  const totalSpend = useMemo(() => txns.reduce((s, t) => s + (t.Amount ?? 0), 0), [txns])
+  // Performance-only rows (from an Ads Manager campaign export whose spend
+  // was already recorded via a billing/receipt import) carry Meta's own
+  // self-reported spend for ROAS comparison purposes — counting it here too
+  // would double it against the confirmed billing rows below.
+  const confirmedTxns = useMemo(() => txns.filter((t) => !t['Performance Data Only']), [txns])
+  const performanceTxns = useMemo(() => txns.filter((t) => t['Performance Data Only']), [txns])
+  const totalSpend = useMemo(() => confirmedTxns.reduce((s, t) => s + (t.Amount ?? 0), 0), [confirmedTxns])
   const byAccount = useMemo(() => {
     const map = new Map<string, number>()
-    for (const t of txns) {
+    for (const t of confirmedTxns) {
       const acc = t['Ad Account'] ?? 'Unknown'
       map.set(acc, (map.get(acc) ?? 0) + (t.Amount ?? 0))
     }
     return [...map.entries()].map(([label, value]) => ({ label, value }))
-  }, [txns])
+  }, [confirmedTxns])
 
   return (
     <div>
@@ -51,7 +67,7 @@ export default function FacebookAdsTracker() {
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile label="Total Confirmed Spend" value={formatCurrency(totalSpend)} accent="var(--series-violet)" />
         <StatTile label="Ad Accounts Tracked" value={formatNumber(accounts.length)} />
-        <StatTile label="Confirmed Transactions" value={formatNumber(txns.length)} />
+        <StatTile label="Confirmed Transactions" value={formatNumber(confirmedTxns.length)} />
         <StatTile
           label="Accounts w/ No Data"
           value={formatNumber(accounts.filter((a) => a['Data Source'] === 'NO DATA UPLOADED').length)}
@@ -87,7 +103,7 @@ export default function FacebookAdsTracker() {
       <Card title="Transaction Ledger" description="Every confirmed 'Paid' Meta charge">
         <DataTable
           columns={TXN_COLUMNS}
-          rows={txns}
+          rows={confirmedTxns}
           getId={(r) => r.id!}
           searchKeys={['Ad Account', 'Card (Network + Last 4)']}
           pageSize={50}
@@ -109,6 +125,25 @@ export default function FacebookAdsTracker() {
           }
         />
       </Card>
+
+      {performanceTxns.length > 0 && (
+        <Card
+          title="Campaign Performance Data"
+          description="From Meta Ads Manager campaign exports — Amount here is Meta's own self-reported spend, used only to compute Meta ROAS on the KPI Scorecard. It does NOT add to your Ad Spend / P&L totals, since that spend was already recorded via billing receipts above."
+          className="mt-4"
+        >
+          <DataTable
+            columns={PERF_COLUMNS}
+            rows={performanceTxns}
+            getId={(r) => r.id!}
+            searchKeys={['Campaign']}
+            pageSize={50}
+            csvName="facebook-ads-campaign-performance"
+            onUpdate={(id, key, value) => db.fbTxns.update(id, { [key]: value })}
+            onDelete={(id) => db.fbTxns.delete(id)}
+          />
+        </Card>
+      )}
     </div>
   )
 }

@@ -47,7 +47,7 @@ export function summarizeMonth(orders: OrderRow[], fbTxns: FBTxnRow[], month: st
 
   const revenue = deliveredThisMonth.reduce((s, o) => s + (o['Selling Price (COD)'] ?? 0), 0)
   const adSpend = fbTxns
-    .filter((t) => monthLabel(t.Date) === month)
+    .filter((t) => monthLabel(t.Date) === month && !t['Performance Data Only'])
     .reduce((s, t) => s + (t.Amount ?? 0), 0)
 
   const ordersDelivered = shippedThisMonth.filter((o) => (o.Status ?? '').toLowerCase() === 'delivered').length

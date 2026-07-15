@@ -167,6 +167,11 @@ export async function postFacebookAds(
   drafts: FBAdsRowDraft[],
   fileName: string,
   granularity: 'daily' | 'per-campaign' = 'daily',
+  // When the spend in this export was already recorded from a separate
+  // billing/receipt source (the common case if you also import Meta
+  // invoice/receipt PDFs), post performance metrics only — skip Ad Spend /
+  // Expense Tracker entirely so the same real spend isn't counted twice.
+  spendAlreadyRecorded = false,
 ): Promise<{ batchId: number; summary: PostSummary }> {
   const batchId = await createBatch('facebook-ads', fileName)
   const included = drafts.filter((d) => d.include)
@@ -192,35 +197,40 @@ export async function postFacebookAds(
       Results: d.results,
       ROAS: d.roas,
       'Purchase Value': d.purchaseValue,
+      'Performance Data Only': spendAlreadyRecorded,
     })
     await logInsert(batchId, 'fbTxns', id)
   }
 
-  const groupKey = (d: FBAdsRowDraft) => (granularity === 'daily' ? d.date ?? 'unknown' : `${d.date ?? 'unknown'}|${d.campaign ?? ''}`)
-  const groups = new Map<string, { date: string | null; campaign: string | null; total: number; count: number }>()
-  for (const d of included) {
-    const key = groupKey(d)
-    const g = groups.get(key) ?? { date: d.date, campaign: granularity === 'per-campaign' ? d.campaign : null, total: 0, count: 0 }
-    g.total += d.amountSpent
-    g.count += 1
-    groups.set(key, g)
-  }
+  let expensesPosted = 0
+  if (!spendAlreadyRecorded) {
+    const groupKey = (d: FBAdsRowDraft) => (granularity === 'daily' ? d.date ?? 'unknown' : `${d.date ?? 'unknown'}|${d.campaign ?? ''}`)
+    const groups = new Map<string, { date: string | null; campaign: string | null; total: number; count: number }>()
+    for (const d of included) {
+      const key = groupKey(d)
+      const g = groups.get(key) ?? { date: d.date, campaign: granularity === 'per-campaign' ? d.campaign : null, total: 0, count: 0 }
+      g.total += d.amountSpent
+      g.count += 1
+      groups.set(key, g)
+    }
 
-  for (const g of groups.values()) {
-    const id = await db.expenses.add({
-      Date: g.date,
-      Category: 'Facebook Ad Spend',
-      Description: g.campaign
-        ? `Facebook Ads — ${g.campaign}`
-        : `Facebook Ads Manager import — ${g.count} campaign row(s)`,
-      Amount: g.total,
-      'Payment Method': 'Bank Transfer',
-      Supplier: null,
-      'Reference Number': null,
-      Notes: null,
-      Department: 'Sales & Marketing',
-    })
-    await logInsert(batchId, 'expenses', id)
+    for (const g of groups.values()) {
+      const id = await db.expenses.add({
+        Date: g.date,
+        Category: 'Facebook Ad Spend',
+        Description: g.campaign
+          ? `Facebook Ads — ${g.campaign}`
+          : `Facebook Ads Manager import — ${g.count} campaign row(s)`,
+        Amount: g.total,
+        'Payment Method': 'Bank Transfer',
+        Supplier: null,
+        'Reference Number': null,
+        Notes: null,
+        Department: 'Sales & Marketing',
+      })
+      await logInsert(batchId, 'expenses', id)
+      expensesPosted++
+    }
   }
 
   const totalSpend = included.reduce((s, d) => s + d.amountSpent, 0)
@@ -228,7 +238,9 @@ export async function postFacebookAds(
     recordsPosted: included.length,
     recordsSkipped: drafts.length - included.length,
     needsReview: 0,
-    messages: [`Posted ${included.length} ad rows totaling ${totalSpend.toFixed(2)} to Facebook Ads Tracker and Expense Tracker.`],
+    messages: spendAlreadyRecorded
+      ? [`Posted ${included.length} ad rows (performance metrics only — spend already recorded elsewhere, so Ad Spend/Expense Tracker were not touched).`]
+      : [`Posted ${included.length} ad rows totaling ${totalSpend.toFixed(2)} to Facebook Ads Tracker and Expense Tracker (${expensesPosted} entries).`],
   }
   await finalizeBatch(batchId, summary)
   return { batchId, summary }

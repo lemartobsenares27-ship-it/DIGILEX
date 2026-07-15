@@ -192,6 +192,7 @@ async function ensureSeededOnce(): Promise<void> {
     await ensureRenamedFieldsMigration()
     await ensureMonthlyPLJuneCorrection()
     await ensureAprilAdSpendBackfill()
+    await ensureFacebookCampaignPerformanceBackfill()
     return
   }
 
@@ -199,6 +200,7 @@ async function ensureSeededOnce(): Promise<void> {
     incomeTracker,
     expenseTracker,
     facebookAds,
+    facebookAdsCampaignPerformance,
     creditCardReconciliation,
     cashFlowData,
     billsReminders,
@@ -216,6 +218,7 @@ async function ensureSeededOnce(): Promise<void> {
     loadJson<{ rows: IncomeRow[] }>('incomeTracker'),
     loadJson<{ rows: ExpenseRow[] }>('expenseTracker'),
     loadJson<{ accountCoverage: FBAccountRow[]; transactions: FBTxnRow[] }>('facebookAds'),
+    loadJson<{ transactions: FBTxnRow[] }>('facebookAdsCampaignPerformance'),
     loadJson<{ rows: CreditCardRow[] }>('creditCardReconciliation'),
     loadJson<{ rows: CashFlowRow[] }>('cashFlow'),
     loadJson<{ months: { month: string; bills: Omit<BillRow, 'month'>[] }[] }>('billsReminders'),
@@ -281,6 +284,7 @@ async function ensureSeededOnce(): Promise<void> {
       await db.expenses.bulkAdd(expenseTracker.rows)
       await db.fbAccounts.bulkAdd(facebookAds.accountCoverage)
       await db.fbTxns.bulkAdd(facebookAds.transactions)
+      await db.fbTxns.bulkAdd(facebookAdsCampaignPerformance.transactions)
       await db.creditCard.bulkAdd(creditCardReconciliation.rows)
       await db.cashFlow.bulkAdd(cashFlowData.rows)
       await db.bills.bulkAdd(bills)
@@ -301,6 +305,7 @@ async function ensureSeededOnce(): Promise<void> {
       await db.meta.put({ key: 'dropdowns', value: settings.dropdowns })
       await db.meta.put({ key: 'tax', value: settings.tax })
       await db.meta.put({ key: 'seeded', value: true })
+      await db.meta.put({ key: 'facebookCampaignPerformanceBackfillV1', value: true })
     },
   )
   await ensureDefaultCategorizationRules()
@@ -461,6 +466,23 @@ async function ensureAprilAdSpendBackfill(): Promise<void> {
   }
 
   await db.meta.put({ key: 'aprilAdSpendBackfillV1', value: true })
+}
+
+// Real Meta Ads Manager campaign performance (May 27-Jul 15 2026, from
+// LeeEcomVntrs2CampaignsApr12026Jul152026.xlsx) wasn't in the original
+// workbook this app was seeded from. Backfill it into browsers seeded
+// before this data existed. These rows are flagged 'Performance Data Only'
+// - their Amount is Meta's own self-reported spend, used solely for the
+// Meta-vs-Actual ROAS comparison on the KPI Scorecard - because the real
+// spend for this same period was already recorded from Meta invoice/receipt
+// PDFs in facebookAds.json and must not be double-counted in Ad Spend/P&L.
+async function ensureFacebookCampaignPerformanceBackfill(): Promise<void> {
+  const flag = await db.meta.get('facebookCampaignPerformanceBackfillV1')
+  if (flag?.value) return
+
+  const data = await loadJson<{ transactions: FBTxnRow[] }>('facebookAdsCampaignPerformance')
+  await db.fbTxns.bulkAdd(data.transactions)
+  await db.meta.put({ key: 'facebookCampaignPerformanceBackfillV1', value: true })
 }
 
 export async function resetAndReseed(): Promise<void> {

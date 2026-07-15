@@ -60,6 +60,16 @@ export interface FBTxnRow {
   Results?: number | null
   ROAS?: number | null
   'Purchase Value'?: number | null
+  /**
+   * True for rows imported purely for campaign-level performance metrics
+   * (Results/ROAS/Purchase Value) whose spend was already recorded from a
+   * separate billing/receipt source. Amount on these rows is Meta's own
+   * self-reported spend for that campaign-day (used as the denominator for
+   * Meta ROAS specifically) and must be excluded from every company-wide
+   * "Ad Spend" total, or spend gets double-counted against the billing
+   * import that already recorded the real money moved.
+   */
+  'Performance Data Only'?: boolean | null
 }
 
 export interface CreditCardRow {

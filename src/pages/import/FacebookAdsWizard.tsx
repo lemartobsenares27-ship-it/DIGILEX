@@ -30,6 +30,7 @@ export default function FacebookAdsWizard({ onBack, onDone }: Props) {
   const [fileName, setFileName] = useState('')
   const [drafts, setDrafts] = useState<FBAdsRowDraft[]>([])
   const [granularity, setGranularity] = useState<'daily' | 'per-campaign'>('daily')
+  const [spendAlreadyRecorded, setSpendAlreadyRecorded] = useState(false)
 
   async function handleFile(file: File) {
     setError(null)
@@ -73,7 +74,7 @@ export default function FacebookAdsWizard({ onBack, onDone }: Props) {
   async function handlePost() {
     setBusy(true)
     try {
-      const { summary } = await postFacebookAds(drafts, fileName, granularity)
+      const { summary } = await postFacebookAds(drafts, fileName, granularity, spendAlreadyRecorded)
       onDone(`Import complete — ${summary.messages[0] ?? `${summary.recordsPosted} records posted`}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -176,18 +177,32 @@ export default function FacebookAdsWizard({ onBack, onDone }: Props) {
 
       {step === 2 && (
         <>
-          <Card title="How should this post to your Expense Tracker?">
+          <Card title="Has this spend already been recorded from another source?" description="e.g. a Meta invoice/receipt PDF import covering the same dates">
             <div className="flex flex-col gap-2">
               <label className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-primary)' }}>
-                <input type="radio" checked={granularity === 'daily'} onChange={() => setGranularity('daily')} />
-                One consolidated entry per day (recommended)
+                <input type="radio" checked={!spendAlreadyRecorded} onChange={() => setSpendAlreadyRecorded(false)} />
+                No — this is new spend. Post it to Ad Spend + Expense Tracker (recommended for your daily routine)
               </label>
               <label className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-primary)' }}>
-                <input type="radio" checked={granularity === 'per-campaign'} onChange={() => setGranularity('per-campaign')} />
-                One entry per campaign per day
+                <input type="radio" checked={spendAlreadyRecorded} onChange={() => setSpendAlreadyRecorded(true)} />
+                Yes — import performance metrics only (Purchases, ROAS). Don't touch Ad Spend / Expense Tracker, to avoid double-counting
               </label>
             </div>
           </Card>
+          {!spendAlreadyRecorded && (
+            <Card title="How should this post to your Expense Tracker?" className="mt-4">
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-primary)' }}>
+                  <input type="radio" checked={granularity === 'daily'} onChange={() => setGranularity('daily')} />
+                  One consolidated entry per day (recommended)
+                </label>
+                <label className="flex items-center gap-2 text-sm" style={{ color: 'var(--text-primary)' }}>
+                  <input type="radio" checked={granularity === 'per-campaign'} onChange={() => setGranularity('per-campaign')} />
+                  One entry per campaign per day
+                </label>
+              </div>
+            </Card>
+          )}
           <div className="mt-4 flex justify-between">
             <BackButton onClick={() => setStep(1)} />
             <NextButton onClick={() => setStep(3)} />
@@ -202,7 +217,11 @@ export default function FacebookAdsWizard({ onBack, onDone }: Props) {
               <li>
                 <strong>{totals.count}</strong> ad rows will post to the Facebook Ads Tracker (ROAS dashboard updates immediately)
               </li>
-              <li>Expense Tracker entries will be grouped {granularity === 'daily' ? 'by day' : 'by day + campaign'}</li>
+              {spendAlreadyRecorded ? (
+                <li>Performance metrics only — Ad Spend and Expense Tracker will NOT be touched</li>
+              ) : (
+                <li>Expense Tracker entries will be grouped {granularity === 'daily' ? 'by day' : 'by day + campaign'}</li>
+              )}
               <li>
                 <strong>{totals.duplicates}</strong> rows already posted for that date/campaign will be skipped
               </li>

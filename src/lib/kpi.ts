@@ -58,7 +58,9 @@ export interface WeeklyCompanyKPIs {
 export function weeklyCompanyKPIs(orders: OrderRow[], fbTxns: FBTxnRow[], week: string): WeeklyCompanyKPIs {
   const deliveredThisWeek = orders.filter((o) => o.Status === 'Delivered' && weekKeyOf(o['Delivered Date']) === week)
   const shippedThisWeek = orders.filter((o) => weekKeyOf(o['Date Ordered (Shipped)']) === week)
-  const adSpend = fbTxns.filter((t) => weekKeyOf(t.Date) === week).reduce((s, t) => s + (t.Amount ?? 0), 0)
+  const adSpend = fbTxns
+    .filter((t) => weekKeyOf(t.Date) === week && !t['Performance Data Only'])
+    .reduce((s, t) => s + (t.Amount ?? 0), 0)
 
   const revenue = deliveredThisWeek.reduce((s, o) => s + (o['Selling Price (COD)'] ?? 0), 0)
   const posRevenue = shippedThisWeek.reduce((s, o) => s + (o['Selling Price (COD)'] ?? 0), 0)
