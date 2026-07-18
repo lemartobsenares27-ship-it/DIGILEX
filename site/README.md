@@ -37,16 +37,43 @@ health claims or explicit sexual content — both would put your ad account and
 product registration at risk. The page keeps the "supports vitality /
 stamina / testosterone" framing instead.
 
+## Page format: long-form advertorial
+
+The page follows a long-scroll "advertorial" structure (hook → pain points →
+product intro → ingredient spotlight → benefits → proof → pricing tiers →
+COD/guarantee → FAQ), modeled after a reference funnel you shared
+(bionaturaph.com/ashwagandha). A few of that reference's elements were
+**deliberately not copied** because they're not just style choices —
+fabricated "clinical study" screenshots and journal citations, a fabricated
+FDA registration certificate image, fabricated industry-award trophies, a
+"Recommended by Doctors Around the World" grid using real doctors' photos
+without authorization (false endorsement), a "SHOP & WIN" raffle with
+flights/iPhones (running a real raffle in the Philippines needs a DTI
+permit), and slashed "was ₱X now ₱Y" pricing with no real original price
+behind it (deceptive-pricing territory). If you want any of these, they need
+real backing — an actual study, an actual FDA registration number, an actual
+registered promo — not generated placeholders.
+
 ## Still placeholder — fill in before launching ads
 
-Search `index.html` for:
+Search `index.html` for bracketed text like `[X]`:
 
+- **Rating line** (`[X.X]/5`, appears twice) — put in your real
+  average rating once you have one; don't launch with a placeholder number.
+- **Value-stack comparison** (near "Bakit Mas Sulit ang TESTOMAXX?") — the
+  `~₱[X]` rows are illustrative placeholders for category price comparisons.
+  Fill with real, defensible estimates or cut the section — don't leave the
+  brackets live on an ad-facing page.
+- **`[X]-Day Guarantee`** badge and its description — this promises an actual
+  return/replacement process. Only fill this in with a policy you will
+  actually honor (address to send returns to, timeframe, what qualifies).
 - **Sample Customer reviews** (`id="reviews"` section) — swap in real,
   verified customer reviews before running paid traffic; fabricated
   testimonials violate Meta's ad policies.
-- **FAQ**: the return/refund policy `[Ilagay dito ang iyong return/refund
-  policy.]`, and the COD-coverage-exclusions bracket if any provinces are
-  excluded.
+- **FAQ**: "gaano katagal bago makaramdam ng epekto" (fill with real
+  customer feedback timing), the return/refund policy, and the
+  COD-coverage-exclusions bracket if any provinces are excluded.
+- **Footer contact**: `[email/contact number]` next to the copyright line.
 - The Facebook link in the header/footer/order form already points to
   `https://www.facebook.com/profile.php?id=61566782627194` — update it if that changes.
 

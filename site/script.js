@@ -27,20 +27,19 @@
     });
   });
 
-  // Pricing card selection highlight
-  document.querySelectorAll('.price-card input').forEach(function (input) {
-    input.addEventListener('change', function () {
-      document.querySelectorAll('.price-card').forEach(function (card) {
-        card.classList.remove('selected');
-      });
-      input.closest('.price-card').classList.add('selected');
+  // "Buy Now" tier buttons: jump to the order form and preselect that bundle
+  var bundleSelect = document.getElementById('bundle');
+  document.querySelectorAll('.tier-buy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (bundleSelect) bundleSelect.value = btn.dataset.bundle;
+      document.getElementById('order').scrollIntoView({ behavior: 'smooth' });
     });
   });
 
   // Sticky mobile CTA: show after scrolling past hero, hide near the order form
   var stickyCta = document.getElementById('mobile-sticky-cta');
   var orderSection = document.getElementById('order');
-  var hero = document.querySelector('.hero');
+  var hero = document.querySelector('.advertorial-hero');
   if ('IntersectionObserver' in window && stickyCta && hero && orderSection) {
     var heroObserver = new IntersectionObserver(
       function (entries) {
