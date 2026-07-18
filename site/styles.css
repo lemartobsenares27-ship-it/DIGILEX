@@ -346,6 +346,22 @@ a { color: inherit; text-decoration: none; }
 }
 .alt-contact p { color: var(--text-muted); font-size: 14px; margin: 0 0 12px; }
 
+/* Usage / dosage card */
+.usage-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 26px;
+}
+.usage-row { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 18px; }
+.usage-ico { font-size: 26px; line-height: 1; }
+.usage-row h4 { margin: 0 0 4px; font-size: 16px; }
+.usage-row p { margin: 0; color: var(--text-muted); font-size: 14px; }
+.usage-tips { margin: 20px 0 0; padding: 18px 18px 4px; border-top: 1px solid var(--border); list-style: none; }
+.usage-tips li { position: relative; padding-left: 22px; margin-bottom: 12px; font-size: 14px; color: var(--text-muted); }
+.usage-tips li::before { content: "✔"; position: absolute; left: 0; color: var(--gold); font-weight: 700; }
+.usage-fineprint { margin: 14px 0 0; font-size: 11.5px; color: var(--text-muted); line-height: 1.6; }
+
 /* FAQ */
 .faq-list { display: flex; flex-direction: column; gap: 10px; }
 .faq-item { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; background: var(--surface); }

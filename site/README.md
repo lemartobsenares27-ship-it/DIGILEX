@@ -11,18 +11,42 @@ no build step, no dependencies.
 - `script.js` — mobile nav, FAQ accordion, sticky mobile CTA bar, order form submit
 - `netlify.toml` — deploy config if hosted on Netlify
 
-## Before you launch ads, replace these placeholders
+## Content status
+
+Pricing, dosage, and delivery details were filled in from real order
+confirmations/Messenger scripts (not placeholders):
+
+- **Pricing: ₱399 / ₱599 / ₱799 for 1 / 2 / 3 bottles**, free shipping on 2+.
+  Note: some ad creative shown to me had 2 bottles at ₱549, but actual COD
+  checkouts in the chat log were invoiced at ₱599 (a customer flagged the
+  mismatch). I used ₱599 as the source of truth since it's what's actually
+  charged — **reconcile your ad creative to match whatever price is on this
+  page**, or ads and landing page will visibly contradict each other.
+- **Dosage / "Paano Gamitin" section**: 2 capsules/day (1 AM, 1 PM, both
+  ~30 min before meals), plenty of water, no alcohol, 1–2 hr gap from other
+  maintenance meds — taken from the real usage instructions you sent.
+- **Delivery**: J&T Express, Luzon 1–3 days / Visayas 4–6 / Mindanao 7–8,
+  discreet packaging, no advance payment (COD only).
+
+**Deliberately left out** (from your Messenger ad scripts, but not put on the
+page): "FDA Approved" / FDA registration claims, "safe for diabetes / high
+blood / prostate enlargement" claims, and explicit sexual-performance
+language. Philippine FDA rules bar food supplements from claiming to treat or
+prevent disease, and Meta will reject or ban ad accounts over unsubstantiated
+health claims or explicit sexual content — both would put your ad account and
+product registration at risk. The page keeps the "supports vitality /
+stamina / testosterone" framing instead.
+
+## Still placeholder — fill in before launching ads
 
 Search `index.html` for:
 
-- **`₱[PRICE]`** and **`[X]%`** in the pricing cards — put in your real per-bottle
-  and bundle pricing/discounts.
-- **Sample Customer reviews** (`id="reviews"` section) — these are placeholder
-  quotes so the page isn't empty. Swap in real, verified customer reviews before
-  running paid traffic to this page — using fabricated testimonials in ads is
-  against Meta's ad policies and is misleading to customers.
-- **FAQ answers** with bracketed text like `[X-X business days]` — fill in your
-  actual delivery times, COD coverage areas, and return/refund policy.
+- **Sample Customer reviews** (`id="reviews"` section) — swap in real,
+  verified customer reviews before running paid traffic; fabricated
+  testimonials violate Meta's ad policies.
+- **FAQ**: the return/refund policy `[Ilagay dito ang iyong return/refund
+  policy.]`, and the COD-coverage-exclusions bracket if any provinces are
+  excluded.
 - The Facebook link in the header/footer/order form already points to
   `https://www.facebook.com/profile.php?id=61566782627194` — update it if that changes.
 
