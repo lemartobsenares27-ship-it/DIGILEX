@@ -17,6 +17,26 @@
   function pad2(n) { return X.pad2(n); }
   function keyFor(employeeId, date) { return employeeId + "|" + date; }
 
+  function minutesBetween(timeIn, timeOut) {
+    if (!timeIn || !timeOut) return 0;
+    var a = timeIn.split(":"), b = timeOut.split(":");
+    return Math.max(0, (Number(b[0]) * 60 + Number(b[1])) - (Number(a[0]) * 60 + Number(a[1])));
+  }
+  // Self-logged (portal) records track individual break start/end entries;
+  // admin-logged records store a single break-minutes total instead.
+  function totalBreakMinutes(rec) {
+    if (!rec) return 0;
+    if (rec.breaks && rec.breaks.length) {
+      return rec.breaks.reduce(function (s, b) { return s + minutesBetween(b.start, b.end); }, 0);
+    }
+    return Number(rec.breakMinutes) || 0;
+  }
+  function fmtMinutes(m) {
+    if (!m) return "0m";
+    var h = Math.floor(m / 60), rem = Math.round(m % 60);
+    return (h ? h + "h " : "") + rem + "m";
+  }
+
   function attendanceIndex() {
     var idx = {};
     Store.getAttendance().forEach(function (a) { idx[keyFor(a.employeeId, a.date)] = a; });
@@ -173,6 +193,7 @@
       var onLeave = recs.filter(function (r) { return r.status === "On Leave"; }).length;
       var halfDay = recs.filter(function (r) { return r.status === "Half Day"; }).length;
       var totalHours = recs.reduce(function (s, r) { return s + (Number(r.hoursWorked) || 0); }, 0);
+      var totalBreakMins = recs.reduce(function (s, r) { return s + totalBreakMinutes(r); }, 0);
       var wd = employeeApplicableWorkingDays(e);
       var rate = wd > 0 ? (((present + late + halfDay) / wd) * 100) : 0;
       return (
@@ -183,6 +204,7 @@
         '<td data-label="Absent" style="text-align:center">' + absent + "</td>" +
         '<td data-label="On Leave" style="text-align:center">' + onLeave + "</td>" +
         '<td data-label="Hours Worked" style="text-align:center">' + totalHours.toFixed(1) + "</td>" +
+        '<td data-label="Break Time" style="text-align:center">' + fmtMinutes(totalBreakMins) + "</td>" +
         '<td data-label="Working Days" style="text-align:center" title="Working days from hire date (or month start) through today">' + wd + "</td>" +
         '<td data-label="Attendance Rate">' +
         '<div style="display:flex;align-items:center;gap:8px"><div class="progress-track" style="flex:1"><div class="progress-fill" style="width:' + Math.min(100, rate) + '%;background:' + (rate >= 90 ? "#22C55E" : rate >= 75 ? "#EAB308" : "#EF4444") + '"></div></div><span style="font-size:.75rem;font-weight:700">' + rate.toFixed(0) + "%</span></div>" +
@@ -242,7 +264,8 @@
       var tIn = timeIn.value, tOut = timeOut.value;
       var status = statusSel.value;
       var hours = status === "Absent" ? 0 : hoursBetween(tIn, tOut);
-      upsertAttendance({ employeeId: employeeId, date: date, status: status, timeIn: tIn, timeOut: tOut, hoursWorked: hours, notes: document.getElementById("log-notes").value.trim() });
+      var breakMins = Number(document.getElementById("log-breakmins").value) || 0;
+      upsertAttendance({ employeeId: employeeId, date: date, status: status, timeIn: tIn, timeOut: tOut, hoursWorked: hours, breakMinutes: breakMins, notes: document.getElementById("log-notes").value.trim() });
       X.toast("Attendance logged for " + date + ".", "success");
       document.getElementById("log-form").reset();
       document.getElementById("log-date").value = X.todayIso();

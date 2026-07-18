@@ -40,6 +40,17 @@
         <button class="btn btn-primary" id="btn-time-in" style="min-width:160px;justify-content:center"><i class="fa-solid fa-right-to-bracket"></i> Time In</button>
         <button class="btn btn-secondary" id="btn-time-out" style="min-width:160px;justify-content:center"><i class="fa-solid fa-right-from-bracket"></i> Time Out</button>
       </div>
+      <div style="border-top:1px solid #F1F5F9;margin-top:20px;padding-top:20px">
+        <div id="portal-break-status" style="font-size:.9rem;font-weight:600;margin-bottom:12px;color:#475569"></div>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;align-items:center">
+          <select class="field-select" id="portal-break-type" style="max-width:170px">
+            <option>Lunch Break</option>
+            <option>Short Break</option>
+          </select>
+          <button class="btn btn-secondary" id="btn-break-start" style="min-width:150px;justify-content:center"><i class="fa-solid fa-mug-saucer"></i> Start Break</button>
+          <button class="btn btn-secondary" id="btn-break-end" style="min-width:150px;justify-content:center"><i class="fa-solid fa-play"></i> End Break</button>
+        </div>
+      </div>
     </div>
 
     <div id="portal-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:16px"></div>
@@ -48,7 +59,7 @@
       <div style="font-weight:700;margin-bottom:12px">My Attendance History</div>
       <div style="overflow-x:auto">
         <table class="dlx-table">
-          <thead><tr><th>Date</th><th>Status</th><th>Time In</th><th>Time Out</th><th>Hours</th></tr></thead>
+          <thead><tr><th>Date</th><th>Status</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Break Time</th></tr></thead>
           <tbody id="portal-history-body"></tbody>
         </table>
       </div>

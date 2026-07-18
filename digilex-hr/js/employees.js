@@ -16,8 +16,12 @@
   };
 
   function fullName(e) { return e.firstName + " " + e.lastName; }
-  function dailyRate(e) { return (e.monthlySalary || 0) / 26; }
+  // Weekly-paid staff (e.g. a trainee on a per-week ramp) use /6 (a 6-day work
+  // week), consistent with the /26 divisor used for monthly-paid staff (6 days
+  // x ~4.33 weeks/month ≈ 26).
+  function dailyRate(e) { return e.payFrequency === "Weekly" ? (e.weeklyRate || 0) / 6 : (e.monthlySalary || 0) / 26; }
   function hourlyRate(e) { return dailyRate(e) / 8; }
+  function payRateLabel(e) { return e.payFrequency === "Weekly" ? X.peso(e.weeklyRate || 0) + "/wk" : X.peso(e.monthlySalary || 0) + "/mo"; }
 
   function statusBadge(status) {
     var map = { Active: "green", "On Leave": "blue", Resigned: "gray", Terminated: "red" };
@@ -73,7 +77,7 @@
         '<td data-label="Type">' + typeBadge(e.employmentType) + "</td>" +
         '<td data-label="Status">' + statusBadge(e.status) + "</td>" +
         '<td data-label="Date Hired">' + X.fmtDate(e.dateHired) + "</td>" +
-        '<td data-label="Monthly Salary" style="text-align:right">' + X.peso(e.monthlySalary) + "</td>" +
+        '<td data-label="Monthly Salary" style="text-align:right">' + payRateLabel(e) + "</td>" +
         '<td data-label="Actions"><div style="display:flex;gap:6px">' +
         '<button class="btn btn-secondary btn-sm" data-action="view" data-id="' + e.id + '"><i class="fa-solid fa-eye"></i></button>' +
         '<button class="btn btn-secondary btn-sm" data-action="edit" data-id="' + e.id + '"><i class="fa-solid fa-pen"></i></button>' +
@@ -103,7 +107,7 @@
         '<div style="display:flex;gap:6px;flex-wrap:wrap">' + typeBadge(e.employmentType) + statusBadge(e.status) + "</div>" +
         '<div style="font-size:.8rem;color:#475569">' +
         '<div><i class="fa-solid fa-building" style="width:16px;color:#94A3B8"></i> ' + X.escapeHtml(e.department) + "</div>" +
-        '<div><i class="fa-solid fa-peso-sign" style="width:16px;color:#94A3B8"></i> ' + X.peso(e.monthlySalary) + "/mo</div>" +
+        '<div><i class="fa-solid fa-peso-sign" style="width:16px;color:#94A3B8"></i> ' + payRateLabel(e) + "</div>" +
         '<div><i class="fa-solid fa-calendar" style="width:16px;color:#94A3B8"></i> Hired ' + X.fmtDate(e.dateHired) + "</div>" +
         "</div>" +
         '<div style="display:flex;gap:6px;margin-top:4px">' +
@@ -162,7 +166,8 @@
         ["Gov't Deductions", e.noGovernmentDeductions ? "Exempt (per agreement)" : "Standard"],
       ]) +
       profileSection("Compensation", [
-        ["Basic Monthly Salary", X.peso(e.monthlySalary)],
+        ["Pay Frequency", e.payFrequency === "Weekly" ? "Weekly" : "Monthly"],
+        e.payFrequency === "Weekly" ? ["Weekly Rate", X.peso(e.weeklyRate || 0)] : ["Basic Monthly Salary", X.peso(e.monthlySalary)],
         ["Daily Rate", X.peso(dailyRate(e))],
         ["Hourly Rate", X.peso(hourlyRate(e))],
         ["Bank", (e.bankName || "—") + " / " + (e.bankAccount || "—")],
@@ -218,14 +223,24 @@
     f.reset();
     document.getElementById("emp-form-id").value = e ? e.id : "";
     if (e) {
-      var fields = ["firstName","lastName","position","department","employmentType","status","dateHired","dateRegularized","monthlySalary","contact","email","address","emergencyContactName","emergencyContactNumber","sss","philhealth","pagibig","tin","bankName","bankAccount","birthday","civilStatus"];
+      var fields = ["firstName","lastName","position","department","employmentType","status","dateHired","dateRegularized","monthlySalary","weeklyRate","contact","email","address","emergencyContactName","emergencyContactNumber","sss","philhealth","pagibig","tin","bankName","bankAccount","birthday","civilStatus"];
       fields.forEach(function (fld) {
         var el = document.getElementById("emp-f-" + fld);
         if (el) el.value = e[fld] || "";
       });
       document.getElementById("emp-f-noGovernmentDeductions").checked = !!e.noGovernmentDeductions;
+      document.getElementById("emp-f-payFrequency").value = e.payFrequency === "Weekly" ? "Weekly" : "Monthly";
+    } else {
+      document.getElementById("emp-f-payFrequency").value = "Monthly";
     }
+    togglePayFrequencyFields();
     X.openModal("emp-modal");
+  }
+
+  function togglePayFrequencyFields() {
+    var weekly = document.getElementById("emp-f-payFrequency").value === "Weekly";
+    document.getElementById("emp-f-monthlySalary-group").style.display = weekly ? "none" : "";
+    document.getElementById("emp-f-weeklyRate-group").style.display = weekly ? "" : "none";
   }
 
   function saveEmployeeForm(ev) {
@@ -236,7 +251,9 @@
     ["firstName","lastName","position","department","employmentType","status","dateHired","dateRegularized","contact","email","address","emergencyContactName","emergencyContactNumber","sss","philhealth","pagibig","tin","bankName","bankAccount","birthday","civilStatus"].forEach(function (fld) {
       data[fld] = document.getElementById("emp-f-" + fld).value.trim();
     });
+    data.payFrequency = document.getElementById("emp-f-payFrequency").value === "Weekly" ? "Weekly" : "Monthly";
     data.monthlySalary = Number(document.getElementById("emp-f-monthlySalary").value) || 0;
+    data.weeklyRate = Number(document.getElementById("emp-f-weeklyRate").value) || 0;
     data.noGovernmentDeductions = document.getElementById("emp-f-noGovernmentDeductions").checked;
 
     if (!data.firstName || !data.lastName || !data.position || !data.department) {
@@ -292,6 +309,7 @@
     document.getElementById("btn-view-list").addEventListener("click", function () { state.viewMode = "list"; localStorage.setItem("digilex_hr_emp_view", "list"); renderList(); });
     document.getElementById("btn-view-card").addEventListener("click", function () { state.viewMode = "card"; localStorage.setItem("digilex_hr_emp_view", "card"); renderList(); });
     document.getElementById("btn-add-employee").addEventListener("click", function () { openEmployeeModal(null); });
+    document.getElementById("emp-f-payFrequency").addEventListener("change", togglePayFrequencyFields);
     document.getElementById("btn-export-csv").addEventListener("click", exportCsv);
     document.getElementById("emp-form").addEventListener("submit", saveEmployeeForm);
     document.getElementById("emp-list-container").addEventListener("click", function (e) {

@@ -50,8 +50,9 @@
   }
   function entryFor(run, employeeId) {
     if (!run.entries[employeeId]) {
-      run.entries[employeeId] = { otHours: 0, otRate: 0, holidayPay: 0, transportAllowance: 0, mealAllowance: 0, otherAllowance: 0, otherDeductions: 0 };
+      run.entries[employeeId] = { otHours: 0, otRate: 0, holidayPay: 0, transportAllowance: 0, mealAllowance: 0, otherAllowance: 0, otherDeductions: 0, weeklyRateOverride: "" };
     }
+    if (run.entries[employeeId].weeklyRateOverride === undefined) run.entries[employeeId].weeklyRateOverride = "";
     return run.entries[employeeId];
   }
 
@@ -66,10 +67,22 @@
     return days;
   }
 
+  function currentWeeklyRate(e, entry) {
+    return entry.weeklyRateOverride !== "" && entry.weeklyRateOverride !== undefined && entry.weeklyRateOverride !== null
+      ? Number(entry.weeklyRateOverride) || 0
+      : (e.weeklyRate || 0);
+  }
+
   function computePayrollLine(e, run) {
     var entry = entryFor(run, e.id);
     var daysWorked = daysWorkedInPeriod(e.id);
-    var dailyRate = (e.monthlySalary || 0) / 26;
+    var isWeekly = e.payFrequency === "Weekly";
+    // Weekly-paid staff (e.g. a trainee on a per-week ramp) use /6 (a 6-day
+    // work week) instead of the /26 monthly divisor. The rate can be bumped
+    // per payroll run via the Weekly Rate override column, so a ramp (e.g.
+    // ₱350 -> ₱450 -> ₱550/week) is entered as it progresses.
+    var weeklyRate = isWeekly ? currentWeeklyRate(e, entry) : 0;
+    var dailyRate = isWeekly ? weeklyRate / 6 : (e.monthlySalary || 0) / 26;
     var basicPay = dailyRate * daysWorked;
     var otPay = (Number(entry.otHours) || 0) * (Number(entry.otRate) || 0);
     var holidayPay = Number(entry.holidayPay) || 0;
@@ -78,14 +91,19 @@
     var otherAllow = Number(entry.otherAllowance) || 0;
     var grossPay = basicPay + otPay + holidayPay + transport + meal + otherAllow;
 
+    // Government contribution tables are keyed off a monthly salary; a
+    // weekly-paid employee's equivalent monthly figure is estimated at
+    // weeklyRate x (52 weeks / 12 months).
+    var monthlyEquivalent = isWeekly ? weeklyRate * (52 / 12) : (e.monthlySalary || 0);
+
     // No statutory deductions when there's nothing earned this period
     // (e.g. an owner on ₱0 draw, or a new hire with no attendance logged yet),
     // or when the employee is explicitly marked exempt (e.g. an agreed
     // no-deductions training/trial arrangement).
-    var hasEarnings = (e.monthlySalary || 0) > 0 && grossPay > 0 && !e.noGovernmentDeductions;
-    var sssRow = D.computeSss(e.monthlySalary || 0);
+    var hasEarnings = monthlyEquivalent > 0 && grossPay > 0 && !e.noGovernmentDeductions;
+    var sssRow = D.computeSss(monthlyEquivalent);
     var sssDeduction = hasEarnings ? sssRow.ee / 2 : 0; // semi-monthly share
-    var philhealth = D.computePhilHealth(e.monthlySalary || 0);
+    var philhealth = D.computePhilHealth(monthlyEquivalent);
     var philhealthDeduction = hasEarnings ? philhealth.monthly / 2 : 0;
     var pagibigDeduction = hasEarnings ? D.computePagibig().perCutoff : 0;
 
@@ -105,6 +123,7 @@
       transport: transport, meal: meal, otherAllow: otherAllow, grossPay: grossPay,
       sssDeduction: sssDeduction, philhealthDeduction: philhealthDeduction, pagibigDeduction: pagibigDeduction, tax: tax,
       otherDeductions: otherDeductions, totalDeductions: totalDeductions, netPay: netPay, entry: entry,
+      isWeekly: isWeekly, weeklyRate: weeklyRate,
     };
   }
 
@@ -129,7 +148,11 @@
         "<tr>" +
         '<td data-label="Employee"><div style="font-weight:600">' + X.escapeHtml(fullName(e)) + '</div><div style="font-size:.7rem;color:#94A3B8">' + e.id + "</div></td>" +
         '<td data-label="Days" style="text-align:center">' + line.daysWorked + "</td>" +
-        '<td data-label="Basic Pay" style="text-align:right">' + X.peso(line.basicPay) + "</td>" +
+        '<td data-label="Basic Pay" style="text-align:right">' +
+        (line.isWeekly ?
+          '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><input ' + disabled + ' type="number" min="0" step="0.01" class="field-input pr-weeklyrate" data-id="' + e.id + '" value="' + line.entry.weeklyRateOverride + '" placeholder="' + (e.weeklyRate || 0) + '" style="width:90px;text-align:right" title="Weekly rate for this pay period (e.g. training ramp)"><span style="font-size:.72rem;color:#94A3B8">' + X.peso(line.basicPay) + '</span></div>'
+          : X.peso(line.basicPay)) +
+        "</td>" +
         '<td data-label="OT (hrs x rate)"><div style="display:flex;gap:4px"><input ' + disabled + ' type="number" min="0" step="0.5" class="field-input pr-ot-hours" data-id="' + e.id + '" value="' + line.entry.otHours + '" style="width:60px" placeholder="hrs"><input ' + disabled + ' type="number" min="0" class="field-input pr-ot-rate" data-id="' + e.id + '" value="' + line.entry.otRate + '" style="width:70px" placeholder="₱/hr"></div></td>' +
         '<td data-label="Holiday Pay"><input ' + disabled + ' type="number" min="0" class="field-input pr-holiday" data-id="' + e.id + '" value="' + line.entry.holidayPay + '" style="width:80px"></td>' +
         '<td data-label="Transport"><input ' + disabled + ' type="number" min="0" class="field-input pr-transport" data-id="' + e.id + '" value="' + line.entry.transportAllowance + '" style="width:80px"></td>' +
@@ -177,6 +200,15 @@
         });
       });
     });
+    document.querySelectorAll(".pr-weeklyrate").forEach(function (input) {
+      input.addEventListener("change", function () {
+        var id = input.getAttribute("data-id");
+        var entry = entryFor(run, id);
+        entry.weeklyRateOverride = input.value === "" ? "" : (Number(input.value) || 0);
+        saveRun(run);
+        renderTable();
+      });
+    });
     document.querySelectorAll("[data-payslip]").forEach(function (btn) {
       btn.addEventListener("click", function () { openPayslip(btn.getAttribute("data-payslip")); });
     });
@@ -213,7 +245,7 @@
       "</div>" +
       '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:14px">' +
       "<tr><td colspan='2' style='font-weight:700;padding:6px 0'>Earnings</td></tr>" +
-      payslipRow("Basic Pay (" + line.daysWorked + " days)", line.basicPay) +
+      payslipRow(line.isWeekly ? "Basic Pay (₱" + line.weeklyRate.toFixed(2) + "/wk, " + line.daysWorked + " days)" : "Basic Pay (" + line.daysWorked + " days)", line.basicPay) +
       payslipRow("Overtime Pay", line.otPay) +
       payslipRow("Holiday Pay", line.holidayPay) +
       payslipRow("Transportation Allowance", line.transport) +

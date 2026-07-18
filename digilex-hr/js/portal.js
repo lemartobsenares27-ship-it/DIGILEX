@@ -33,6 +33,25 @@
     return X.pad2(d.getHours()) + ":" + X.pad2(d.getMinutes());
   }
 
+  function minutesBetween(timeIn, timeOut) {
+    if (!timeIn || !timeOut) return 0;
+    var a = timeIn.split(":"), b = timeOut.split(":");
+    return Math.max(0, (Number(b[0]) * 60 + Number(b[1])) - (Number(a[0]) * 60 + Number(a[1])));
+  }
+  function totalBreakMinutes(rec) {
+    if (!rec || !rec.breaks) return 0;
+    return rec.breaks.reduce(function (s, b) { return s + minutesBetween(b.start, b.end || nowHm()); }, 0);
+  }
+  function openBreak(rec) {
+    if (!rec || !rec.breaks) return null;
+    return rec.breaks.find(function (b) { return b.start && !b.end; }) || null;
+  }
+  function fmtMinutes(m) {
+    if (!m) return "0m";
+    var h = Math.floor(m / 60), rem = Math.round(m % 60);
+    return (h ? h + "h " : "") + rem + "m";
+  }
+
   function todayRecord() {
     var todayIso = X.todayIso();
     return Store.getAttendance().find(function (a) { return a.employeeId === employee.id && a.date === todayIso; });
@@ -60,12 +79,18 @@
     var box = document.getElementById("portal-clock-status");
     var timeInBtn = document.getElementById("btn-time-in");
     var timeOutBtn = document.getElementById("btn-time-out");
+    var breakStartBtn = document.getElementById("btn-break-start");
+    var breakEndBtn = document.getElementById("btn-break-end");
+    var breakTypeSel = document.getElementById("portal-break-type");
+    var breakBox = document.getElementById("portal-break-status");
 
     document.getElementById("portal-today-date").textContent = new Date(today + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
     if (dow === 0) {
       box.innerHTML = '<span class="badge badge-gray">Rest Day</span> Enjoy your Sunday off!';
       timeInBtn.disabled = true; timeOutBtn.disabled = true;
+      breakStartBtn.disabled = true; breakEndBtn.disabled = true; breakTypeSel.disabled = true;
+      breakBox.innerHTML = "";
       return;
     }
     if (!rec || !rec.timeIn) {
@@ -77,6 +102,20 @@
     } else {
       box.innerHTML = cellBadge(rec.status) + ' ' + rec.timeIn + ' – ' + rec.timeOut + ' (' + rec.hoursWorked + ' hrs)';
       timeInBtn.disabled = true; timeOutBtn.disabled = true;
+    }
+
+    var canBreak = !!(rec && rec.timeIn && !rec.timeOut);
+    var ob = openBreak(rec);
+    breakTypeSel.disabled = !canBreak || !!ob;
+    breakStartBtn.disabled = !canBreak || !!ob;
+    breakEndBtn.disabled = !canBreak || !ob;
+    if (!canBreak) {
+      breakBox.innerHTML = '<span style="color:#94A3B8">Clock in to start tracking breaks.</span>';
+    } else if (ob) {
+      breakBox.innerHTML = '<span class="badge badge-orange">On ' + X.escapeHtml(ob.type) + '</span> since <strong>' + ob.start + '</strong>';
+    } else {
+      var mins = totalBreakMinutes(rec);
+      breakBox.innerHTML = mins ? 'Total break time today: <strong>' + fmtMinutes(mins) + '</strong>' : 'No breaks taken yet today.';
     }
   }
 
@@ -94,8 +133,33 @@
     if (!rec || !rec.timeIn) return;
     var t = nowHm();
     var hours = hoursBetween(rec.timeIn, t);
-    saveAttendance({ employeeId: employee.id, date: rec.date, status: rec.status, timeIn: rec.timeIn, timeOut: t, hoursWorked: hours, notes: rec.notes });
+    var breaks = rec.breaks || [];
+    var ob = openBreak(rec);
+    if (ob) ob.end = t; // auto-close a break left running at time-out
+    saveAttendance({ employeeId: employee.id, date: rec.date, status: rec.status, timeIn: rec.timeIn, timeOut: t, hoursWorked: hours, notes: rec.notes, breaks: breaks });
     X.toast("Timed out at " + t + ".", "success");
+    renderClock();
+    renderHistory();
+  }
+
+  function breakStart() {
+    var rec = todayRecord();
+    if (!rec || !rec.timeIn || rec.timeOut || openBreak(rec)) return;
+    var type = document.getElementById("portal-break-type").value;
+    var breaks = rec.breaks || [];
+    breaks.push({ type: type, start: nowHm(), end: "" });
+    saveAttendance(Object.assign({}, rec, { breaks: breaks }));
+    X.toast(type + " started.", "success");
+    renderClock();
+    renderHistory();
+  }
+  function breakEnd() {
+    var rec = todayRecord();
+    var ob = rec && openBreak(rec);
+    if (!ob) return;
+    ob.end = nowHm();
+    saveAttendance(Object.assign({}, rec, { breaks: rec.breaks }));
+    X.toast(ob.type + " ended (" + fmtMinutes(minutesBetween(ob.start, ob.end)) + ").", "success");
     renderClock();
     renderHistory();
   }
@@ -113,9 +177,10 @@
         '<td data-label="Time In">' + (a.timeIn || "—") + "</td>" +
         '<td data-label="Time Out">' + (a.timeOut || "—") + "</td>" +
         '<td data-label="Hours">' + (a.hoursWorked || 0) + "</td>" +
+        '<td data-label="Break Time">' + fmtMinutes(totalBreakMinutes(a)) + "</td>" +
         "</tr>"
       );
-    }).join("") || '<tr><td colspan="5" style="text-align:center;color:#94A3B8;padding:16px">No attendance logged yet.</td></tr>';
+    }).join("") || '<tr><td colspan="6" style="text-align:center;color:#94A3B8;padding:16px">No attendance logged yet.</td></tr>';
   }
 
   function renderMonthSummary() {
@@ -146,6 +211,8 @@
     renderMonthSummary();
     document.getElementById("btn-time-in").addEventListener("click", timeIn);
     document.getElementById("btn-time-out").addEventListener("click", timeOut);
+    document.getElementById("btn-break-start").addEventListener("click", breakStart);
+    document.getElementById("btn-break-end").addEventListener("click", breakEnd);
     document.getElementById("btn-portal-logout").addEventListener("click", function () { window.DigilexAuth.logout(); });
     document.getElementById("btn-portal-change-password").addEventListener("click", function () { window.DigilexAuth.openChangePasswordModal(); });
   });
