@@ -295,7 +295,30 @@
     document.getElementById("btn-print-payslip").addEventListener("click", function () { window.print(); });
   }
 
+  // Exposed so other pages (e.g. the Dashboard) can show payroll totals
+  // using the exact same computation as this page, instead of duplicating
+  // the PH statutory-deduction math.
+  window.DigilexPayroll = {
+    computeRunTotals: function (run) {
+      if (!run) return null;
+      var totalGross = 0, totalDeductions = 0, totalNet = 0;
+      var employees = activeEmployees();
+      employees.forEach(function (e) {
+        var line = computePayrollLine(e, run);
+        totalGross += line.grossPay; totalDeductions += line.totalDeductions; totalNet += line.netPay;
+      });
+      return { totalGross: totalGross, totalDeductions: totalDeductions, totalNet: totalNet, employeeCount: employees.length };
+    },
+    periodLabelFor: function (run) {
+      var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      var from = run.half === 1 ? 1 : 16;
+      var to = run.half === 1 ? 15 : new Date(run.year, run.month, 0).getDate();
+      return months[run.month - 1] + " " + from + "–" + to + ", " + run.year;
+    },
+  };
+
   document.addEventListener("DOMContentLoaded", function () {
+    if (!document.getElementById("payroll-period-label")) return; // this page's DOM isn't present (e.g. loaded on Dashboard just for DigilexPayroll)
     X.renderChrome("payroll", "Payroll & Payslips");
     populatePeriodControls();
     bindControls();

@@ -26,36 +26,78 @@
         <div id="portal-role" style="font-size:.72rem;color:#94A3B8"></div>
       </div>
       <div class="avatar avatar-sm" id="portal-avatar"></div>
-      <button class="btn btn-secondary btn-sm" id="btn-portal-change-password"><i class="fa-solid fa-key"></i> Change Password</button>
-      <button class="btn btn-secondary btn-sm" id="btn-portal-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
     </div>
   </header>
 
-  <div class="page-body" style="max-width:900px;margin:0 auto">
+  <div class="page-body" style="max-width:980px;margin:0 auto">
 
-    <div class="dlx-card" style="margin-bottom:16px;text-align:center">
-      <div id="portal-today-date" style="color:#64748B;font-size:.85rem;margin-bottom:14px"></div>
-      <div id="portal-clock-status" style="font-size:1.1rem;font-weight:700;margin-bottom:20px"></div>
-      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-        <button class="btn btn-primary" id="btn-time-in" style="min-width:160px;justify-content:center"><i class="fa-solid fa-right-to-bracket"></i> Time In</button>
-        <button class="btn btn-secondary" id="btn-time-out" style="min-width:160px;justify-content:center"><i class="fa-solid fa-right-from-bracket"></i> Time Out</button>
+    <div class="dlx-card" style="margin-bottom:16px">
+      <div id="portal-greeting" style="font-size:1.3rem;font-weight:800;color:var(--dlx-primary)"></div>
+      <div id="portal-today-date" style="color:#64748B;font-size:.85rem;margin-top:2px"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start;margin-bottom:16px">
+      <div class="dlx-card">
+        <div style="font-weight:700;margin-bottom:14px">Today's Schedule</div>
+
+        <div id="portal-step-checkin" class="portal-step">
+          <div class="portal-step-icon"><i class="fa-solid fa-check"></i></div>
+          <div class="portal-step-body">
+            <div class="portal-step-label">Check-in</div>
+            <div class="portal-step-time" id="portal-step-checkin-time">—</div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-time-in"><i class="fa-solid fa-right-to-bracket"></i> Time In</button>
+        </div>
+
+        <div id="portal-breaks-list" style="margin:4px 0 4px 15px;padding-left:23px;border-left:2px dashed #E2E8F0"></div>
+
+        <div class="portal-step" style="border:none;padding-top:0">
+          <div class="portal-step-icon portal-step-icon-neutral"><i class="fa-solid fa-mug-saucer"></i></div>
+          <div class="portal-step-body">
+            <div class="portal-step-label">Break</div>
+            <div class="portal-step-time" id="portal-break-status">Clock in to start tracking breaks.</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <select class="field-select" id="portal-break-type" style="max-width:130px;padding:6px 8px;font-size:.78rem">
+              <option>Lunch Break</option>
+              <option>Short Break</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="btn-break-start"><i class="fa-solid fa-play"></i> Start</button>
+            <button class="btn btn-secondary btn-sm" id="btn-break-end"><i class="fa-solid fa-pause"></i> End</button>
+          </div>
+        </div>
+
+        <div id="portal-step-checkout" class="portal-step" style="border-bottom:none">
+          <div class="portal-step-icon"><i class="fa-solid fa-check"></i></div>
+          <div class="portal-step-body">
+            <div class="portal-step-label">Check-out</div>
+            <div class="portal-step-time" id="portal-step-checkout-time">—</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-time-out"><i class="fa-solid fa-right-from-bracket"></i> Time Out</button>
+        </div>
       </div>
-      <div style="border-top:1px solid #F1F5F9;margin-top:20px;padding-top:20px">
-        <div id="portal-break-status" style="font-size:.9rem;font-weight:600;margin-bottom:12px;color:#475569"></div>
-        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;align-items:center">
-          <select class="field-select" id="portal-break-type" style="max-width:170px">
-            <option>Lunch Break</option>
-            <option>Short Break</option>
-          </select>
-          <button class="btn btn-secondary" id="btn-break-start" style="min-width:150px;justify-content:center"><i class="fa-solid fa-mug-saucer"></i> Start Break</button>
-          <button class="btn btn-secondary" id="btn-break-end" style="min-width:150px;justify-content:center"><i class="fa-solid fa-play"></i> End Break</button>
+
+      <div style="display:grid;gap:16px">
+        <div class="dlx-card" style="text-align:center">
+          <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#94A3B8;font-weight:600;margin-bottom:6px"><i class="fa-solid fa-stopwatch"></i> Time Elapsed</div>
+          <div id="portal-time-elapsed" style="font-size:2rem;font-weight:800;color:var(--dlx-primary);font-variant-numeric:tabular-nums">00:00:00</div>
+          <div id="portal-clock-status" style="font-size:.8rem;color:#64748B;margin-top:6px"></div>
+        </div>
+        <div class="dlx-card">
+          <div style="font-weight:700;margin-bottom:10px;font-size:.85rem">Quick Actions</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <button class="portal-quick-tile" id="btn-portal-change-password-tile"><i class="fa-solid fa-key"></i><span>Change Password</span></button>
+            <button class="portal-quick-tile" id="btn-portal-export"><i class="fa-solid fa-file-csv"></i><span>Export My Attendance</span></button>
+            <button class="portal-quick-tile" id="btn-portal-history-tile"><i class="fa-solid fa-clock-rotate-left"></i><span>View History</span></button>
+            <button class="portal-quick-tile" id="btn-portal-logout-tile"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></button>
+          </div>
         </div>
       </div>
     </div>
 
     <div id="portal-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:16px"></div>
 
-    <div class="dlx-card">
+    <div class="dlx-card" id="portal-history-card">
       <div style="font-weight:700;margin-bottom:12px">My Attendance History</div>
       <div style="overflow-x:auto">
         <table class="dlx-table">

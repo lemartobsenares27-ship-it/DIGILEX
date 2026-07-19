@@ -98,6 +98,13 @@
     var d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
     return d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
   }
+  function greeting() {
+    var h = new Date().getHours();
+    return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  }
+  function fmtFullDate(d) {
+    return (d || new Date()).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  }
   function escapeHtml(str) {
     if (str === null || str === undefined) return "";
     return String(str)
@@ -272,9 +279,10 @@
   function currentUser() {
     var session = global.DigilexAuth ? global.DigilexAuth.getSession() : null;
     var employee = session ? Store.getEmployees().find(function (e) { return e.id === session.employeeId; }) : null;
-    if (!employee) return { name: "Lee Obseñares", initials: "LO", role: "Admin" };
+    if (!employee) return { name: "Lee Obseñares", firstName: "Lee", initials: "LO", role: "Admin" };
     return {
       name: employee.firstName + " " + employee.lastName,
+      firstName: employee.firstName,
       initials: initials(employee.firstName, employee.lastName),
       role: session.role === "admin" ? "Admin" : "Employee",
     };
@@ -398,6 +406,8 @@
     pad2: pad2,
     todayIso: todayIso,
     fmtDate: fmtDate,
+    greeting: greeting,
+    fmtFullDate: fmtFullDate,
     escapeHtml: escapeHtml,
     initials: initials,
     avatarColor: avatarColor,
@@ -411,6 +421,7 @@
     closeModal: closeModal,
     renderChrome: renderChrome,
     buildNotifications: buildNotifications,
+    currentUser: currentUser,
   };
 
   ensureSeeded();

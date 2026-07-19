@@ -70,6 +70,33 @@
     document.getElementById("portal-avatar").style.background = X.avatarColor(employee.id);
     document.getElementById("portal-name").textContent = fullName(employee);
     document.getElementById("portal-role").textContent = employee.position + " · " + employee.department;
+    document.getElementById("portal-greeting").textContent = X.greeting() + ", " + employee.firstName + ".";
+  }
+
+  var elapsedTimer = null;
+
+  function fmtHms(totalSeconds) {
+    var h = Math.floor(totalSeconds / 3600);
+    var m = Math.floor((totalSeconds % 3600) / 60);
+    var s = Math.floor(totalSeconds % 60);
+    return X.pad2(h) + ":" + X.pad2(m) + ":" + X.pad2(s);
+  }
+  function tickElapsed(timeIn) {
+    var box = document.getElementById("portal-time-elapsed");
+    function tick() {
+      var parts = timeIn.split(":");
+      var start = new Date();
+      start.setHours(Number(parts[0]), Number(parts[1]), 0, 0);
+      var secs = Math.max(0, Math.floor((Date.now() - start.getTime()) / 1000));
+      box.textContent = fmtHms(secs);
+    }
+    tick();
+    if (elapsedTimer) clearInterval(elapsedTimer);
+    elapsedTimer = setInterval(tick, 1000);
+  }
+  function stopElapsed(text) {
+    if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
+    document.getElementById("portal-time-elapsed").textContent = text;
   }
 
   function renderClock() {
@@ -83,25 +110,37 @@
     var breakEndBtn = document.getElementById("btn-break-end");
     var breakTypeSel = document.getElementById("portal-break-type");
     var breakBox = document.getElementById("portal-break-status");
+    var checkinIcon = document.querySelector("#portal-step-checkin .portal-step-icon");
+    var checkoutIcon = document.querySelector("#portal-step-checkout .portal-step-icon");
 
-    document.getElementById("portal-today-date").textContent = new Date(today + "T00:00:00").toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+    document.getElementById("portal-today-date").textContent = X.fmtFullDate(new Date(today + "T00:00:00"));
+
+    checkinIcon.className = "portal-step-icon" + (rec && rec.timeIn ? " done" : "");
+    checkoutIcon.className = "portal-step-icon" + (rec && rec.timeOut ? " done" : "");
+    document.getElementById("portal-step-checkin-time").textContent = (rec && rec.timeIn) || "—";
+    document.getElementById("portal-step-checkout-time").textContent = (rec && rec.timeOut) || "—";
 
     if (dow === 0) {
       box.innerHTML = '<span class="badge badge-gray">Rest Day</span> Enjoy your Sunday off!';
       timeInBtn.disabled = true; timeOutBtn.disabled = true;
       breakStartBtn.disabled = true; breakEndBtn.disabled = true; breakTypeSel.disabled = true;
       breakBox.innerHTML = "";
+      stopElapsed("00:00:00");
+      renderBreaksList(rec);
       return;
     }
     if (!rec || !rec.timeIn) {
       box.innerHTML = '<span class="badge badge-gray">Not clocked in</span>';
       timeInBtn.disabled = false; timeOutBtn.disabled = true;
+      stopElapsed("00:00:00");
     } else if (rec.timeIn && !rec.timeOut) {
       box.innerHTML = cellBadge(rec.status) + ' Clocked in at <strong>' + rec.timeIn + '</strong>';
       timeInBtn.disabled = true; timeOutBtn.disabled = false;
+      tickElapsed(rec.timeIn);
     } else {
       box.innerHTML = cellBadge(rec.status) + ' ' + rec.timeIn + ' – ' + rec.timeOut + ' (' + rec.hoursWorked + ' hrs)';
       timeInBtn.disabled = true; timeOutBtn.disabled = true;
+      stopElapsed(fmtHms(hoursBetween(rec.timeIn, rec.timeOut) * 3600));
     }
 
     var canBreak = !!(rec && rec.timeIn && !rec.timeOut);
@@ -117,6 +156,17 @@
       var mins = totalBreakMinutes(rec);
       breakBox.innerHTML = mins ? 'Total break time today: <strong>' + fmtMinutes(mins) + '</strong>' : 'No breaks taken yet today.';
     }
+    renderBreaksList(rec);
+  }
+
+  function renderBreaksList(rec) {
+    var list = document.getElementById("portal-breaks-list");
+    var breaks = (rec && rec.breaks) || [];
+    if (!breaks.length) { list.innerHTML = ""; return; }
+    list.innerHTML = breaks.map(function (b) {
+      var timeText = b.end ? (b.start + " – " + b.end + " (" + fmtMinutes(minutesBetween(b.start, b.end)) + ")") : ("since " + b.start + " (ongoing)");
+      return '<div style="font-size:.78rem;color:#64748B;padding:3px 0"><i class="fa-solid fa-mug-saucer" style="color:#F97316;margin-right:6px"></i>' + X.escapeHtml(b.type) + ": " + timeText + "</div>";
+    }).join("");
   }
 
   function timeIn() {
@@ -204,6 +254,15 @@
     return '<div class="dlx-card kpi-card"><div class="kpi-label">' + label + '</div><div class="kpi-value" style="color:' + color + '">' + value + "</div></div>";
   }
 
+  function exportMyAttendance() {
+    var all = Store.getAttendance().filter(function (a) { return a.employeeId === employee.id && a.status; })
+      .sort(function (a, b) { return a.date.localeCompare(b.date); });
+    var header = ["Date", "Status", "Time In", "Time Out", "Hours", "Break Time"];
+    var rows = all.map(function (a) { return [a.date, a.status, a.timeIn, a.timeOut, a.hoursWorked, fmtMinutes(totalBreakMinutes(a))]; });
+    X.downloadCsv("my-attendance-" + employee.id + ".csv", [header].concat(rows));
+    X.toast("Attendance exported.", "success");
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     renderHeader();
     renderClock();
@@ -213,7 +272,9 @@
     document.getElementById("btn-time-out").addEventListener("click", timeOut);
     document.getElementById("btn-break-start").addEventListener("click", breakStart);
     document.getElementById("btn-break-end").addEventListener("click", breakEnd);
-    document.getElementById("btn-portal-logout").addEventListener("click", function () { window.DigilexAuth.logout(); });
-    document.getElementById("btn-portal-change-password").addEventListener("click", function () { window.DigilexAuth.openChangePasswordModal(); });
+    document.getElementById("btn-portal-logout-tile").addEventListener("click", function () { window.DigilexAuth.logout(); });
+    document.getElementById("btn-portal-change-password-tile").addEventListener("click", function () { window.DigilexAuth.openChangePasswordModal(); });
+    document.getElementById("btn-portal-export").addEventListener("click", exportMyAttendance);
+    document.getElementById("btn-portal-history-tile").addEventListener("click", function () { document.getElementById("portal-history-card").scrollIntoView({ behavior: "smooth" }); });
   });
 })();
