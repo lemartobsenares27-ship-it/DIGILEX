@@ -145,7 +145,10 @@ export default function SOABreakdown() {
                     <td className="px-2 py-1.5 text-right tabular" style={{ color: 'var(--text-primary)' }}>
                       {formatCurrency(r['Remitted So Far (per NPMCM)'])}
                     </td>
-                    <td className="px-2 py-1.5 text-right tabular font-semibold" style={{ color: 'var(--status-critical)' }}>
+                    <td
+                      className="px-2 py-1.5 text-right tabular font-semibold"
+                      style={{ color: (r['Still Outstanding'] ?? 0) > 0 ? 'var(--status-critical)' : 'var(--status-good)' }}
+                    >
                       {formatCurrency(r['Still Outstanding'])}
                     </td>
                   </tr>
