@@ -6,6 +6,8 @@
   var D = window.DigilexData;
   var Store = X.Store;
   var charts = {};
+  var CHART_TEXT = "#7C8797";
+  var CHART_GRID = "rgba(255,255,255,0.06)";
 
   function fullName(e) { return e.firstName + " " + e.lastName; }
 
@@ -63,7 +65,14 @@
         labels: D.DEPARTMENTS,
         datasets: [{ label: "Headcount", data: D.DEPARTMENTS.map(function (d) { return counts[d]; }), backgroundColor: "#F97316", borderRadius: 6 }],
       },
-      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { stepSize: 1, color: CHART_TEXT }, grid: { color: CHART_GRID } },
+          x: { ticks: { color: CHART_TEXT }, grid: { display: false } },
+        },
+      },
     });
   }
 
@@ -92,7 +101,14 @@
     charts.trend = new Chart(ctx, {
       type: "line",
       data: { labels: months, datasets: [{ label: "Attendance Rate %", data: rates, borderColor: "#22C55E", backgroundColor: "rgba(34,197,94,0.15)", fill: true, tension: 0.35 }] },
-      options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { min: 0, max: 100, ticks: { color: CHART_TEXT }, grid: { color: CHART_GRID } },
+          x: { ticks: { color: CHART_TEXT }, grid: { display: false } },
+        },
+      },
     });
   }
 
@@ -107,14 +123,22 @@
     var notLogged = employees.filter(function (e) { return !loggedIds[e.id]; }).length;
     var labels = ["Present", "Late", "Half Day", "On Leave", "Absent", "Not Logged Yet"];
     var data = [counts.Present, counts.Late, counts["Half Day"], counts["On Leave"], counts.Absent, notLogged];
-    var colors = ["#22C55E", "#EAB308", "#FB923C", "#0EA5E9", "#EF4444", "#CBD5E1"];
+    var colors = ["#22C55E", "#EAB308", "#FB923C", "#0EA5E9", "#EF4444", "#2A3040"];
     var ctx = document.getElementById("chart-today-attendance").getContext("2d");
     if (charts.today) charts.today.destroy();
     charts.today = new Chart(ctx, {
       type: "doughnut",
-      data: { labels: labels, datasets: [{ data: data, backgroundColor: colors }] },
-      options: { responsive: true, plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 10 } } } } },
+      data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderColor: "#12141B", borderWidth: 2 }] },
+      options: {
+        responsive: true,
+        cutout: "72%",
+        plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 10 }, color: CHART_TEXT } } },
+      },
     });
+    var totalToday = data.reduce(function (s, n) { return s + n; }, 0);
+    var presentPct = totalToday ? Math.round(((counts.Present + counts.Late) / totalToday) * 100) : 0;
+    var gaugeEl = document.getElementById("dash-today-gauge-value");
+    if (gaugeEl) { gaugeEl.textContent = presentPct + "%"; gaugeEl.style.color = presentPct >= 90 ? "#4ADE80" : presentPct >= 75 ? "#FACC15" : "#F87171"; }
   }
 
   function renderLeaveDonut() {
@@ -129,8 +153,8 @@
     if (charts.leave) charts.leave.destroy();
     charts.leave = new Chart(ctx, {
       type: "doughnut",
-      data: { labels: labels, datasets: [{ data: data, backgroundColor: colors }] },
-      options: { responsive: true, plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 10 } } } } },
+      data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderColor: "#12141B", borderWidth: 2 }] },
+      options: { responsive: true, plugins: { legend: { position: "bottom", labels: { boxWidth: 12, font: { size: 10 }, color: CHART_TEXT } } } },
     });
   }
 
@@ -149,7 +173,7 @@
     document.getElementById("dash-approvals").innerHTML = pending.map(function (r) {
       var e = empIdx[r.employeeId];
       return (
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F5F9;font-size:.82rem">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #1F2330;font-size:.82rem">' +
         '<div><div style="font-weight:600">' + X.escapeHtml(e ? fullName(e) : r.employeeId) + '</div>' +
         '<div style="font-size:.72rem;color:#94A3B8">' + X.escapeHtml(leaveTypeName(r.leaveType)) + " &middot; " + X.fmtDate(r.dateFrom) + "–" + X.fmtDate(r.dateTo) + "</div></div>" +
         '<span class="badge badge-yellow">Pending</span>' +
@@ -171,7 +195,7 @@
     var totals = window.DigilexPayroll.computeRunTotals(run);
     box.innerHTML =
       '<div style="font-size:.78rem;color:#94A3B8;margin-bottom:6px">' + X.escapeHtml(window.DigilexPayroll.periodLabelFor(run)) + '</div>' +
-      '<div style="font-size:1.5rem;font-weight:800;color:#166534;margin-bottom:6px">' + X.peso(totals.totalNet) + '</div>' +
+      '<div style="font-size:1.5rem;font-weight:800;color:#4ADE80;margin-bottom:6px">' + X.peso(totals.totalNet) + '</div>' +
       '<div style="font-size:.75rem;color:#64748B">Net pay &middot; ' + totals.employeeCount + " employee" + (totals.employeeCount === 1 ? "" : "s") + " &middot; " + '<span class="badge badge-green">Processed</span></div>';
   }
 
@@ -183,7 +207,7 @@
       var e = empIdx[a.employeeId];
       var color = { Present: "#22C55E", Late: "#EAB308", "Half Day": "#FB923C", Absent: "#EF4444", "On Leave": "#0EA5E9", "Rest Day": "#94A3B8" }[a.status] || "#94A3B8";
       return (
-        '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F1F5F9">' +
+        '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1F2330">' +
         '<div style="width:8px;height:8px;border-radius:50%;background:' + color + '"></div>' +
         '<div style="flex:1"><div style="font-size:.82rem;font-weight:600">' + X.escapeHtml(e ? fullName(e) : a.employeeId) + "</div>" +
         '<div style="font-size:.72rem;color:#94A3B8">' + a.status + " &middot; " + X.fmtDate(a.date) + "</div></div>" +
@@ -245,6 +269,8 @@
         var canvas = document.getElementById(id);
         if (canvas) canvas.replaceWith(Object.assign(document.createElement("div"), { style: "color:#94A3B8;font-size:.8rem;padding:20px 0", textContent: "Chart library unavailable (offline)." }));
       });
+      var gaugeCenter = document.querySelector(".dash-gauge-center");
+      if (gaugeCenter) gaugeCenter.style.display = "none";
     } else {
       safe(renderDeptChart);
       safe(renderAttendanceTrendChart);

@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
+<body class="dashboard-dark">
 <div class="app-shell">
   <div id="sidebar-root"></div>
   <div class="main-content">
@@ -19,10 +19,13 @@
 
       <div class="dlx-card" style="margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px">
         <div>
-          <div id="dash-greeting" style="font-size:1.4rem;font-weight:800;color:var(--dlx-primary)"></div>
-          <div id="dash-greeting-sub" style="font-size:.85rem;color:#64748B;margin-top:4px"></div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div id="dash-greeting" class="dash-heading" style="font-size:1.4rem;font-weight:800"></div>
+            <span class="live-badge"><span class="live-badge-dot"></span>LIVE</span>
+          </div>
+          <div id="dash-greeting-sub" class="dash-sub" style="font-size:.85rem;margin-top:4px"></div>
         </div>
-        <div id="dash-greeting-status" style="font-size:.82rem;color:#475569;background:#F8FAFC;border:1px solid var(--dlx-border);border-radius:10px;padding:10px 16px"></div>
+        <div id="dash-greeting-status" class="dash-sub" style="font-size:.82rem;background:rgba(255,255,255,0.03);border:1px solid #1F2330;border-radius:10px;padding:10px 16px"></div>
       </div>
 
       <div id="dash-kpis" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:20px"></div>
@@ -37,20 +40,24 @@
       <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start;margin-bottom:16px">
         <div style="display:grid;gap:16px;min-width:0">
           <div class="dlx-card">
-            <div style="font-weight:700;margin-bottom:12px">Department Headcount</div>
+            <div class="dash-heading" style="font-weight:700;margin-bottom:12px">Department Headcount</div>
             <canvas id="chart-department" height="160"></canvas>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
             <div class="dlx-card" style="min-width:0">
-              <div style="font-weight:700;margin-bottom:12px">Attendance Rate (6 mo.)</div>
+              <div class="dash-heading" style="font-weight:700;margin-bottom:12px">Attendance Rate (6 mo.)</div>
               <canvas id="chart-attendance-trend" height="180"></canvas>
             </div>
-            <div class="dlx-card" style="min-width:0">
-              <div style="font-weight:700;margin-bottom:12px">Today's Attendance</div>
+            <div class="dlx-card dash-gauge-wrap" style="min-width:0">
+              <div class="dash-heading" style="font-weight:700;margin-bottom:12px">Today's Attendance</div>
               <canvas id="chart-today-attendance" height="180"></canvas>
+              <div class="dash-gauge-center">
+                <div class="dash-gauge-value" id="dash-today-gauge-value">0%</div>
+                <div class="dash-gauge-label">Present</div>
+              </div>
             </div>
             <div class="dlx-card" style="min-width:0">
-              <div style="font-weight:700;margin-bottom:12px">Leave Type Distribution</div>
+              <div class="dash-heading" style="font-weight:700;margin-bottom:12px">Leave Type Distribution</div>
               <canvas id="chart-leave-donut" height="180"></canvas>
             </div>
           </div>
@@ -59,33 +66,33 @@
         <div style="display:grid;gap:16px;min-width:0">
           <div class="dlx-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-              <div style="font-weight:700"><i class="fa-solid fa-inbox"></i> Approvals Needed</div>
-              <a href="pages/leave.html" style="font-size:.75rem;color:var(--dlx-accent);font-weight:600">Review in Leave →</a>
+              <div class="dash-heading" style="font-weight:700"><i class="fa-solid fa-inbox"></i> Approvals Needed</div>
+              <a href="pages/leave.html" class="dash-link" style="font-size:.75rem;font-weight:600">Review in Leave →</a>
             </div>
             <div id="dash-approvals"></div>
           </div>
           <div class="dlx-card">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-              <div style="font-weight:700"><i class="fa-solid fa-file-invoice-dollar"></i> Latest Payroll</div>
-              <a href="pages/payroll.html" style="font-size:.75rem;color:var(--dlx-accent);font-weight:600">Open Payroll →</a>
+              <div class="dash-heading" style="font-weight:700"><i class="fa-solid fa-file-invoice-dollar"></i> Latest Payroll</div>
+              <a href="pages/payroll.html" class="dash-link" style="font-size:.75rem;font-weight:600">Open Payroll →</a>
             </div>
             <div id="dash-latest-payroll"></div>
           </div>
           <div class="dlx-card">
-            <div style="font-weight:700;margin-bottom:10px">Activity Feed</div>
+            <div class="dash-heading" style="font-weight:700;margin-bottom:10px">Activity Feed</div>
             <div id="dash-activity-feed"></div>
           </div>
           <div class="dlx-card">
-            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.85rem"><span>Pending Leave Requests</span><strong id="dash-pending-leave">0</strong></div>
-            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.85rem;border-top:1px solid #F1F5F9"><span>Next Payroll In</span><strong id="dash-payroll-countdown">—</strong></div>
-            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:.85rem;border-top:1px solid #F1F5F9"><span>New Hires This Month</span><strong id="dash-new-hires">0</strong></div>
+            <div class="dash-row" style="display:flex;justify-content:space-between;padding:6px 0;font-size:.85rem"><span class="dash-muted">Pending Leave Requests</span><strong class="dash-heading" id="dash-pending-leave">0</strong></div>
+            <div class="dash-row" style="display:flex;justify-content:space-between;padding:6px 0;font-size:.85rem;border-top:1px solid #F1F5F9"><span class="dash-muted">Next Payroll In</span><strong class="dash-heading" id="dash-payroll-countdown">—</strong></div>
+            <div class="dash-row" style="display:flex;justify-content:space-between;padding:6px 0;font-size:.85rem;border-top:1px solid #F1F5F9"><span class="dash-muted">New Hires This Month</span><strong class="dash-heading" id="dash-new-hires">0</strong></div>
           </div>
         </div>
       </div>
 
       <div class="dlx-card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <div style="font-weight:700"><i class="fa-solid fa-bullhorn"></i> Company Announcements</div>
+          <div class="dash-heading" style="font-weight:700"><i class="fa-solid fa-bullhorn"></i> Company Announcements</div>
         </div>
         <div id="announcement-editor" contenteditable="true" class="field-input" style="min-height:70px;margin-bottom:10px" data-placeholder="Write an announcement..."></div>
         <button class="btn btn-primary btn-sm" id="btn-save-announcement"><i class="fa-solid fa-paper-plane"></i> Post Announcement</button>
