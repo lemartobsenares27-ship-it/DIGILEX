@@ -75,7 +75,7 @@
 
 <!-- Scorecard Modal -->
 <div class="modal-backdrop" id="perf-modal" data-modal-id="perf-modal">
-  <div class="modal-box">
+  <div class="modal-box" id="perf-modal-box">
     <div class="modal-head">
       <div class="modal-title" id="perf-modal-title">Scorecard</div>
       <button class="modal-close" data-modal-close="perf-modal"><i class="fa-solid fa-xmark"></i></button>
@@ -83,10 +83,16 @@
     <form id="perf-form">
       <input type="hidden" id="perf-form-employee"><input type="hidden" id="perf-form-month">
       <div class="modal-body">
-        <div class="field-group"><label class="field-label">Tasks Completed (0–100)</label><input type="number" min="0" max="100" class="field-input" id="perf-f-tasks"></div>
-        <div class="field-group"><label class="field-label">Quality Score (1–10)</label><input type="number" min="1" max="10" step="0.1" class="field-input" id="perf-f-quality"></div>
-        <div class="field-group" id="perf-csat-wrap"><label class="field-label">Customer Satisfaction (1–5)</label><input type="number" min="1" max="5" step="0.1" class="field-input" id="perf-f-csat"></div>
-        <div class="field-group" id="perf-orders-wrap"><label class="field-label">Orders Processed</label><input type="number" min="0" class="field-input" id="perf-f-orders"></div>
+
+        <div id="perf-kpi-container" style="display:none"></div>
+
+        <div id="perf-generic-fields">
+          <div class="field-group"><label class="field-label">Tasks Completed (0–100)</label><input type="number" min="0" max="100" class="field-input" id="perf-f-tasks"></div>
+          <div class="field-group"><label class="field-label">Quality Score (1–10)</label><input type="number" min="1" max="10" step="0.1" class="field-input" id="perf-f-quality"></div>
+          <div class="field-group" id="perf-csat-wrap"><label class="field-label">Customer Satisfaction (1–5)</label><input type="number" min="1" max="5" step="0.1" class="field-input" id="perf-f-csat"></div>
+          <div class="field-group" id="perf-orders-wrap"><label class="field-label">Orders Processed</label><input type="number" min="0" class="field-input" id="perf-f-orders"></div>
+        </div>
+
         <div class="field-group"><label class="field-label">Manager Notes</label><textarea class="field-textarea" id="perf-f-notes" rows="3"></textarea></div>
       </div>
       <div class="modal-foot">

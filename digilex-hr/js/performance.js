@@ -23,8 +23,42 @@
     return Store.getPerformance().find(function (p) { return p.employeeId === employeeId && p.month === month; });
   }
 
+  // ---------------------------------------------------------------------
+  // Role-based weighted KPI scorecards (Video Editor, Sales Associate, ...)
+  // ---------------------------------------------------------------------
+  function matchKpiTemplate(e) {
+    if (!e || !e.position) return null;
+    var pos = e.position.toLowerCase();
+    var templates = D.KPI_TEMPLATES || {};
+    var key = Object.keys(templates).find(function (k) {
+      return templates[k].positionMatch.some(function (m) { return pos.indexOf(m) !== -1; });
+    });
+    return key ? { key: key, template: templates[key] } : null;
+  }
+
+  function computeKpiScore(template, entries) {
+    entries = entries || {};
+    var categories = template.categories.map(function (cat) {
+      var metrics = cat.metrics.map(function (m) {
+        var actual = Number(entries[m.id]);
+        if (!isFinite(actual)) actual = 0;
+        var ratio = m.target > 0 ? Math.min(1, actual / m.target) : 0;
+        var weighted = Math.round(ratio * m.weight * 100) / 100;
+        return { metric: m, actual: actual, weighted: weighted };
+      });
+      var subtotal = Math.round(metrics.reduce(function (s, x) { return s + x.weighted; }, 0) * 100) / 100;
+      return { category: cat, metrics: metrics, subtotal: subtotal };
+    });
+    var total = Math.round(categories.reduce(function (s, c) { return s + c.subtotal; }, 0) * 100) / 100;
+    return { categories: categories, total: total };
+  }
+
   function scoreFor(rec) {
     if (!rec) return null;
+    if (rec.kpi && rec.kpi.templateKey && D.KPI_TEMPLATES[rec.kpi.templateKey]) {
+      var result = computeKpiScore(D.KPI_TEMPLATES[rec.kpi.templateKey], rec.kpi.entries);
+      return Math.round((result.total / 20) * 2) / 2; // stars, nearest 0.5
+    }
     var parts = [rec.tasksCompleted || 0, (rec.qualityScore || 0) * 10];
     if (rec.csat !== null && rec.csat !== undefined) parts.push(rec.csat * 20);
     if (rec.ordersProcessed !== null && rec.ordersProcessed !== undefined) parts.push(Math.min(100, (rec.ordersProcessed / 200) * 100));
@@ -100,22 +134,114 @@
     document.querySelectorAll("[data-history]").forEach(function (b) { b.addEventListener("click", function () { openHistoryModal(b.getAttribute("data-history")); }); });
   }
 
+  var activeKpi = null; // { key, template } for the scorecard modal currently open, or null for the generic form
+
+  function scoreBandColor(pct) {
+    return pct >= 90 ? "#22C55E" : pct >= 75 ? "#EAB308" : "#EF4444";
+  }
+
+  function buildKpiFormHtml(template, entries, lastEntries) {
+    var rows = template.categories.map(function (cat) {
+      var catHead =
+        '<tr><td colspan="6" style="background:#FFF7ED;font-weight:700;font-size:.78rem;padding:8px 12px;border-top:1px solid #E2E8F0">' +
+        X.escapeHtml(cat.name) + ' <span style="font-weight:600;color:#94A3B8">— ' + cat.weight + '% of total</span></td></tr>';
+      var metricRows = cat.metrics.map(function (m) {
+        var actual = entries && entries[m.id] != null ? entries[m.id] : "";
+        var lastVal = lastEntries && lastEntries[m.id] != null ? lastEntries[m.id] : null;
+        return (
+          '<tr data-metric-row="' + m.id + '">' +
+          '<td style="min-width:220px"><div style="font-weight:600">' + X.escapeHtml(m.label) + '</div><div style="font-size:.68rem;color:#94A3B8">' + X.escapeHtml(m.benefit || "") + '</div></td>' +
+          '<td style="text-align:center">' + m.weight + '%</td>' +
+          '<td style="text-align:center">' + m.target + (m.unit === "%" ? "%" : " " + m.unit) + '</td>' +
+          '<td style="width:100px"><input type="number" step="0.01" class="field-input kpi-input" data-metric="' + m.id + '" data-target="' + m.target + '" data-weight="' + m.weight + '" value="' + actual + '" placeholder="0"></td>' +
+          '<td style="text-align:center;font-weight:700" data-metric-weighted="' + m.id + '">0.00%</td>' +
+          '<td style="text-align:center;font-size:.78rem;color:#64748B">' + (lastVal != null ? lastVal + (m.unit === "%" ? "%" : " " + m.unit) : "—") + '</td>' +
+          "</tr>"
+        );
+      }).join("");
+      var subtotalRow =
+        '<tr style="background:#F8FAFC"><td colspan="4" style="font-weight:700;padding:6px 12px;text-align:right">Category Subtotal</td>' +
+        '<td style="text-align:center;font-weight:800" data-cat-subtotal="' + cat.id + '">0.00%</td><td></td></tr>';
+      return catHead + metricRows + subtotalRow;
+    }).join("");
+
+    return (
+      '<div style="overflow-x:auto;margin-bottom:14px">' +
+      '<table class="dlx-table" style="font-size:.82rem">' +
+      '<thead><tr><th>Metric</th><th style="text-align:center">Weight</th><th style="text-align:center">Target</th><th>My Score</th><th style="text-align:center">Weighted</th><th style="text-align:center">Last Period</th></tr></thead>' +
+      "<tbody>" + rows + "</tbody>" +
+      "</table></div>" +
+      '<div style="display:flex;justify-content:space-between;align-items:center;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:14px 18px;margin-bottom:14px">' +
+      '<div style="font-weight:700">Overall Weighted Score</div>' +
+      '<div style="font-size:1.4rem;font-weight:800" id="perf-kpi-total">0.00%</div>' +
+      "</div>"
+    );
+  }
+
+  function recomputeKpiTotals() {
+    if (!activeKpi) return;
+    var entries = readKpiEntries();
+    var result = computeKpiScore(activeKpi.template, entries);
+    result.categories.forEach(function (c) {
+      c.metrics.forEach(function (x) {
+        var cell = document.querySelector('[data-metric-weighted="' + x.metric.id + '"]');
+        if (cell) cell.textContent = x.weighted.toFixed(2) + "%";
+      });
+      var subtotalCell = document.querySelector('[data-cat-subtotal="' + c.category.id + '"]');
+      if (subtotalCell) subtotalCell.textContent = c.subtotal.toFixed(2) + "%";
+    });
+    var totalEl = document.getElementById("perf-kpi-total");
+    if (totalEl) { totalEl.textContent = result.total.toFixed(2) + "%"; totalEl.style.color = scoreBandColor(result.total); }
+  }
+
+  function readKpiEntries() {
+    var entries = {};
+    document.querySelectorAll(".kpi-input").forEach(function (input) {
+      entries[input.getAttribute("data-metric")] = Number(input.value) || 0;
+    });
+    return entries;
+  }
+
   function openScorecardModal(employeeId) {
     var e = Store.getEmployees().find(function (x) { return x.id === employeeId; });
-    var thisMonth = monthKey(0);
+    var thisMonth = monthKey(0), lastMonth = monthKey(1);
     var rec = getRecord(employeeId, thisMonth) || {};
+    var lastRec = getRecord(employeeId, lastMonth);
     document.getElementById("perf-modal-title").textContent = "Scorecard — " + fullName(e) + " (" + monthLabel(thisMonth) + ")";
     document.getElementById("perf-form-employee").value = employeeId;
     document.getElementById("perf-form-month").value = thisMonth;
-    document.getElementById("perf-f-tasks").value = rec.tasksCompleted != null ? rec.tasksCompleted : 0;
-    document.getElementById("perf-f-quality").value = rec.qualityScore != null ? rec.qualityScore : 5;
-    document.getElementById("perf-f-csat").value = rec.csat != null ? rec.csat : "";
-    document.getElementById("perf-f-orders").value = rec.ordersProcessed != null ? rec.ordersProcessed : "";
     document.getElementById("perf-f-notes").value = rec.notes || "";
-    var isCsRole = e.department === "Customer Service";
-    var isOpsRole = e.department === "Warehouse" || e.department === "Logistics";
-    document.getElementById("perf-csat-wrap").style.display = isCsRole ? "block" : "none";
-    document.getElementById("perf-orders-wrap").style.display = isOpsRole ? "block" : "none";
+
+    var match = matchKpiTemplate(e);
+    var modalBox = document.getElementById("perf-modal-box");
+    var kpiContainer = document.getElementById("perf-kpi-container");
+    var genericFields = document.getElementById("perf-generic-fields");
+
+    if (match) {
+      activeKpi = match;
+      modalBox.classList.add("modal-lg");
+      genericFields.style.display = "none";
+      kpiContainer.style.display = "block";
+      var entries = rec.kpi && rec.kpi.templateKey === match.key ? rec.kpi.entries : {};
+      var lastEntries = lastRec && lastRec.kpi && lastRec.kpi.templateKey === match.key ? lastRec.kpi.entries : null;
+      kpiContainer.innerHTML = buildKpiFormHtml(match.template, entries, lastEntries);
+      kpiContainer.querySelectorAll(".kpi-input").forEach(function (input) { input.addEventListener("input", recomputeKpiTotals); });
+      recomputeKpiTotals();
+    } else {
+      activeKpi = null;
+      modalBox.classList.remove("modal-lg");
+      genericFields.style.display = "block";
+      kpiContainer.style.display = "none";
+      kpiContainer.innerHTML = "";
+      document.getElementById("perf-f-tasks").value = rec.tasksCompleted != null ? rec.tasksCompleted : 0;
+      document.getElementById("perf-f-quality").value = rec.qualityScore != null ? rec.qualityScore : 5;
+      document.getElementById("perf-f-csat").value = rec.csat != null ? rec.csat : "";
+      document.getElementById("perf-f-orders").value = rec.ordersProcessed != null ? rec.ordersProcessed : "";
+      var isCsRole = e.department === "Customer Service";
+      var isOpsRole = e.department === "Warehouse" || e.department === "Logistics";
+      document.getElementById("perf-csat-wrap").style.display = isCsRole ? "block" : "none";
+      document.getElementById("perf-orders-wrap").style.display = isOpsRole ? "block" : "none";
+    }
     X.openModal("perf-modal");
   }
 
@@ -125,18 +251,29 @@
     var month = document.getElementById("perf-form-month").value;
     var records = Store.getPerformance();
     var idx = records.findIndex(function (r) { return r.employeeId === employeeId && r.month === month; });
-    var csatVal = document.getElementById("perf-f-csat").value;
-    var ordersVal = document.getElementById("perf-f-orders").value;
-    var data = {
-      id: "PERF-" + employeeId + "-" + month,
-      employeeId: employeeId,
-      month: month,
-      tasksCompleted: Number(document.getElementById("perf-f-tasks").value) || 0,
-      qualityScore: Number(document.getElementById("perf-f-quality").value) || 0,
-      csat: csatVal === "" ? null : Number(csatVal),
-      ordersProcessed: ordersVal === "" ? null : Number(ordersVal),
-      notes: document.getElementById("perf-f-notes").value.trim(),
-    };
+    var data;
+    if (activeKpi) {
+      data = {
+        id: "PERF-" + employeeId + "-" + month,
+        employeeId: employeeId,
+        month: month,
+        kpi: { templateKey: activeKpi.key, entries: readKpiEntries() },
+        notes: document.getElementById("perf-f-notes").value.trim(),
+      };
+    } else {
+      var csatVal = document.getElementById("perf-f-csat").value;
+      var ordersVal = document.getElementById("perf-f-orders").value;
+      data = {
+        id: "PERF-" + employeeId + "-" + month,
+        employeeId: employeeId,
+        month: month,
+        tasksCompleted: Number(document.getElementById("perf-f-tasks").value) || 0,
+        qualityScore: Number(document.getElementById("perf-f-quality").value) || 0,
+        csat: csatVal === "" ? null : Number(csatVal),
+        ordersProcessed: ordersVal === "" ? null : Number(ordersVal),
+        notes: document.getElementById("perf-f-notes").value.trim(),
+      };
+    }
     if (idx === -1) records.push(data); else records[idx] = data;
     Store.setPerformance(records);
     X.toast("Scorecard saved.", "success");

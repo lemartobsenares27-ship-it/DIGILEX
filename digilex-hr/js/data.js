@@ -14,6 +14,73 @@
     "Business Development",
   ];
 
+  // ---------------------------------------------------------------------
+  // Role-based weighted KPI scorecard templates
+  // Each metric carries its own weight (metric weights sum to the category
+  // weight; category weights sum to 100). Weighted score per metric =
+  // min(1, actualValue / target) x metricWeight, so exceeding target caps
+  // credit at the full metric weight (matches standard weighted-scorecard
+  // practice, e.g. the Gencys-style KPI sheet this was modeled on).
+  var KPI_TEMPLATES = {
+    "video-editor": {
+      label: "Video Editor",
+      positionMatch: ["video editor", "video edit", "content editor"],
+      categories: [
+        {
+          id: "output", name: "Output & Productivity", weight: 30,
+          metrics: [
+            { id: "videosEdited", label: "Ad Creatives / Videos Edited (weekly avg)", target: 10, unit: "videos", weight: 15, benefit: "Keeps the ad account fed with fresh creatives so testing volume doesn't stall." },
+            { id: "onTimeDelivery", label: "On-Time Delivery Rate", target: 95, unit: "%", weight: 15, benefit: "Late creatives delay ad testing cycles and cost testing days." },
+          ],
+        },
+        {
+          id: "quality", name: "Creative Quality & Ad Performance", weight: 45,
+          metrics: [
+            { id: "avgCtr", label: "Average CTR of Ads Using Your Edits", target: 3, unit: "%", weight: 15, benefit: "Directly tied to lower CPM and cheaper traffic." },
+            { id: "firstPassApproval", label: "First-Pass Approval Rate (no revisions)", target: 80, unit: "%", weight: 15, benefit: "Fewer revision loops = faster time-to-launch." },
+            { id: "winningAdRate", label: "Winning Creative Rate (above-avg ROAS)", target: 20, unit: "%", weight: 15, benefit: "The real business outcome: creatives that actually sell." },
+          ],
+        },
+        {
+          id: "process", name: "Process & Reliability", weight: 25,
+          metrics: [
+            { id: "huddleAttendance", label: "Daily Huddle / Report Attendance", target: 100, unit: "%", weight: 12.5, benefit: "Keeps the team aligned on what's working and what to cut." },
+            { id: "assetCompliance", label: "File Naming & Asset Org Compliance", target: 100, unit: "%", weight: 12.5, benefit: "Saves everyone's time finding and reusing past creatives." },
+          ],
+        },
+      ],
+    },
+    "sales-associate": {
+      label: "Sales Associate",
+      positionMatch: ["sales associate", "sales rep", "sales agent"],
+      categories: [
+        {
+          id: "sales", name: "Sales Performance", weight: 40,
+          metrics: [
+            { id: "salesTarget", label: "Sales Target Achievement", target: 100, unit: "%", weight: 15, benefit: "The core number: are we hitting revenue goals." },
+            { id: "conversionRate", label: "Lead-to-Sale Conversion Rate", target: 10, unit: "%", weight: 15, benefit: "Shows how effectively inquiries are being closed." },
+            { id: "avgOrderValue", label: "Average Order Value vs Target", target: 100, unit: "%", weight: 10, benefit: "Rewards upselling, not just closing more small orders." },
+          ],
+        },
+        {
+          id: "engagement", name: "Customer Engagement", weight: 30,
+          metrics: [
+            { id: "responseTime", label: "Inquiry Response Within SLA", target: 90, unit: "%", weight: 10, benefit: "Slow replies lose sales to faster competitors." },
+            { id: "csat", label: "Customer Satisfaction (CSAT)", target: 90, unit: "%", weight: 10, benefit: "Happy customers buy again and refer others." },
+            { id: "upsellRate", label: "Upsell / Cross-sell Rate", target: 15, unit: "%", weight: 10, benefit: "Grows revenue per customer without new leads." },
+          ],
+        },
+        {
+          id: "reliability", name: "Attendance & Reporting", weight: 30,
+          metrics: [
+            { id: "attendanceRate", label: "Attendance Rate", target: 95, unit: "%", weight: 15, benefit: "Sales lost every day a seat is empty during peak hours." },
+            { id: "reportCompliance", label: "Daily Sales Report Submitted On-Time", target: 100, unit: "%", weight: 15, benefit: "Keeps leadership able to react same-day, not next week." },
+          ],
+        },
+      ],
+    },
+  };
+
   var LEAVE_TYPES = [
     { code: "VL", name: "Vacation Leave", annualDays: 5 },
     { code: "SL", name: "Sick Leave", annualDays: 5 },
@@ -468,6 +535,7 @@
     generateSeedAccounts: generateSeedAccounts,
     DEPARTMENTS: DEPARTMENTS,
     LEAVE_TYPES: LEAVE_TYPES,
+    KPI_TEMPLATES: KPI_TEMPLATES,
     PH_HOLIDAYS: PH_HOLIDAYS_2026,
     SSS_TABLE: SSS_TABLE,
     computeSss: computeSss,
