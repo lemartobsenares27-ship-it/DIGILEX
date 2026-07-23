@@ -5,11 +5,17 @@ import { useLiveTable } from '../hooks/useLiveTable'
 import PageHeader from '../components/PageHeader'
 import StatTile from '../components/StatTile'
 import Card from '../components/Card'
+import LiveBadge from '../components/LiveBadge'
 import GroupedBarChart from '../components/charts/GroupedBarChart'
 import HorizontalBarChart from '../components/charts/HorizontalBarChart'
+import PeakAreaChart from '../components/charts/PeakAreaChart'
+import RadialGauge from '../components/charts/RadialGauge'
 import { formatCurrency, formatNumber, formatPercent } from '../lib/format'
 import { allMonthSummaries, allTimeDeliveryStats, summarizeMonth } from '../lib/analytics'
+import { rtsRateStatus } from '../lib/kpi'
 import dashboardSeed from '../data/dashboard.json'
+
+const GAUGE_COLOR = { good: 'var(--status-good)', warning: 'var(--status-warning)', critical: 'var(--status-critical)' } as const
 
 export default function Overview() {
   const orders = useLiveTable(db.orders)
@@ -19,17 +25,29 @@ export default function Overview() {
   const monthlyPL = useLiveTable(db.monthlyPL)
 
   const monthSummaries = useMemo(() => allMonthSummaries(orders, fbTxns), [orders, fbTxns])
+  const plRow = (lineItem: string) => monthlyPL.find((r) => r['Line Item'] === lineItem)
+  const totalExpensesRow = plRow('Total Expenses (COGS+Ads+Fulfillment+Courier+OpEx)')
+  const netProfitRow = plRow('NET PROFIT')
+
+  // Default to the latest month Monthly P&L actually has a column for - the
+  // literal latest month with orders is often still incomplete (ad spend/opex
+  // not fully in yet), which would show a misleading PHP 0.00 by default.
+  const defaultMonth = useMemo(() => {
+    for (let i = monthSummaries.length - 1; i >= 0; i--) {
+      const m = monthSummaries[i].month
+      if (totalExpensesRow?.[m] !== undefined) return m
+    }
+    return monthSummaries[monthSummaries.length - 1]?.month ?? ''
+  }, [monthSummaries, totalExpensesRow])
+
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
-  const activeMonth = selectedMonth ?? monthSummaries[monthSummaries.length - 1]?.month ?? ''
+  const activeMonth = selectedMonth ?? defaultMonth
   const current = useMemo(
     () => summarizeMonth(orders, fbTxns, activeMonth),
     [orders, fbTxns, activeMonth],
   )
   const allTime = useMemo(() => allTimeDeliveryStats(posRows), [posRows])
 
-  const plRow = (lineItem: string) => monthlyPL.find((r) => r['Line Item'] === lineItem)
-  const totalExpensesRow = plRow('Total Expenses (COGS+Ads+Fulfillment+Courier+OpEx)')
-  const netProfitRow = plRow('NET PROFIT')
   const monthlyExpenses = Number(totalExpensesRow?.[activeMonth] ?? 0)
   const monthlyNetProfit = Number(netProfitRow?.[activeMonth] ?? 0)
 
@@ -56,18 +74,21 @@ export default function Overview() {
         title="Executive Dashboard"
         description="Digilex COD Business — Financial Control Center. Revenue, expenses and order counts are computed live from your Orders Database, Monthly P&L and Facebook Ads Tracker, so edits anywhere in the app update the dashboard instantly."
         actions={
-          <select
-            value={activeMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="rounded-lg border px-3 py-1.5 text-sm"
-            style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)', background: 'var(--surface-card)' }}
-          >
-            {monthSummaries.map((m) => (
-              <option key={m.month} value={m.month}>
-                {m.month}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-3">
+            <LiveBadge />
+            <select
+              value={activeMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="rounded-lg border px-3 py-1.5 text-sm"
+              style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)', background: 'var(--surface-card)' }}
+            >
+              {monthSummaries.map((m) => (
+                <option key={m.month} value={m.month}>
+                  {m.month}
+                </option>
+              ))}
+            </select>
+          </div>
         }
       />
 
@@ -93,7 +114,38 @@ export default function Overview() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card title="Revenue, Expenses & Ad Spend by Month" className="lg:col-span-2">
+        <Card title="Revenue Trend" description="Delivered COD sales by month, peak highlighted" className="lg:col-span-2">
+          <PeakAreaChart data={monthSummaries.map((m) => ({ label: m.month, value: Number(revenueRow?.[m.month] ?? m.revenue) }))} />
+        </Card>
+        <Card title="All-Time RTS Rate" description="Per your POS, across every uploaded batch">
+          <div className="flex flex-col items-center gap-4 pt-1">
+            <RadialGauge
+              value={allTime.rate}
+              label="RTS Rate"
+              sub={`${formatNumber(allTime.rts)} of ${formatNumber(allTime.delivered + allTime.rts)}`}
+              color={GAUGE_COLOR[rtsRateStatus(allTime.rate)]}
+              size={140}
+            />
+            <div className="grid w-full grid-cols-2 gap-2 text-center text-xs">
+              <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: 'var(--border-hairline)' }}>
+                <div style={{ color: 'var(--text-muted)' }}>Delivered</div>
+                <div className="tabular font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {formatNumber(allTime.delivered)}
+                </div>
+              </div>
+              <div className="rounded-lg border px-2 py-1.5" style={{ borderColor: 'var(--border-hairline)' }}>
+                <div style={{ color: 'var(--text-muted)' }}>Returned / RTS</div>
+                <div className="tabular font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {formatNumber(allTime.rts)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <div className="mt-4">
+        <Card title="Revenue, Expenses & Ad Spend by Month">
           <GroupedBarChart
             data={chartData}
             xKey="month"
@@ -103,34 +155,6 @@ export default function Overview() {
               { key: 'Ad Spend', label: 'Ad Spend', color: 'var(--series-violet)' },
             ]}
           />
-        </Card>
-        <Card title="All-Time Delivery Performance" description="Per your POS, across every uploaded batch">
-          <div className="flex flex-col gap-3 pt-1">
-            <div className="flex items-center justify-between text-sm">
-              <span style={{ color: 'var(--text-secondary)' }}>Delivered (all-time)</span>
-              <span className="tabular font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {formatNumber(allTime.delivered)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span style={{ color: 'var(--text-secondary)' }}>Returned / RTS (all-time)</span>
-              <span className="tabular font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {formatNumber(allTime.rts)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span style={{ color: 'var(--text-secondary)' }}>Exact RTS Rate</span>
-              <span className="tabular font-semibold" style={{ color: 'var(--status-critical)' }}>
-                {formatPercent(allTime.rate)}
-              </span>
-            </div>
-            <div className="mt-2 h-2 w-full overflow-hidden rounded-full" style={{ background: 'var(--border-hairline)' }}>
-              <div
-                className="h-full rounded-full"
-                style={{ width: `${allTime.rate * 100}%`, background: 'var(--status-critical)' }}
-              />
-            </div>
-          </div>
         </Card>
       </div>
 

@@ -5,6 +5,7 @@ import { useLiveTable } from '../hooks/useLiveTable'
 import PageHeader from '../components/PageHeader'
 import Card from '../components/Card'
 import NoteBanner from '../components/NoteBanner'
+import LiveBadge from '../components/LiveBadge'
 import GroupedBarChart from '../components/charts/GroupedBarChart'
 import { formatCurrency, formatNumber, formatPercent } from '../lib/format'
 import {
@@ -133,18 +134,21 @@ export default function KPIScorecard() {
         title="KPI Scorecard"
         description="The vital few numbers that actually drive this business — updated from your live data every time you open this page, so you're never guessing. Company view compares this week to last week; vendor scorecards track NPMCM (fulfillment) and your ad accounts against the numbers they actually control."
         actions={
-          <select
-            value={activeWeek}
-            onChange={(e) => setSelectedWeek(e.target.value)}
-            className="rounded-lg border px-3 py-1.5 text-sm"
-            style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)', background: 'var(--surface-card)' }}
-          >
-            {weeks.map((w) => (
-              <option key={w} value={w}>
-                {weekLabel(w)}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-3">
+            <LiveBadge />
+            <select
+              value={activeWeek}
+              onChange={(e) => setSelectedWeek(e.target.value)}
+              className="rounded-lg border px-3 py-1.5 text-sm"
+              style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)', background: 'var(--surface-card)' }}
+            >
+              {weeks.map((w) => (
+                <option key={w} value={w}>
+                  {weekLabel(w)}
+                </option>
+              ))}
+            </select>
+          </div>
         }
       />
 

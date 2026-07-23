@@ -20,8 +20,8 @@ export default function StatTile({ label, value, icon, accent = 'var(--series-bl
         </span>
         {icon && (
           <span
-            className="flex h-7 w-7 items-center justify-center rounded-lg"
-            style={{ color: accent, background: `color-mix(in srgb, ${accent} 14%, transparent)` }}
+            className="flex h-8 w-8 items-center justify-center rounded-xl shadow-sm"
+            style={{ color: '#fff', background: accent }}
           >
             {icon}
           </span>
