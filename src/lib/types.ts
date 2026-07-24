@@ -226,6 +226,7 @@ export type AdLifecycle = 'New' | 'Unproven' | 'Winner' | 'Potential' | 'Fatigue
 
 export interface AdPerformanceRow {
   id?: number
+  'Ad ID': string | null
   'Ad Name': string | null
   'Campaign Name': string | null
   'Ad Set Name': string | null

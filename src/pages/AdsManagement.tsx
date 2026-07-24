@@ -1,14 +1,15 @@
 import { useMemo, useRef, useState } from 'react'
-import { Upload, Trash2 } from 'lucide-react'
+import { Upload, Trash2, Download } from 'lucide-react'
 import { db } from '../lib/db'
 import { useLiveTable } from '../hooks/useLiveTable'
 import { useMeta } from '../hooks/useMeta'
 import PageHeader from '../components/PageHeader'
 import StatTile from '../components/StatTile'
 import Card from '../components/Card'
+import NoteBanner from '../components/NoteBanner'
 import LiveBadge from '../components/LiveBadge'
 import { parseSpreadsheetFile } from '../lib/import/parseFile'
-import { parseMetaAdsPerformance } from '../lib/import/metaAdsPerformance'
+import { parseMetaAdsPerformance, adIdentityKey } from '../lib/import/metaAdsPerformance'
 import { classifyAd, DEFAULT_AD_BENCHMARKS, LIFECYCLE_COLOR, type AdScoringBenchmarks } from '../lib/adScoring'
 import type { AdLifecycle, AdPerformanceRow } from '../lib/types'
 import { formatCurrency, formatNumber, formatPercent, formatDate } from '../lib/format'
@@ -35,14 +36,15 @@ export default function AdsManagement() {
   const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Latest snapshot per ad (by Ad Name), sorted newest upload first per group
+  // Latest snapshot per ad, keyed by Ad ID when present (Ad Name alone can
+  // collide across different campaigns), sorted best-scored first.
   const latest = useMemo(() => {
     const byAd = new Map<string, AdPerformanceRow>()
     for (const r of allRows) {
-      const name = r['Ad Name'] ?? ''
-      const existing = byAd.get(name)
+      const key = adIdentityKey(r)
+      const existing = byAd.get(key)
       if (!existing || (r['Upload Date'] ?? '') > (existing['Upload Date'] ?? '')) {
-        byAd.set(name, r)
+        byAd.set(key, r)
       }
     }
     return [...byAd.values()].sort((a, b) => (b.Score ?? -1) - (a.Score ?? -1))
@@ -69,12 +71,30 @@ export default function AdsManagement() {
         throw new Error('No ad rows found in this file — check it\'s a per-ad export, not an account/campaign summary.')
       }
 
+      // Re-reading allRows fresh each iteration would be wasteful; snapshot
+      // once, but any row we upsert this pass also needs to be visible to
+      // later rows in the same file so within-file re-matching stays correct.
+      const working = [...allRows]
+
       for (const row of parsed) {
-        const previous = [...allRows]
-          .filter((r) => r['Ad Name'] === row['Ad Name'])
-          .sort((a, b) => (b['Upload Date'] ?? '').localeCompare(a['Upload Date'] ?? ''))[0]
-        const { lifecycle, score } = classifyAd(row, previous ?? null, benchmarks)
-        await db.adPerformance.add({ ...row, Lifecycle: lifecycle, Score: score })
+        const key = adIdentityKey(row)
+        const priorSnapshots = working
+          .filter((r) => adIdentityKey(r) === key && r['Upload Date'] !== row['Upload Date'])
+          .sort((a, b) => (b['Upload Date'] ?? '').localeCompare(a['Upload Date'] ?? ''))
+        const previous = priorSnapshots[0] ?? null
+        const { lifecycle, score } = classifyAd(row, previous, benchmarks)
+        const finalRow: AdPerformanceRow = { ...row, Lifecycle: lifecycle, Score: score }
+
+        // Uploading the same export twice for the same day updates in place
+        // instead of piling up duplicate rows.
+        const sameDayExisting = working.find((r) => adIdentityKey(r) === key && r['Upload Date'] === row['Upload Date'])
+        if (sameDayExisting?.id != null) {
+          await db.adPerformance.update(sameDayExisting.id, finalRow)
+          Object.assign(sameDayExisting, finalRow)
+        } else {
+          const newId = await db.adPerformance.add(finalRow)
+          working.push({ ...finalRow, id: newId })
+        }
       }
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : String(err))
@@ -82,6 +102,25 @@ export default function AdsManagement() {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }
+
+  function exportCsv() {
+    const cols: (keyof AdPerformanceRow)[] = [
+      'Ad Name', 'Campaign Name', 'Ad Set Name', 'Delivery Status', 'Lifecycle', 'Score',
+      'Amount Spent', 'Results', 'Cost Per Result', 'CTR', 'Hook Rate', 'Hold Rate', 'Upload Date',
+    ]
+    const escape = (v: unknown) => {
+      const s = v == null ? '' : String(v)
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
+    }
+    const lines = [cols.join(','), ...filtered.map((r) => cols.map((c) => escape(r[c])).join(','))]
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'ads-management.csv'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   return (
@@ -92,6 +131,15 @@ export default function AdsManagement() {
         actions={
           <div className="flex items-center gap-3">
             <LiveBadge />
+            <button
+              onClick={exportCsv}
+              disabled={latest.length === 0}
+              className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm font-medium disabled:opacity-50"
+              style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)' }}
+            >
+              <Download size={14} />
+              CSV
+            </button>
             <input
               ref={fileInputRef}
               type="file"
@@ -111,6 +159,12 @@ export default function AdsManagement() {
           </div>
         }
       />
+
+      <NoteBanner>
+        This is a monitoring tool, not a remote control — it scores whatever you upload, but can't pause or edit ads
+        on Meta's platform for you (that needs Meta's Ads API, a separate, much bigger integration). Use the Loser/Fatigue
+        list to decide what to pause, then do it in Ads Manager itself.
+      </NoteBanner>
 
       {uploadError && (
         <div
