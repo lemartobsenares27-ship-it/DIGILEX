@@ -3,6 +3,15 @@
   publish = "client/dist"
   functions = "netlify/functions"
 
+# Prisma Client's wasm engine (server/src/db.ts imports "@prisma/client/wasm")
+# loads its .wasm file via a dynamic import relative to its own location in
+# node_modules/.prisma/client/. esbuild (Netlify's default function bundler)
+# doesn't reliably trace or copy that kind of asset, so these packages are
+# marked external: Netlify copies them into the function bundle verbatim
+# instead of tree-shaking them, which keeps that relative path intact.
+[functions]
+  external_node_modules = ["@prisma/client", ".prisma/client"]
+
 # The api.mts function declares `config.path = "/api/*"` itself, which is
 # the authoritative routing mechanism for Netlify Functions v2. This SPA
 # fallback only applies to non-API, non-asset paths so React Router can
