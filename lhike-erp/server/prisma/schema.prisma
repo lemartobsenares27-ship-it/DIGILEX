@@ -1,0 +1,75 @@
+// LHIKE ERP - Prisma schema
+// Using SQLite for zero-config local development. To move to production,
+// swap the datasource provider to "postgresql" and set DATABASE_URL to a
+// Postgres connection string -- the models below are written to be portable.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Mirrors Module 9 (User Management): Employment Status is separate from
+// the Enabled/Disabled login toggle. SQLite has no native enum support, so
+// this is validated as one of Active/Inactive/Resigned/Terminated at the
+// application layer (see src/routes/users.ts) instead of at the schema
+// level -- switch this to a real Prisma enum when moving to Postgres.
+model User {
+  id            String   @id @default(cuid())
+  employeeNo    String   @unique
+  firstName     String
+  lastName      String
+  middleName    String?
+  birthdate     DateTime?
+  contactNumber String?
+  personalEmail String?
+  companyEmail  String?
+  gender        String?
+  position      String?
+  employmentDate    DateTime?
+  employmentStatus  String @default("Active")
+
+  // Set only once the employee completes "Request Access" (Module 9, SOP 9-2).
+  username          String? @unique
+  passwordHash      String?
+  securityQuestion  String?
+  securityAnswerHash String?
+
+  // An account exists (created via Add User) before it can log in.
+  // enabled must be explicitly turned on by an administrator (SOP 9-3).
+  enabled       Boolean  @default(false)
+  requestedAccessAt DateTime?
+
+  // Serialized JSON array of granted permission keys, e.g.
+  // ["user.userManagement.manage","dashboard.view", ...]
+  // See src/permissions.ts for the canonical permission tree.
+  permissions   String   @default("[]")
+  isMotherAccount Boolean @default(false)
+
+  lastLogin     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  auditLogs     AuditLog[]
+}
+
+model CompanySettings {
+  id       Int     @id @default(1)
+  logoPath String?
+}
+
+// Lightweight audit trail -- every module in the documentation set has a
+// History panel; this table is the shared backing store for that pattern.
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  actor     User?    @relation(fields: [actorId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  metadata  String?
+  createdAt DateTime @default(now())
+}
