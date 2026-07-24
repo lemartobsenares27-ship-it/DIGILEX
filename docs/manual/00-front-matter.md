@@ -68,14 +68,14 @@ This manual exists because a system this central to daily operations deserves do
 |---|---|---|
 | Front Matter | This project | Complete |
 | Module 1 — Introduction | LHIKE ERP Tutorial, Lesson 1 (Introduction) | Complete |
-| Module 2 — Dashboard | *User Manual – LHIKE ERP: Sales Warehouse Logistics* (updated 3:32 PM, Mar 13, 2024); *User Manual – LHIKE ERP: Finance* (updated 2:13 PM, Mar 21, 2024) | Complete (dashboard-level screens only) |
-| Module 3 — E-commerce | Pages & Store, Page ROAS Tracker, Adspend ROAS Summary, Sales Tracker, Product Testing, BM & Ad Account, Profitability Formula | Pending source material |
-| Module 4 — Pancake Integration | Tracking Numbers for Pancake Orders | Pending source material |
-| Module 5 — Board (Kanban) | Kanban Board, Kanban Board Settings | Pending source material |
-| Module 6 — Finance (deep module) | Income Statement, Book Keeping, Reimbursement, Utility Expense, Settings (Accounts/Banks/Department/Type of Expense) | Pending source material |
-| Module 7 — Logistics & Inventory | Purchase Order, Product Items, Stocks, Unit Codes, Fulfillment, Shipped Out (Barcode), Fulfillment Settings, RTS Items, Settings (General/API) | Pending source material |
+| Module 2 — Dashboard | *Sales Warehouse Logistics*; *Finance* (dashboard overview) | Complete (dashboard-level screens only) |
+| Module 3 — E-commerce | Pages & Store, Page ROAS Tracker, Adspend ROAS Summary, Sales Tracker (+ Download Sales/Upload Sales Monitoring/User ID/Export/Update Tracking Number), Product Testing, BM & Ad Account, Profitability Formula, Settings | Complete |
+| Module 4 — Pancake Integration | Consolidated from Pages & Store's Pancake Set Up steps, Sales Tracker's Download Sales/Update Tracking Number/User ID, and Unit Codes' page-restriction feature | Complete |
+| Module 5 — Board (Kanban) | Kanban Board, Kanban Board Settings | Complete |
+| Module 6 — Finance (deep module) | Income Statement, Book Keeping, Reimbursement, Utility Expense, Settings (General/Accounts/Banks/Department/Type of Expense) | Complete |
+| Module 7 — Logistics & Inventory | Purchase Order, Supplier, Product Items, Unit Codes, Stocks, Transaction History, Fulfillment, Shipped Out (Barcode), PPW (Barcode), RTS Items | Complete (General/API settings sub-pages pending source material) |
 | Module 8 — HR | 201 File, Deduction, Cash Advance, Department, Schedule, Holiday, Event, Payroll, Payroll Period, Leave Credits, Request, Branch, Settings | Pending source material |
-| Module 9 — User Module | User Management | Pending source material |
+| Module 9 — User Management | User Management (roles/permissions, onboarding, company logo) | Complete |
 | Additional chapters (Best Practices, SOP, Internal Controls, Audit Readiness, DR, Backup, Change Mgmt, Multi-Branch/Warehouse, Reporting Strategy, FAQ, Glossary) | Synthesized from all modules once complete | Pending — written last, after all modules are documented |
 
 Each new module is appended to this manual as its source manual/lesson is supplied. This document control table is updated with every revision so readers always know what is authoritative and what is still outstanding.
@@ -93,13 +93,13 @@ Each new module is appended to this manual as its source manual/lesson is suppli
 7. System Overview
 8. **Module 1 — Introduction**
 9. **Module 2 — Dashboard** (Sales Warehouse Logistics · Finance)
-10. Module 3 — E-commerce *(pending)*
-11. Module 4 — Pancake Integration *(pending)*
-12. Module 5 — Board / Kanban *(pending)*
-13. Module 6 — Finance *(pending)*
-14. Module 7 — Logistics & Inventory *(pending)*
+10. **Module 3 — E-commerce**
+11. **Module 4 — Pancake Integration**
+12. **Module 5 — Board / Kanban**
+13. **Module 6 — Finance**
+14. **Module 7 — Logistics & Inventory**
 15. Module 8 — Human Resources *(pending)*
-16. Module 9 — User Management *(pending)*
+16. **Module 9 — User Management**
 17. ERP Best Practices & SOP Library *(pending)*
 18. Internal Controls & Audit Readiness *(pending)*
 19. Disaster Recovery & Backup Strategy *(pending)*
