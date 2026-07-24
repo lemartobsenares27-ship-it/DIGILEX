@@ -1,0 +1,5 @@
+node_modules
+
+# Generated at build time by server/scripts/provision-db.mjs -- contains a
+# live database connection string (credential), never commit it.
+netlify/functions/_generated-db-env.mjs

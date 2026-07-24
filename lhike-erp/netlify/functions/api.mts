@@ -9,17 +9,30 @@ import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
 // showed up as a 502 on every /api/* route (login included) regardless of
 // what happened inside the app itself.
 //
-// DATABASE_URL must be resolved via @netlify/database's getConnectionString()
-// *before* the app (and therefore Prisma Client) is imported, since ESM
-// static imports would otherwise evaluate before this function body runs --
-// dynamic import() keeps the ordering correct. This runs once per warm
-// function instance (cold start), not once per request.
+// DATABASE_URL must be set *before* the app (and therefore Prisma Client)
+// is imported, since ESM static imports would otherwise evaluate before
+// this function body runs -- dynamic import() keeps the ordering correct.
+// This runs once per warm function instance (cold start), not once per
+// request.
+//
+// getConnectionString()'s underlying NETLIFY_DB_URL is injected during the
+// Netlify build but is NOT present in the deployed function's runtime
+// environment (confirmed via a MissingDatabaseConnectionError in
+// production). server/scripts/provision-db.mjs resolves it at build time
+// -- where it does work -- and writes it to this generated module; only
+// fall back to resolving it again here for local `netlify dev`, where that
+// build step may not have run.
 let handlerPromise: Promise<Handler> | null = null;
 
 async function buildHandler(): Promise<Handler> {
   if (!process.env.DATABASE_URL) {
-    const { getConnectionString } = await import("@netlify/database");
-    process.env.DATABASE_URL = await getConnectionString();
+    try {
+      const generated = await import("./_generated-db-env.mjs");
+      process.env.DATABASE_URL = generated.DATABASE_URL;
+    } catch {
+      const { getConnectionString } = await import("@netlify/database");
+      process.env.DATABASE_URL = await getConnectionString();
+    }
   }
   if (!process.env.NODE_ENV) {
     process.env.NODE_ENV = "production";

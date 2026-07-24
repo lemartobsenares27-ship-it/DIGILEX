@@ -5,8 +5,11 @@
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
+import fs from "node:fs";
 
-const serverDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
+const serverDir = path.dirname(scriptsDir);
+const repoDir = path.dirname(serverDir);
 
 async function main() {
   if (!process.env.DATABASE_URL) {
@@ -16,6 +19,20 @@ async function main() {
   } else {
     console.log("Using existing DATABASE_URL from the environment.");
   }
+
+  // getConnectionString() reads process.env.NETLIFY_DB_URL, which Netlify
+  // injects during the build but does NOT persist into the deployed
+  // function's runtime environment (confirmed via a
+  // MissingDatabaseConnectionError in production -- the site has no
+  // persisted env vars at all). Bake the resolved value into a generated
+  // module the function imports directly at cold start, instead of trying
+  // to resolve it again in an environment where it isn't available.
+  const generatedPath = path.join(repoDir, "netlify/functions/_generated-db-env.mjs");
+  fs.writeFileSync(
+    generatedPath,
+    `// Auto-generated at build time by server/scripts/provision-db.mjs -- do not edit or commit.\nexport const DATABASE_URL = ${JSON.stringify(process.env.DATABASE_URL)};\n`,
+  );
+  console.log(`Wrote resolved DATABASE_URL to ${generatedPath} for the function to import.`);
 
   const run = (cmd) => execSync(cmd, { cwd: serverDir, stdio: "inherit", env: process.env });
 
