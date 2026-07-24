@@ -1,10 +1,13 @@
-// The default "@prisma/client" entry point eagerly resolves Prisma's
-// native, OS-specific query-engine binary even when a driver adapter is
-// supplied -- Netlify's function bundler doesn't ship that binary, so
-// importing it crashes the function at cold start (502) before any route
-// runs. "@prisma/client/wasm" is the binary-free entry point meant for use
-// with driver adapters (see server/prisma/schema.prisma).
-import { PrismaClient } from "@prisma/client/wasm";
+// Imported by relative path, not the "@prisma/client" package specifier:
+// the generator's custom `output` (see schema.prisma) writes the client
+// straight into netlify/functions/generated/prisma-client/wasm.js, the
+// binary-free entry point for use with driver adapters. A bare package
+// specifier depends on Netlify correctly re-including server/node_modules
+// in the deployed function bundle, which it does not do reliably --
+// confirmed in production via "Cannot find module '@prisma/client/wasm'".
+// A relative sibling-file import needs no module resolution/bundler
+// cooperation at all.
+import { PrismaClient } from "../../netlify/functions/generated/prisma-client/wasm.js";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import { Pool, neonConfig } from "@neondatabase/serverless";
 import ws from "ws";

@@ -1,8 +1,11 @@
-import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { ALL_PERMISSION_KEYS } from "../src/permissions.js";
-
-const prisma = new PrismaClient();
+// Reuses the same adapter-configured client as the app itself (see
+// ../src/db.ts) instead of constructing a second one from the bare
+// "@prisma/client" specifier -- that specifier no longer resolves to a
+// generated client at all, since schema.prisma's custom `output` now
+// generates straight into netlify/functions/generated/prisma-client/.
+import { prisma } from "../src/db.js";
 
 async function main() {
   const existing = await prisma.user.findUnique({ where: { employeeNo: "ADMIN" } });

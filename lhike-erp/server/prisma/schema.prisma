@@ -10,9 +10,21 @@
 // reliably ship that OS-specific binary into the deployed function, so the
 // native-engine path crashes the function at runtime (502) even though the
 // build itself succeeds.
+//
+// output: generates the client (including its wasm engine) directly into
+// netlify/functions/generated/prisma-client instead of server/node_modules.
+// Marking "@prisma/client" as external_node_modules in netlify.toml was NOT
+// enough to get its files into the deployed function bundle -- confirmed in
+// production via "Cannot find module '@prisma/client/wasm'". Generating
+// straight into the functions directory and importing by relative path
+// (see src/db.ts) sidesteps package/node_modules resolution entirely and
+// relies only on plain sibling files, which is already proven to survive
+// Netlify's bundling (see server/scripts/provision-db.mjs's generated
+// _generated-db-env.mjs).
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
+  output          = "../../netlify/functions/generated/prisma-client"
 }
 
 datasource db {

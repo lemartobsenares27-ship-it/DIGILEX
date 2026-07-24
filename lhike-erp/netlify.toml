@@ -3,15 +3,6 @@
   publish = "client/dist"
   functions = "netlify/functions"
 
-# Prisma Client's wasm engine (server/src/db.ts imports "@prisma/client/wasm")
-# loads its .wasm file via a dynamic import relative to its own location in
-# node_modules/.prisma/client/. esbuild (Netlify's default function bundler)
-# doesn't reliably trace or copy that kind of asset, so these packages are
-# marked external: Netlify copies them into the function bundle verbatim
-# instead of tree-shaking them, which keeps that relative path intact.
-[functions]
-  external_node_modules = ["@prisma/client", ".prisma/client"]
-
 # api.mts is a Netlify Functions v1 (Lambda-compatible) handler -- required
 # because serverless-http only understands AWS/Azure-style event objects,
 # not the Web-standard Request the v2 signature receives (see api.mts for
