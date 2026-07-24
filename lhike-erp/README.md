@@ -1,5 +1,7 @@
 # LHIKE ERP (application)
 
+**Live:** https://lhike-erp.netlify.app
+
 A real, running clone of LHIKE ERP's foundation: a Node/Express/Prisma backend
 with genuine multi-user accounts, roles, and authentication, and a React
 frontend implementing the Dashboard and User Management modules exactly as
