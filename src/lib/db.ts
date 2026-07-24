@@ -16,6 +16,7 @@ import type {
   POSReconciliationRow,
   EvidenceRow,
   FollowUpRow,
+  AdPerformanceRow,
 } from './types'
 import { DEFAULT_CATEGORIZATION_RULES } from './import/defaultRules'
 
@@ -117,6 +118,7 @@ class DigilexDB extends Dexie {
   categorizationRules!: Table<CategorizationRuleRow, number>
   courierColumnMappings!: Table<CourierColumnMappingRow, number>
   productNameMappings!: Table<ProductNameMappingRow, number>
+  adPerformance!: Table<AdPerformanceRow, number>
 
   constructor() {
     super('digilex-financial-control-center')
@@ -150,6 +152,9 @@ class DigilexDB extends Dexie {
     })
     this.version(3).stores({
       unmatchedFulfillmentFees: '++id',
+    })
+    this.version(4).stores({
+      adPerformance: '++id',
     })
   }
 }
@@ -489,6 +494,7 @@ export async function resetAndReseed(): Promise<void> {
     db.categorizationRules.clear(),
     db.courierColumnMappings.clear(),
     db.productNameMappings.clear(),
+    db.adPerformance.clear(),
   ])
   await db.meta.delete('seeded')
   seedingPromise = null

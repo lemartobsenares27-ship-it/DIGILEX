@@ -221,3 +221,26 @@ export interface FollowUpRow {
   'Internal Note (remove before sending)': string | null
   'NPMCM Response / Notes': string | null
 }
+
+export type AdLifecycle = 'New' | 'Unproven' | 'Winner' | 'Potential' | 'Fatigue' | 'Loser'
+
+export interface AdPerformanceRow {
+  id?: number
+  'Ad Name': string | null
+  'Campaign Name': string | null
+  'Ad Set Name': string | null
+  'Delivery Status': string | null
+  'Upload Date': string | null
+  'Amount Spent': number | null
+  Results: number | null
+  'Result Type': string | null
+  'Cost Per Result': number | null
+  CTR: number | null
+  Impressions: number | null
+  Reach: number | null
+  Frequency: number | null
+  'Hook Rate': number | null
+  'Hold Rate': number | null
+  Lifecycle: AdLifecycle | null
+  Score: number | null
+}

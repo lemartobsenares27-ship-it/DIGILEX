@@ -26,6 +26,7 @@ export async function exportFullWorkbook(): Promise<void> {
     followUp,
     products,
     fixedExpenses,
+    adPerformance,
   ] = await Promise.all([
     db.income.toArray(),
     db.expenses.toArray(),
@@ -46,6 +47,7 @@ export async function exportFullWorkbook(): Promise<void> {
     db.followUp.toArray(),
     db.products.toArray(),
     db.fixedExpenses.toArray(),
+    db.adPerformance.toArray(),
   ])
 
   const wb = XLSX.utils.book_new()
@@ -69,6 +71,7 @@ export async function exportFullWorkbook(): Promise<void> {
     ['NPMCM Follow-Up List', followUp],
     ['Product Settings', products],
     ['Fixed Monthly Expenses', fixedExpenses],
+    ['Ads Management', adPerformance],
   ]
   for (const [name, rows] of sheets) {
     XLSX.utils.book_append_sheet(wb, sheetFrom(rows), name.slice(0, 31))

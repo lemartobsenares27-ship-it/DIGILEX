@@ -17,6 +17,7 @@ import {
   Send,
   Truck,
   Target,
+  LineChart,
   Upload,
   Settings as SettingsIcon,
   Sun,
@@ -61,6 +62,7 @@ const NAV: NavGroup[] = [
     title: 'Marketing & Cards',
     items: [
       { to: '/facebook-ads', label: 'Facebook Ads Tracker', icon: Megaphone },
+      { to: '/ads-management', label: 'Ads Management', icon: LineChart },
       { to: '/credit-cards', label: 'Credit Card Reconciliation', icon: CreditCard },
     ],
   },

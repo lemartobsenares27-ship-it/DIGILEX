@@ -12,6 +12,7 @@ const MonthlyPL = lazy(() => import('./pages/MonthlyPL'))
 const MonthlyBookkeeping = lazy(() => import('./pages/MonthlyBookkeeping'))
 const BillsReminders = lazy(() => import('./pages/BillsReminders'))
 const FacebookAdsTracker = lazy(() => import('./pages/FacebookAdsTracker'))
+const AdsManagement = lazy(() => import('./pages/AdsManagement'))
 const CreditCardReconciliation = lazy(() => import('./pages/CreditCardReconciliation'))
 const OrdersDatabase = lazy(() => import('./pages/OrdersDatabase'))
 const SOAReconciliation = lazy(() => import('./pages/SOAReconciliation'))
@@ -94,6 +95,7 @@ export default function App() {
           <Route path="/bookkeeping" element={<MonthlyBookkeeping />} />
           <Route path="/bills" element={<BillsReminders />} />
           <Route path="/facebook-ads" element={<FacebookAdsTracker />} />
+          <Route path="/ads-management" element={<AdsManagement />} />
           <Route path="/credit-cards" element={<CreditCardReconciliation />} />
           <Route path="/orders" element={<OrdersDatabase />} />
           <Route path="/soa-reconciliation" element={<SOAReconciliation />} />

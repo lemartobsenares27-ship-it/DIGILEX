@@ -8,6 +8,7 @@ import Card from '../components/Card'
 import DataTable, { type ColumnDef } from '../components/DataTable'
 import { exportFullWorkbook } from '../lib/exportWorkbook'
 import { applyRules } from '../lib/import/categorize'
+import { DEFAULT_AD_BENCHMARKS, type AdScoringBenchmarks } from '../lib/adScoring'
 import type { ProductRow, FixedExpenseRow } from '../lib/db'
 
 interface Business {
@@ -125,6 +126,8 @@ export default function SettingsPage() {
         />
       </Card>
 
+      <AdScoringBenchmarksCard />
+
       <CategorizationRulesCard />
 
       <Card title="Data Management">
@@ -153,6 +156,48 @@ export default function SettingsPage() {
         </p>
       </Card>
     </div>
+  )
+}
+
+const AD_BENCHMARK_FIELDS: { key: keyof AdScoringBenchmarks; label: string; step: number; hint: string }[] = [
+  { key: 'targetCostPerResult', label: 'Target Cost per Result (₱)', step: 1, hint: 'Your real historical CPA — everything is scored against this' },
+  { key: 'winnerRatio', label: 'Winner Ratio', step: 0.05, hint: 'Cost/result at or below this × target = Winner' },
+  { key: 'loserRatio', label: 'Loser Ratio', step: 0.05, hint: 'Cost/result above this × target = Loser' },
+  { key: 'minResultsForVerdict', label: 'Min Results for Verdict', step: 1, hint: 'Below this, an ad stays New/Unproven regardless of cost' },
+  { key: 'fatigueFrequency', label: 'Fatigue Frequency Threshold', step: 0.1, hint: 'Frequency at or above this flags Fatigue even if cost still looks fine' },
+  { key: 'fatigueCtrDropPct', label: 'Fatigue CTR Drop %', step: 0.05, hint: 'CTR drop vs. last upload (as a fraction) that flags Fatigue' },
+]
+
+function AdScoringBenchmarksCard() {
+  const [benchmarks, setBenchmarks] = useMeta<AdScoringBenchmarks>('adScoringBenchmarks', DEFAULT_AD_BENCHMARKS)
+
+  return (
+    <Card
+      title="Ad Scoring Benchmarks"
+      description="Used by Ads Management to classify every uploaded ad as Winner / Potential / Fatigue / Loser / Unproven / New"
+      className="mb-4"
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {AD_BENCHMARK_FIELDS.map((f) => (
+          <label key={f.key} className="flex flex-col gap-1">
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {f.label}
+            </span>
+            <input
+              type="number"
+              step={f.step}
+              value={benchmarks[f.key]}
+              onChange={(e) => setBenchmarks({ ...benchmarks, [f.key]: Number(e.target.value) })}
+              className="rounded-lg border px-2.5 py-1.5 text-sm"
+              style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)', background: 'var(--surface-page)' }}
+            />
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              {f.hint}
+            </span>
+          </label>
+        ))}
+      </div>
+    </Card>
   )
 }
 
