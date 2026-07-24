@@ -3,5 +3,3 @@ dist
 .env
 prisma/dev.db
 prisma/dev.db-journal
-uploads/*
-!uploads/.gitkeep

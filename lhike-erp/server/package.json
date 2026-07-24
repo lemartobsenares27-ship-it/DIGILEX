@@ -12,6 +12,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@netlify/database": "^1.1.0",
     "@prisma/client": "^5.20.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",

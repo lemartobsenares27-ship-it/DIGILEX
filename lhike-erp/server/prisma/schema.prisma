@@ -1,22 +1,22 @@
 // LHIKE ERP - Prisma schema
-// Using SQLite for zero-config local development. To move to production,
-// swap the datasource provider to "postgresql" and set DATABASE_URL to a
-// Postgres connection string -- the models below are written to be portable.
+// Postgres in production (provisioned automatically via the Netlify DB /
+// Neon extension -- see server/scripts/provision-db.mjs and
+// netlify/functions/api.mts). Local development also uses Postgres when
+// DATABASE_URL points at one; see server/.env.example.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 // Mirrors Module 9 (User Management): Employment Status is separate from
-// the Enabled/Disabled login toggle. SQLite has no native enum support, so
-// this is validated as one of Active/Inactive/Resigned/Terminated at the
-// application layer (see src/routes/users.ts) instead of at the schema
-// level -- switch this to a real Prisma enum when moving to Postgres.
+// the Enabled/Disabled login toggle. Validated as one of
+// Active/Inactive/Resigned/Terminated at the application layer (see
+// src/routes/users.ts) rather than as a Prisma enum.
 model User {
   id            String   @id @default(cuid())
   employeeNo    String   @unique
@@ -57,8 +57,11 @@ model User {
 }
 
 model CompanySettings {
-  id       Int     @id @default(1)
-  logoPath String?
+  id          Int     @id @default(1)
+  // Stored as a data: URL (base64) rather than a file path -- Netlify
+  // Functions run on a read-only, ephemeral filesystem, so a small image
+  // like a company logo is kept in the database instead of on disk.
+  logoDataUrl String?
 }
 
 // Lightweight audit trail -- every module in the documentation set has a

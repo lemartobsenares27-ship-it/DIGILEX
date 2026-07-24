@@ -1,0 +1,13 @@
+[build]
+  command = "npm install && npm install --prefix server && npm install --prefix client && node server/scripts/provision-db.mjs && npm run build --prefix client"
+  publish = "client/dist"
+  functions = "netlify/functions"
+
+# The api.mts function declares `config.path = "/api/*"` itself, which is
+# the authoritative routing mechanism for Netlify Functions v2. This SPA
+# fallback only applies to non-API, non-asset paths so React Router can
+# handle client-side routes like /users/:id/role on a hard refresh.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
