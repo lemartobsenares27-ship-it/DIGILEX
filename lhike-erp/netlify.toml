@@ -12,9 +12,18 @@
 [functions]
   external_node_modules = ["@prisma/client", ".prisma/client"]
 
-# The api.mts function declares `config.path = "/api/*"` itself, which is
-# the authoritative routing mechanism for Netlify Functions v2. This SPA
-# fallback only applies to non-API, non-asset paths so React Router can
+# api.mts is a Netlify Functions v1 (Lambda-compatible) handler -- required
+# because serverless-http only understands AWS/Azure-style event objects,
+# not the Web-standard Request the v2 signature receives (see api.mts for
+# why). v1 functions don't support in-code path config, so /api/* is routed
+# to the function explicitly here. This must come before the SPA fallback
+# below so it takes precedence.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+# Catches everything else (non-API, non-asset paths) so React Router can
 # handle client-side routes like /users/:id/role on a hard refresh.
 [[redirects]]
   from = "/*"

@@ -1,19 +1,22 @@
-import type { Context, Config } from "@netlify/functions";
+import type { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
 
-export const config: Config = { path: "/api/*" };
-
-// Netlify Functions v2 speak the Web-standard Request/Response, so the
-// existing Express app (server/src/app.ts) is adapted via serverless-http.
+// Netlify Functions v1 (Lambda-compatible) handler shape -- not the v2
+// Request/Response shape. serverless-http only ships adapters for AWS
+// Lambda and Azure Functions event objects (see
+// node_modules/serverless-http/lib/provider/), so it cannot process the
+// Web-standard Request object that v2 functions receive. Every call
+// through the v2 signature was crashing before Express ever ran, which
+// showed up as a 502 on every /api/* route (login included) regardless of
+// what happened inside the app itself.
+//
 // DATABASE_URL must be resolved via @netlify/database's getConnectionString()
 // *before* the app (and therefore Prisma Client) is imported, since ESM
 // static imports would otherwise evaluate before this function body runs --
 // dynamic import() keeps the ordering correct. This runs once per warm
 // function instance (cold start), not once per request.
-type RequestHandler = (req: Request, context: Context) => Promise<Response>;
+let handlerPromise: Promise<Handler> | null = null;
 
-let handlerPromise: Promise<RequestHandler> | null = null;
-
-async function buildHandler(): Promise<RequestHandler> {
+async function buildHandler(): Promise<Handler> {
   if (!process.env.DATABASE_URL) {
     const { getConnectionString } = await import("@netlify/database");
     process.env.DATABASE_URL = await getConnectionString();
@@ -24,13 +27,16 @@ async function buildHandler(): Promise<RequestHandler> {
 
   const { createApp } = await import("../../server/src/app.js");
   const serverless = (await import("serverless-http")).default;
-  return serverless(createApp()) as unknown as RequestHandler;
+  return serverless(createApp()) as unknown as Handler;
 }
 
-export default async (req: Request, context: Context): Promise<Response> => {
+export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
   if (!handlerPromise) {
     handlerPromise = buildHandler();
   }
-  const handler = await handlerPromise;
-  return handler(req, context);
+  const h = await handlerPromise;
+  // serverless-http's handler always resolves to a response object; the
+  // `void` arm of Handler's return type exists only for background
+  // functions, which this isn't.
+  return (await h(event, context))!;
 };
