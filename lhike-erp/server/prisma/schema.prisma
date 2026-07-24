@@ -4,8 +4,15 @@
 // netlify/functions/api.mts). Local development also uses Postgres when
 // DATABASE_URL points at one; see server/.env.example.
 
+// driverAdapters: Prisma Client talks to Postgres through the Neon
+// serverless driver (see src/db.ts) instead of spawning its native query
+// engine binary. Netlify Functions bundle with esbuild, which does not
+// reliably ship that OS-specific binary into the deployed function, so the
+// native-engine path crashes the function at runtime (502) even though the
+// build itself succeeds.
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
