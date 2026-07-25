@@ -1,36 +1,20 @@
 // LHIKE ERP - Prisma schema
-// Postgres in production (provisioned automatically via the Netlify DB /
-// Neon extension -- see server/scripts/provision-db.mjs and
-// netlify/functions/api.mts). Local development also uses Postgres when
-// DATABASE_URL points at one; see server/.env.example.
-
-// output: generates the client (default native-engine build, see
-// src/db.ts) directly into netlify/functions/generated/prisma-client
-// instead of server/node_modules. Marking "@prisma/client" as
-// external_node_modules in netlify.toml was NOT enough to get its files
-// into the deployed function bundle -- confirmed in production via
-// "Cannot find module '@prisma/client/wasm'". Generating straight into the
-// functions directory and importing by relative path (see src/db.ts)
-// sidesteps package/node_modules resolution entirely and relies only on
-// plain sibling files, which is already proven to survive Netlify's
-// bundling (see server/scripts/provision-db.mjs's generated
-// _generated-db-env.mjs). The wasm engine + Neon driver adapter combo
-// (previewFeatures = ["driverAdapters"]) got past that bundling problem
-// but then failed to initialize in the Netlify build container itself
-// with a Prisma/Node 24 wasm-loading error, so this generates the native
-// engine binary instead -- built fresh in the same container it deploys
-// into.
+// Postgres in production (a Vercel Postgres / Neon database -- see
+// server/scripts/provision-db.mjs and api/index.ts). Local development
+// also uses Postgres when DATABASE_URL points at one; see
+// server/.env.example.
 //
-// binaryTargets: confirmed in production that the build container and the
-// deployed function's runtime container are NOT the same OS family --
-// "Prisma Client was generated for debian-openssl-3.0.x, but the actual
-// deployment required rhel-openssl-3.0.x". "native" keeps local dev/build
-// working on whatever the current machine is; rhel-openssl-3.0.x is what
-// the Netlify Functions runtime itself needs.
+// Standard default output (server/node_modules/@prisma/client), no custom
+// output path or binaryTargets override: unlike Netlify's esbuild-based
+// function bundler, Vercel's Node.js Serverless Functions build with
+// @vercel/nft (Node File Trace), which traces the actual require() calls
+// Prisma's engine makes at runtime and correctly includes the resulting
+// binary in the deployed function -- Vercel's build container and its
+// function runtime are also the same OS family, so no cross-platform
+// binaryTargets mismatch. This is the standard, officially-documented
+// Prisma + Vercel setup.
 generator client {
-  provider      = "prisma-client-js"
-  output        = "../../netlify/functions/generated/prisma-client"
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {

@@ -1,7 +1,5 @@
 # LHIKE ERP (application)
 
-**Live:** https://lhike-erp.netlify.app
-
 A real, running clone of LHIKE ERP's foundation: a Node/Express/Prisma backend
 with genuine multi-user accounts, roles, and authentication, and a React
 frontend implementing the Dashboard and User Management modules exactly as
@@ -28,10 +26,27 @@ and say so on-screen.
 
 ## Architecture
 
-- **`server/`** — Express + TypeScript + Prisma ORM + SQLite (swap to
-  Postgres for production — see `server/prisma/schema.prisma`), JWT auth in
-  an httpOnly cookie, bcrypt password hashing.
+- **`server/`** — Express + TypeScript + Prisma ORM (Postgres — see
+  `server/prisma/schema.prisma`), JWT auth in an httpOnly cookie, bcrypt
+  password hashing.
 - **`client/`** — React + TypeScript + Vite + Tailwind CSS, React Router.
+- **`api/index.ts`** — Vercel deployment entry point: exports the compiled
+  Express app (`server/dist/app.js`) directly, Vercel's standard pattern
+  for hosting an existing Express app. `vercel.json` rewrites everything
+  under `/api/*` to this function and everything else to `/index.html`
+  (SPA client-side routing) after static assets are checked first.
+
+### Deploying to Vercel
+
+1. Import this repo into a new Vercel project; set **Root Directory** to
+   `lhike-erp`.
+2. In **Storage**, connect a Postgres database (the Neon integration works
+   well) — Vercel sets `DATABASE_URL` automatically for both build and
+   runtime.
+3. Deploy. `vercel.json`'s `buildCommand` installs `server/` and `client/`,
+   builds the server (`tsc -b`), runs `server/scripts/provision-db.mjs`
+   (`prisma generate` + `db push` + seed the admin account), then builds
+   the client.
 
 Why a real backend instead of the browser-only approach used by the
 existing Digilex app: LHIKE ERP's User Management module has genuine

@@ -3,12 +3,5 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Root package for the Netlify Function wrapper (netlify/functions/api.mts) -- the server and client apps have their own package.json under server/ and client/.",
-  "dependencies": {
-    "@netlify/database": "^1.1.0",
-    "serverless-http": "^4.0.0"
-  },
-  "devDependencies": {
-    "@netlify/functions": "^5.3.0"
-  }
+  "description": "Root package for the Vercel deployment (api/index.ts exports the Express app directly, Vercel's standard pattern) -- the server and client apps have their own package.json under server/ and client/."
 }
