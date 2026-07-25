@@ -3,6 +3,20 @@
   publish = "client/dist"
   functions = "netlify/functions"
 
+# Prisma's native query-engine binaries (server/prisma/schema.prisma's
+# custom `output`) are not statically importable JS -- api.mts loads one of
+# them dynamically, at a path esbuild (Netlify's function bundler) cannot
+# trace, so esbuild silently drops them from the deployed bundle even
+# though `prisma generate` produced them right where the function expects
+# them. Confirmed in production: "Prisma Client could not locate the Query
+# Engine ... likely caused by a bundler that has not copied
+# libquery_engine-rhel-openssl-3.0.x.so.node next to the resulting
+# bundle." included_files is Netlify's documented mechanism for exactly
+# this case -- non-inlinable native-addon dependencies a bundler can't
+# trace via imports -- and forces them into the bundle regardless.
+[functions]
+  included_files = ["netlify/functions/generated/prisma-client/*.so.node"]
+
 # api.mts is a Netlify Functions v1 (Lambda-compatible) handler -- required
 # because serverless-http only understands AWS/Azure-style event objects,
 # not the Web-standard Request the v2 signature receives (see api.mts for
