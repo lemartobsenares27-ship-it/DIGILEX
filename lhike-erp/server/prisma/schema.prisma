@@ -19,10 +19,18 @@
 // but then failed to initialize in the Netlify build container itself
 // with a Prisma/Node 24 wasm-loading error, so this generates the native
 // engine binary instead -- built fresh in the same container it deploys
-// into, avoiding the cross-platform mismatch native engines usually risk.
+// into.
+//
+// binaryTargets: confirmed in production that the build container and the
+// deployed function's runtime container are NOT the same OS family --
+// "Prisma Client was generated for debian-openssl-3.0.x, but the actual
+// deployment required rhel-openssl-3.0.x". "native" keeps local dev/build
+// working on whatever the current machine is; rhel-openssl-3.0.x is what
+// the Netlify Functions runtime itself needs.
 generator client {
-  provider = "prisma-client-js"
-  output   = "../../netlify/functions/generated/prisma-client"
+  provider      = "prisma-client-js"
+  output        = "../../netlify/functions/generated/prisma-client"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
