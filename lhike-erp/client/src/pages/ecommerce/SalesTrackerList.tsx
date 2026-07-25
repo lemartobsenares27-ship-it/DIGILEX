@@ -168,15 +168,27 @@ function DownloadFromPancakeModal({ onClose, onDone }: { onClose: () => void; on
     setSelectedPageIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
   }
 
-  async function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setResult(null);
+
+    // Read the live DOM values via FormData rather than trusting React
+    // state alone: native <input type="date"> widgets can update their
+    // displayed value (typed digit-by-digit, or via autofill) without
+    // always firing a React-visible change event, which would otherwise
+    // leave dateFrom/dateTo stuck at their stale initial "" state even
+    // though the field looks filled in.
+    const form = new FormData(e.currentTarget);
+    const effectiveDateFrom = (form.get("dateFrom") as string) || dateFrom;
+    const effectiveDateTo = (form.get("dateTo") as string) || dateTo;
+    const effectiveOrderDateSet = (form.get("orderDateSet") as string) || orderDateSet;
+
     if (selectedPageIds.length === 0) {
       setError("Select at least one page. Pancake credentials are stored per page, so a page must be picked to know which Pancake shop to query.");
       return;
     }
-    if (!dateFrom || !dateTo) {
+    if (!effectiveDateFrom || !effectiveDateTo) {
       setError("Set both the Pancake Order Date From and To.");
       return;
     }
@@ -186,9 +198,9 @@ function DownloadFromPancakeModal({ onClose, onDone }: { onClose: () => void; on
         "/ecommerce/sales-tracker/download-from-pancake",
         {
           pageIds: selectedPageIds,
-          pancakeOrderDateFrom: dateFrom,
-          pancakeOrderDateTo: dateTo,
-          orderDateSet: orderDateSet || undefined,
+          pancakeOrderDateFrom: effectiveDateFrom,
+          pancakeOrderDateTo: effectiveDateTo,
+          orderDateSet: effectiveOrderDateSet || undefined,
           status: statuses,
         },
       );
@@ -239,16 +251,37 @@ function DownloadFromPancakeModal({ onClose, onDone }: { onClose: () => void; on
             <div className="grid grid-cols-2 gap-3">
               <label className="flex flex-col gap-1 text-sm text-slate-600">
                 Pancake Order Date From
-                <input type="date" className="rounded-md border border-slate-300 px-2 py-1.5" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+                <input
+                  type="date"
+                  name="dateFrom"
+                  className="rounded-md border border-slate-300 px-2 py-1.5"
+                  defaultValue={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  onBlur={(e) => setDateFrom(e.target.value)}
+                />
               </label>
               <label className="flex flex-col gap-1 text-sm text-slate-600">
                 Pancake Order Date To
-                <input type="date" className="rounded-md border border-slate-300 px-2 py-1.5" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+                <input
+                  type="date"
+                  name="dateTo"
+                  className="rounded-md border border-slate-300 px-2 py-1.5"
+                  defaultValue={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  onBlur={(e) => setDateTo(e.target.value)}
+                />
               </label>
             </div>
             <label className="flex flex-col gap-1 text-sm text-slate-600">
               Order Date Set (optional — dates orders in LHIKE ERP as this date instead of their Pancake order date)
-              <input type="date" className="rounded-md border border-slate-300 px-2 py-1.5" value={orderDateSet} onChange={(e) => setOrderDateSet(e.target.value)} />
+              <input
+                type="date"
+                name="orderDateSet"
+                className="rounded-md border border-slate-300 px-2 py-1.5"
+                defaultValue={orderDateSet}
+                onChange={(e) => setOrderDateSet(e.target.value)}
+                onBlur={(e) => setOrderDateSet(e.target.value)}
+              />
             </label>
 
             <div>
