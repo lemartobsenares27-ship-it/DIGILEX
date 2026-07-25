@@ -4,27 +4,25 @@
 // netlify/functions/api.mts). Local development also uses Postgres when
 // DATABASE_URL points at one; see server/.env.example.
 
-// driverAdapters: Prisma Client talks to Postgres through the Neon
-// serverless driver (see src/db.ts) instead of spawning its native query
-// engine binary. Netlify Functions bundle with esbuild, which does not
-// reliably ship that OS-specific binary into the deployed function, so the
-// native-engine path crashes the function at runtime (502) even though the
-// build itself succeeds.
-//
-// output: generates the client (including its wasm engine) directly into
-// netlify/functions/generated/prisma-client instead of server/node_modules.
-// Marking "@prisma/client" as external_node_modules in netlify.toml was NOT
-// enough to get its files into the deployed function bundle -- confirmed in
-// production via "Cannot find module '@prisma/client/wasm'". Generating
-// straight into the functions directory and importing by relative path
-// (see src/db.ts) sidesteps package/node_modules resolution entirely and
-// relies only on plain sibling files, which is already proven to survive
-// Netlify's bundling (see server/scripts/provision-db.mjs's generated
-// _generated-db-env.mjs).
+// output: generates the client (default native-engine build, see
+// src/db.ts) directly into netlify/functions/generated/prisma-client
+// instead of server/node_modules. Marking "@prisma/client" as
+// external_node_modules in netlify.toml was NOT enough to get its files
+// into the deployed function bundle -- confirmed in production via
+// "Cannot find module '@prisma/client/wasm'". Generating straight into the
+// functions directory and importing by relative path (see src/db.ts)
+// sidesteps package/node_modules resolution entirely and relies only on
+// plain sibling files, which is already proven to survive Netlify's
+// bundling (see server/scripts/provision-db.mjs's generated
+// _generated-db-env.mjs). The wasm engine + Neon driver adapter combo
+// (previewFeatures = ["driverAdapters"]) got past that bundling problem
+// but then failed to initialize in the Netlify build container itself
+// with a Prisma/Node 24 wasm-loading error, so this generates the native
+// engine binary instead -- built fresh in the same container it deploys
+// into, avoiding the cross-platform mismatch native engines usually risk.
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
-  output          = "../../netlify/functions/generated/prisma-client"
+  provider = "prisma-client-js"
+  output   = "../../netlify/functions/generated/prisma-client"
 }
 
 datasource db {
