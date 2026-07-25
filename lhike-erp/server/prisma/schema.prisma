@@ -85,3 +85,71 @@ model AuditLog {
   metadata  String?
   createdAt DateTime @default(now())
 }
+
+// Module 3, Section 3.5 (Pages & Store). The Pancake Set Up panel (Section
+// 3.5.1 / Module 4, SOP 4-1) is optional per page -- a page with no
+// pancakeShopId/pancakeApiKey is a page LHIKE ERP doesn't sync orders for.
+model Page {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  owner       String?
+  // Facebook ECOM, Instagram, TikTok, Shopee, Lazada, etc. (Module 3.5,
+  // free text rather than a Prisma enum, validated at the app layer).
+  platform    String
+  pageUrl     String?
+  // Active, Inactive, In-review, Restricted, Permanently Disabled.
+  status      String  @default("Active")
+  archived    Boolean @default(false)
+
+  pancakeShopId String?
+  pancakeApiKey String?
+  // For Pancake "COMBINE" shops only (Module 4, SOP 4-2) -- distinct per
+  // linked page, while pancakeShopId/pancakeApiKey are shared.
+  pancakePageId String?
+  senderName    String?
+  internName    String?
+
+  orders    SalesOrder[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+// Module 3, Section 3.8 (Sales Tracker). Scoped to the fields needed for
+// the Download Sales from 3P Apps flow (Module 4, SOP 4-3) plus the core
+// Sales Tracker table columns; the fuller column set documented in 3.8
+// (CSR, Verifier, MOP, Shift, etc.) is not modeled yet.
+model SalesOrder {
+  id     String @id @default(cuid())
+  pageId String
+  page   Page   @relation(fields: [pageId], references: [id])
+
+  // "Pancake-POS" for now (the only supported App on the Download Sales
+  // from 3P Apps screen so far); Upload Sales Monitoring's other sources
+  // (Facebook/Shopify, TikTok, Lazada, Shopee) are not implemented yet.
+  source         String  @default("Pancake-POS")
+  // Pancake's own order id -- the dedupe key so re-running a download for
+  // an overlapping date range skips orders already imported (SOP 4-3).
+  pancakeOrderId String?
+  displayId      String?
+
+  orderDate     DateTime
+  customerName  String?
+  address       String?
+  contactNumber String?
+  itemsSummary  String?
+  totalQty      Int      @default(0)
+  price         Float    @default(0)
+  shippingFee   Float    @default(0)
+
+  trackingNumber String?
+  courier        String?
+  parcelStatus   String?
+  // Canceled, Confirmed, Delivered, Partial Return, Printed (Module 4, SOP 4-3).
+  orderStatus    String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([pageId, pancakeOrderId])
+}

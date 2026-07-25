@@ -10,6 +10,9 @@ import { AddUser } from "./pages/users/AddUser";
 import { ChangeRole } from "./pages/users/ChangeRole";
 import { CompanyLogo } from "./pages/users/CompanyLogo";
 import { ComingSoon } from "./pages/ComingSoon";
+import { PagesStoreList } from "./pages/ecommerce/PagesStoreList";
+import { AddEditPage } from "./pages/ecommerce/AddEditPage";
+import { SalesTrackerList } from "./pages/ecommerce/SalesTrackerList";
 import { NAV } from "./nav";
 
 function App() {
@@ -74,6 +77,39 @@ function App() {
           element={
             <ProtectedRoute permission="user.userManagement.manage">
               <ChangeRole />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/ecommerce/pages-store"
+          element={
+            <ProtectedRoute permission="ecommerce.pages.viewOwn">
+              <PagesStoreList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ecommerce/pages-store/new"
+          element={
+            <ProtectedRoute permission="ecommerce.pages.viewOwn">
+              <AddEditPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ecommerce/pages-store/:id"
+          element={
+            <ProtectedRoute permission="ecommerce.pages.viewOwn">
+              <AddEditPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ecommerce/sales-tracker"
+          element={
+            <ProtectedRoute permission="ecommerce.salesOrder.viewOwn">
+              <SalesTrackerList />
             </ProtectedRoute>
           }
         />

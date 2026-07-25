@@ -5,10 +5,11 @@ import { authRouter } from "./routes/auth.js";
 import { usersRouter } from "./routes/users.js";
 import { dashboardRouter } from "./routes/dashboard.js";
 import { settingsRouter } from "./routes/settings.js";
+import { ecommerceRouter } from "./routes/ecommerce.js";
 
 // The configured Express app, with no `.listen()` call -- reused by both
-// the local dev entrypoint (src/index.ts) and the Netlify Function wrapper
-// (netlify/functions/api.mts), which each decide how the app is served.
+// the local dev entrypoint (src/index.ts) and the Vercel Function wrapper
+// (api/index.ts), which each decide how the app is served.
 export function createApp() {
   const app = express();
   const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN ?? "http://localhost:5173";
@@ -23,6 +24,7 @@ export function createApp() {
   app.use("/api/users", usersRouter);
   app.use("/api/dashboard", dashboardRouter);
   app.use("/api/settings", settingsRouter);
+  app.use("/api/ecommerce", ecommerceRouter);
 
   app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     // eslint-disable-next-line no-console

@@ -26,10 +26,10 @@ export const NAV: NavGroup[] = [
   {
     label: "E-commerce",
     items: [
-      { label: "Pages & Store", path: "/ecommerce/pages-store", permission: "ecommerce.pages.viewOwn", implemented: false },
+      { label: "Pages & Store", path: "/ecommerce/pages-store", permission: "ecommerce.pages.viewOwn", implemented: true },
       { label: "Page ROAS Tracker", path: "/ecommerce/page-roas-tracker", permission: "ecommerce.ads.view", implemented: false },
       { label: "Adspent ROAS Summary", path: "/ecommerce/adspent-roas-summary", permission: "ecommerce.ads.view", implemented: false },
-      { label: "Sales Tracker", path: "/ecommerce/sales-tracker", permission: "ecommerce.salesOrder.viewOwn", implemented: false },
+      { label: "Sales Tracker", path: "/ecommerce/sales-tracker", permission: "ecommerce.salesOrder.viewOwn", implemented: true },
       { label: "Product Testing", path: "/ecommerce/product-testing", permission: "ecommerce.newItemRequest.viewOwn", implemented: false },
       { label: "BM & Ad Account", path: "/ecommerce/bm-ad-account", permission: "ecommerce.bm.viewOwn", implemented: false },
       { label: "Profitability Formula", path: "/ecommerce/profitability-formula", permission: "ecommerce.calculator.view", implemented: false },
