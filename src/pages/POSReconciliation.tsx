@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { db } from '../lib/db'
 import { useLiveTable } from '../hooks/useLiveTable'
 import PageHeader from '../components/PageHeader'
@@ -6,6 +7,7 @@ import Card from '../components/Card'
 import DataTable, { type ColumnDef } from '../components/DataTable'
 import type { POSReconciliationRow } from '../lib/types'
 import { formatCurrency, formatNumber, formatPercent } from '../lib/format'
+import { allTimeDeliveryStats, monthlyRtsBreakdown } from '../lib/analytics'
 import seed from '../data/posOrderReconciliation.json'
 
 const COLUMNS: ColumnDef<POSReconciliationRow>[] = [
@@ -21,6 +23,11 @@ const COLUMNS: ColumnDef<POSReconciliationRow>[] = [
 
 export default function POSReconciliation() {
   const rows = useLiveTable(db.posReconciliation)
+  const orders = useLiveTable(db.orders)
+  const allTime = useMemo(() => allTimeDeliveryStats(rows), [rows])
+  const monthly = useMemo(() => monthlyRtsBreakdown(rows, orders), [rows, orders])
+  const latestMonth = monthly[monthly.length - 1]?.month
+
   return (
     <div>
       <PageHeader title="POS Order Reconciliation" description={seed.note} />
@@ -31,14 +38,14 @@ export default function POSReconciliation() {
         ))}
       </div>
 
-      <Card title="Exact RTS Rate" description="Based on your POS's own status field, not NPMCM's data" className="mb-4">
+      <Card title="Exact RTS Rate — All Time" description="Based on your POS's own status field, not NPMCM's data" className="mb-4">
         <div className="flex flex-wrap items-center gap-6">
           <div>
             <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
               Delivered
             </div>
             <div className="text-lg font-semibold tabular" style={{ color: 'var(--text-primary)' }}>
-              {formatNumber(seed.rts.delivered)}
+              {formatNumber(allTime.delivered)}
             </div>
           </div>
           <div>
@@ -46,7 +53,7 @@ export default function POSReconciliation() {
               Returned / RTS
             </div>
             <div className="text-lg font-semibold tabular" style={{ color: 'var(--text-primary)' }}>
-              {formatNumber(seed.rts.rts)}
+              {formatNumber(allTime.rts)}
             </div>
           </div>
           <div>
@@ -54,9 +61,62 @@ export default function POSReconciliation() {
               RTS Rate
             </div>
             <div className="text-lg font-semibold tabular" style={{ color: 'var(--status-critical)' }}>
-              {formatPercent(seed.rts.rate)}
+              {formatPercent(allTime.rate)}
             </div>
           </div>
+        </div>
+      </Card>
+
+      <Card
+        title="RTS Rate by Month"
+        description="Grouped by the month each order SHIPPED — this is how you check any single month, like this one, instead of only the all-time number above"
+        className="mb-4"
+      >
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr style={{ background: 'color-mix(in srgb, var(--text-primary) 3%, transparent)' }}>
+                {['Month', 'Delivered', 'RTS', 'Still in Transit', 'RTS Rate'].map((h) => (
+                  <th key={h} className="whitespace-nowrap px-3 py-2 text-left text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {monthly.map((m) => (
+                <tr
+                  key={m.month}
+                  className="border-t"
+                  style={{
+                    borderColor: 'var(--border-hairline)',
+                    background: m.month === latestMonth ? 'color-mix(in srgb, var(--series-blue) 6%, transparent)' : undefined,
+                  }}
+                >
+                  <td className="px-3 py-2 font-medium" style={{ color: 'var(--text-primary)' }}>
+                    {m.month}
+                    {m.month === latestMonth && (
+                      <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-muted)' }}>
+                        (still resolving)
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 tabular" style={{ color: 'var(--text-primary)' }}>
+                    {formatNumber(m.delivered)}
+                  </td>
+                  <td className="px-3 py-2 tabular" style={{ color: 'var(--text-primary)' }}>
+                    {formatNumber(m.rts)}
+                  </td>
+                  <td className="px-3 py-2 tabular" style={{ color: 'var(--text-muted)' }}>
+                    {formatNumber(m.transit)}
+                  </td>
+                  <td className="px-3 py-2 tabular font-semibold" style={{ color: 'var(--status-critical)' }}>
+                    {formatPercent(m.rate)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </Card>
 

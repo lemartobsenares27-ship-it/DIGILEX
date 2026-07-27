@@ -79,3 +79,51 @@ export function allTimeDeliveryStats(posRows: POSReconciliationRow[]) {
   const rate = delivered + rts > 0 ? rts / (delivered + rts) : 0
   return { delivered, rts, rate }
 }
+
+export interface MonthlyRtsRow {
+  month: string
+  delivered: number
+  rts: number
+  transit: number
+  rate: number
+}
+
+/**
+ * RTS rate broken down by the month the order was SHIPPED (not resolved), so
+ * "this month's RTS rate" means "of what shipped this month, how much came
+ * back" - joined against Orders Database by tracking number since POS
+ * Reconciliation itself has no ship-date column. Only counts rows flagged as
+ * coming from a full-status export (Column H) - the same "RTS-eligible
+ * source" caveat used everywhere else RTS rate is computed.
+ */
+export function monthlyRtsBreakdown(posRows: POSReconciliationRow[], orders: OrderRow[]): MonthlyRtsRow[] {
+  const shipMonthByTracking = new Map<string, string | null>()
+  for (const o of orders) {
+    const t = o['Order / Tracking #']
+    if (t) shipMonthByTracking.set(t, monthLabel(o['Date Ordered (Shipped)']))
+  }
+
+  const buckets = new Map<string, { delivered: number; rts: number; transit: number }>()
+  for (const r of posRows) {
+    if (r['RTS-Eligible Source (Y=full-status export)'] !== 'Y') continue
+    const tracking = r['J&T Tracking Number']
+    const month = tracking ? shipMonthByTracking.get(tracking) : null
+    if (!month) continue
+    const bucket = buckets.get(month) ?? { delivered: 0, rts: 0, transit: 0 }
+    const status = (r['POS Status'] ?? '').toLowerCase()
+    if (status === 'delivered') bucket.delivered++
+    else if (status.startsWith('return')) bucket.rts++
+    else if (status === 'shipped' || status.includes('pick up')) bucket.transit++
+    buckets.set(month, bucket)
+  }
+
+  return [...buckets.entries()]
+    .sort((a, b) => new Date(`1 ${a[0]}`).getTime() - new Date(`1 ${b[0]}`).getTime())
+    .map(([month, b]) => ({
+      month,
+      delivered: b.delivered,
+      rts: b.rts,
+      transit: b.transit,
+      rate: b.delivered + b.rts > 0 ? b.rts / (b.delivered + b.rts) : 0,
+    }))
+}
