@@ -75,6 +75,85 @@ Thanks!
 
 ---
 
+## TAGALOG VERSION (chat — Viber / Messenger)
+
+Hi [Name], nakuha ko na po yung combined SOA para sa July 27 – Aug 9, salamat po sa pag-consolidate ng last week doon.
+
+Kaso po, parang naputol yung file. Nakalagay po sa header na hanggang Aug 9 yung period, pero pag tiningnan po yung laman, **walang parcels na naka-bill para sa Aug 3, at wala rin po from Aug 5 hanggang Aug 9** — yung huling dispatch po ay Aug 2, tapos may isa lang pong entry sa Aug 4. Sa COD side naman po, yung huling delivery na binayaran ay **Aug 7**, wala na pong Aug 8 at Aug 9.
+
+Sa side ko po, meron akong **121 parcels na na-ship after Aug 2 na confirmed delivered na sa customer, nagkakahalaga ng ₱60,579 na COD** — pero wala po ni isa sa kanila dito sa SOA na ito, o kahit sa mga naunang SOA na napadala niyo. Ipapadala ko po yung buong listahan na may tracking numbers para ma-check niyo po agad sa records niyo.
+
+Base po sa records ko, **at least 79 sa kanila (₱38,721) ay na-deliver on or before Aug 9**, kaya dapat po kasama sila sa SOA na ito. Yung iba po na na-deliver after Aug 9, sa susunod na period na po talaga sila napupunta.
+
+Gusto ko lang po linawin — **hindi ko po kinukwestyon yung mga numerong nasa file.** Chineck ko po lahat at tugma naman po: tama yung 94 na dispatched parcels, yung 15 na hindi binayaran ng COD ay talagang Returned o Returning din po sa system ko, at tama rin po yung COD fee, VAT at logistics computation hanggang piso. **Mukhang naputol lang po talaga yung file bago matapos yung period niya**, hindi po computation error.
+
+Pwede po ba kayong:
+1. **Mag-reissue ng SOA para sa buong July 27 – Aug 9 period**, o
+2. **Magpadala ng supplementary SOA para sa Aug 3–9 na lang**?
+
+Para po makapag-settle na tayo ng buong period nang sabay-sabay.
+
+Tapos po, pwede niyo rin po bang i-confirm kung **kailan naipadala yung ₱38,467.23 na remittance** para sa batch na ito, at **saang account po ito pinadala**? Hindi ko pa po kasi siya na-match sa deposit sa side ko. (Kasama na po dito yung ₱21,292.15 from July 27–31 na isinama niyo sa batch na ito.) Kapag nadagdag na po yung Aug 3–9, mga **₱65,000–₱71,000** po siguro yung magiging total para sa period na ito.
+
+Salamat po, sana po ma-check niyo agad!
+
+---
+
+## TAGALOG VERSION (mas pormal — email)
+
+**Subject: SOA July 27 – Aug 9: kulang po yung Aug 3–9 transactions**
+
+Hi [Name],
+
+Salamat po sa pagpapadala ng combined SOA (`July27Aug9Digilex.xlsx`) para sa July 27 – August 9 period, at sa pag-consolidate ng remittance ng nakaraang linggo dito.
+
+Bago po tayo mag-settle, may kailangan lang po sana akong itanong. **Nakalagay po sa file na July 27 hanggang August 9 yung period, pero yung mga transaksyon sa loob ay mas maaga pong natapos.** Base po sa mismong laman ng file:
+
+**Sa Shipping Summary (mga parcel na siningil niyo ng fulfillment fee):**
+
+| Petsa | Bilang ng parcel |
+|---|---|
+| Aug 1 | 29 |
+| Aug 2 | 14 |
+| **Aug 3** | **0** |
+| Aug 4 | 1 |
+| **Aug 5, 6, 7, 8, 9** | **0** |
+
+**Sa COD Summary (mga delivery na binayaran niyo):**
+
+| Petsa | Bilang ng delivery |
+|---|---|
+| Aug 5 | 9 |
+| Aug 6 | 4 |
+| Aug 7 | 2 |
+| **Aug 8** | **0** |
+| **Aug 9** | **0** |
+
+Ibig sabihin po, yung huling dispatch na siningil ay **August 2** (maliban sa isang entry sa August 4), at yung huling delivery na binayaran ay **August 7**. Wala pong kahit ano para sa August 3, wala rin po mula August 5 pataas sa dispatch side, at wala pong August 8–9 sa delivery side — kahit na nakasaad po sa header na hanggang August 9 yung period.
+
+Sa amin po, ang order system namin ay nagpapakita ng **121 parcels na na-ship after August 2 at confirmed na na-deliver sa customer, na may kabuuang ₱60,579 na COD**, at wala po ni isa sa kanila sa SOA na ito o sa kahit anong naunang SOA. Naka-attach po yung kumpletong listahan na may tracking numbers, pangalan ng recipient, at COD amounts para ma-verify niyo po nang direkta sa records niyo.
+
+Base po sa delivery records namin, **at least 79 sa mga parcel na iyon (₱38,721 na COD) ay na-deliver on or before August 9**, kaya dapat po kasama sila sa SOA na ito. Yung iba po ay na-deliver after August 9 at tama lang pong mapunta sila sa susunod na period.
+
+Nais ko lang pong linawin na **hindi po namin dinidispute yung mga figures na nasa file** — chineck po namin at tama naman po lahat. Tugma po yung lahat ng 94 dispatched parcels, yung 15 na hindi binayaran ng COD ay talagang Returned o Returning po sa side namin, at tumpak po hanggang piso yung COD fee, VAT at logistics computations. **Ang isyu lang po ay mukhang naputol yung file bago matapos yung nakasaad na period.**
+
+Maaari po bang:
+
+1. **I-reissue yung SOA na sakop ang kumpletong July 27 – August 9 period**, o
+2. **Magpadala ng supplementary SOA para sa August 3 – 9**, para po maisama yung mga kulang na delivery at yung remittance nila.
+
+Kapag natanggap ko na po iyon, pwede na po nating i-settle nang buo yung period.
+
+**Hiwalay po dito — pakikumpirma na rin po sana yung remittance mismo.** Ang expected payout po sa kasalukuyang bersyon ng SOA na ito ay **₱38,467.23** (kasama na po dito yung ₱21,292.15 mula July 27–31 na isinama sa batch na ito). Pakisabi na lang po kung kailan ito naipadala at saang account, dahil hindi ko pa po ito na-match sa deposit sa amin. Kapag naidagdag na po yung August 3–9 transactions, inaasahan ko pong mas malapit sa **₱65,000–₱71,000** yung kabuuan para sa period na ito.
+
+Maraming salamat po sa pag-aasikaso nito.
+
+Lubos na gumagalang,
+[Pangalan mo]
+Digilex
+
+---
+
 ## ATTACH THIS FILE
 
 `NPMCM-missing-Aug3-9.csv` — all 121 tracking numbers, recipients, products and COD amounts.
