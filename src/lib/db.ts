@@ -177,6 +177,87 @@ async function loadJson<T>(name: string): Promise<T> {
   return mod.default
 }
 
+/**
+ * Bump this whenever the shipped JSON in src/data changes (a new SOA batch, a
+ * fresh POS export, a corrected figure).
+ *
+ * Seeding only ever runs once per browser, so without this the dashboard would
+ * keep showing whatever was current the first time it was opened - every later
+ * data update would be invisible until someone manually hit Reset & Reseed.
+ * On a version change the tables below are rebuilt from the new JSON.
+ *
+ * Only SOA/POS-derived tables are refreshed. Those are a mirror of the
+ * reconciliation work and are not hand-edited. The user-maintained financial
+ * tables (expenses, bills, bookkeeping, monthly P&L, credit card, cash flow,
+ * products, ad performance, import history) are deliberately left untouched so
+ * a data refresh can never wipe manual edits; corrections to those go through
+ * their own targeted migrations above.
+ */
+export const DATA_VERSION = '2026-08-12-revised-soa'
+export const DATA_VERSION_LABEL = 'Aug 12, 2026 — reissued Jul 27–Aug 9 SOA + POS export orders_11'
+
+async function ensureDerivedDataFresh(): Promise<void> {
+  const stored = await db.meta.get('dataVersion')
+  if (stored?.value === DATA_VERSION) return
+
+  const [
+    ordersDatabase,
+    fulfillmentSOAReconciliation,
+    soaBreakdown,
+    fulfillmentVerification,
+    posOrderReconciliation,
+    evidenceNotInSOA,
+    followUpList,
+    incomeTracker,
+  ] = await Promise.all([
+    loadJson<{ rows: OrderRow[] }>('ordersDatabase'),
+    loadJson<{ rows: SOAReconciliationRow[] }>('fulfillmentSOAReconciliation'),
+    loadJson<{ batchTable: SoaBatchRow[] }>('soaBreakdown'),
+    loadJson<{ rows: FulfillmentVerificationRow[]; unmatchedDetail: UnmatchedFulfillmentFeeRow[] }>('fulfillmentVerification'),
+    loadJson<{ rows: POSReconciliationRow[] }>('posOrderReconciliation'),
+    loadJson<{ rows: EvidenceRow[] }>('evidenceNotInSOA'),
+    loadJson<{ rows: FollowUpRow[] }>('followUpList'),
+    loadJson<{ rows: IncomeRow[] }>('incomeTracker'),
+  ])
+
+  await db.transaction(
+    'rw',
+    [
+      db.orders,
+      db.soaReconciliation,
+      db.soaBatches,
+      db.fulfillmentVerification,
+      db.unmatchedFulfillmentFees,
+      db.posReconciliation,
+      db.evidence,
+      db.followUp,
+      db.income,
+      db.meta,
+    ],
+    async () => {
+      await db.orders.clear()
+      await db.orders.bulkAdd(ordersDatabase.rows)
+      await db.soaReconciliation.clear()
+      await db.soaReconciliation.bulkAdd(fulfillmentSOAReconciliation.rows)
+      await db.soaBatches.clear()
+      await db.soaBatches.bulkAdd(soaBreakdown.batchTable)
+      await db.fulfillmentVerification.clear()
+      await db.fulfillmentVerification.bulkAdd(fulfillmentVerification.rows)
+      await db.unmatchedFulfillmentFees.clear()
+      await db.unmatchedFulfillmentFees.bulkAdd(fulfillmentVerification.unmatchedDetail)
+      await db.posReconciliation.clear()
+      await db.posReconciliation.bulkAdd(posOrderReconciliation.rows)
+      await db.evidence.clear()
+      await db.evidence.bulkAdd(evidenceNotInSOA.rows)
+      await db.followUp.clear()
+      await db.followUp.bulkAdd(followUpList.rows)
+      await db.income.clear()
+      await db.income.bulkAdd(incomeTracker.rows)
+      await db.meta.put({ key: 'dataVersion', value: DATA_VERSION })
+    },
+  )
+}
+
 let seedingPromise: Promise<void> | null = null
 
 export function ensureSeeded(): Promise<void> {
@@ -197,6 +278,7 @@ async function ensureSeededOnce(): Promise<void> {
     await ensureRenamedFieldsMigration()
     await ensureMonthlyPLJuneCorrection()
     await ensureAprilAdSpendBackfill()
+    await ensureDerivedDataFresh()
     return
   }
 
@@ -306,6 +388,7 @@ async function ensureSeededOnce(): Promise<void> {
       await db.meta.put({ key: 'dropdowns', value: settings.dropdowns })
       await db.meta.put({ key: 'tax', value: settings.tax })
       await db.meta.put({ key: 'seeded', value: true })
+      await db.meta.put({ key: 'dataVersion', value: DATA_VERSION })
     },
   )
   await ensureDefaultCategorizationRules()
@@ -497,6 +580,7 @@ export async function resetAndReseed(): Promise<void> {
     db.adPerformance.clear(),
   ])
   await db.meta.delete('seeded')
+  await db.meta.delete('dataVersion')
   seedingPromise = null
   await ensureSeeded()
 }

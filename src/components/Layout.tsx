@@ -27,7 +27,7 @@ import {
 import { useState } from 'react'
 import { useTheme } from '../hooks/useTheme'
 import { useLiveTable } from '../hooks/useLiveTable'
-import { db } from '../lib/db'
+import { db, DATA_VERSION_LABEL } from '../lib/db'
 
 interface NavItem {
   to: string
@@ -108,7 +108,7 @@ export default function Layout() {
   return (
     <div className="flex min-h-screen" style={{ background: 'var(--surface-page)' }}>
       <aside
-        className={`fixed inset-y-0 left-0 z-30 w-64 shrink-0 overflow-y-auto border-r transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-30 flex w-64 shrink-0 flex-col overflow-y-auto border-r transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         style={{ borderColor: 'var(--border-hairline)', background: 'var(--surface-card)' }}
@@ -196,7 +196,16 @@ export default function Layout() {
           >
             <Menu size={20} />
           </button>
-          <div className="hidden md:block" />
+          <div
+            className="hidden text-xs md:block"
+            style={{ color: 'var(--text-muted)' }}
+            title="The dashboard refreshes its SOA/POS data automatically when a newer version ships. If this date looks old, do a hard reload."
+          >
+            <span className="font-medium" style={{ color: 'var(--text-secondary)' }}>
+              Data current as of
+            </span>{' '}
+            {DATA_VERSION_LABEL}
+          </div>
           <button
             onClick={toggleTheme}
             className="flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium"
