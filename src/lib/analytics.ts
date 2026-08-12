@@ -86,6 +86,12 @@ export interface MonthlyRtsRow {
   rts: number
   transit: number
   rate: number
+  /** Lowest the month can end at: every still-in-transit parcel delivers. */
+  rateFloor: number
+  /** Highest the month can end at: every still-in-transit parcel comes back. */
+  rateCeiling: number
+  /** Share of the month's parcels that have reached a final outcome. */
+  maturity: number
 }
 
 /**
@@ -119,11 +125,18 @@ export function monthlyRtsBreakdown(posRows: POSReconciliationRow[], orders: Ord
 
   return [...buckets.entries()]
     .sort((a, b) => new Date(`1 ${a[0]}`).getTime() - new Date(`1 ${b[0]}`).getTime())
-    .map(([month, b]) => ({
-      month,
-      delivered: b.delivered,
-      rts: b.rts,
-      transit: b.transit,
-      rate: b.delivered + b.rts > 0 ? b.rts / (b.delivered + b.rts) : 0,
-    }))
+    .map(([month, b]) => {
+      const resolved = b.delivered + b.rts
+      const all = resolved + b.transit
+      return {
+        month,
+        delivered: b.delivered,
+        rts: b.rts,
+        transit: b.transit,
+        rate: resolved > 0 ? b.rts / resolved : 0,
+        rateFloor: all > 0 ? b.rts / all : 0,
+        rateCeiling: all > 0 ? (b.rts + b.transit) / all : 0,
+        maturity: all > 0 ? resolved / all : 1,
+      }
+    })
 }

@@ -69,14 +69,14 @@ export default function POSReconciliation() {
 
       <Card
         title="RTS Rate by Month"
-        description="Grouped by the month each order SHIPPED — this is how you check any single month, like this one, instead of only the all-time number above"
+        description="Grouped by the month each order SHIPPED — this is how you check any single month instead of only the all-time number above. Read the last column before trusting the current month: while parcels are still in transit the RTS Rate is understated, because a parcel heading for RTS takes far longer to resolve than one that simply delivers. The range shows the floor (every in-transit parcel delivers) and the ceiling (every one comes back) — the truth usually lands in the upper half of that range."
         className="mb-4"
       >
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr style={{ background: 'color-mix(in srgb, var(--text-primary) 3%, transparent)' }}>
-                {['Month', 'Delivered', 'RTS', 'Still in Transit', 'RTS Rate'].map((h) => (
+                {['Month', 'Delivered', 'RTS', 'Still in Transit', 'RTS Rate', 'Where it can still land'].map((h) => (
                   <th key={h} className="whitespace-nowrap px-3 py-2 text-left text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
                     {h}
                   </th>
@@ -112,6 +112,16 @@ export default function POSReconciliation() {
                   </td>
                   <td className="px-3 py-2 tabular font-semibold" style={{ color: 'var(--status-critical)' }}>
                     {formatPercent(m.rate)}
+                  </td>
+                  <td className="px-3 py-2 tabular text-xs" style={{ color: 'var(--text-muted)' }}>
+                    {m.transit === 0 ? (
+                      <span>final</span>
+                    ) : (
+                      <span>
+                        {formatPercent(m.rateFloor)} – {formatPercent(m.rateCeiling)}
+                        <span className="ml-1">({formatPercent(m.maturity)} resolved)</span>
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
