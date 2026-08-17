@@ -1,41 +1,42 @@
-# Message kay NPMCM — ₱2,300 dobleng singil
+# Message kay NPMCM — mali ang basehan ng Cost of Goods sa Jul 27 – Aug 9 SOA
+
+**Net claim: ₱3,392.50** (isang hiling na lang, hindi tatlo)
 
 ---
 
-## ITO ANG I-SEND MO (maikli lang)
+## ITO ANG I-SEND MO
 
-Hi [Name], salamat po sa SOA ng Aug 10–13. Okay naman po lahat — tama po ang computation at kumpleto po ang period.
+Hi [Name], salamat po sa SOA ng Aug 10–13. Tama po ang lahat dito — kumpleto po ang period at tugma po ang computation.
 
-Pero may 29 parcels po na **dalawang beses nasingil ang cost of goods**. ₱2,300.00 po lahat.
+Pero may napansin po ako sa **SOA ninyo ng Jul 27 – Aug 9** (yung reissued), at dito po nanggagaling ang problema.
 
-Halimbawa po, tracking **JT0022224416022** (Remie De Dios, 3Pc Testomaxx 90):
+Sa lahat po ng SOA na napadala ninyo, ang **Cost of Goods po ay base sa parcels na NA-DELIVER** — kasing dami po ng COD Summary. Halimbawa po:
 
-- Sa Product Summary po ng SOA ninyo **Jul 27 – Aug 9** → Total Cost of Goods **₱172.50**
-- Sa Product Summary po ng SOA ninyo **Aug 10 – 13** → Total Cost of Goods **₱172.50** ulit
+| SOA | COD Summary | Product Summary |
+|---|---|---|
+| Digilex2731.xlsx | 66 | **66** ✓ |
+| July27Aug9Digilex.xlsx (una) | 114 | **114** ✓ |
+| DigilexAug1013.xlsx | 74 | **74** ✓ |
+| **Digilex27Aug9Revised.xlsx** | **211** | **259** ✗ |
 
-Parehong tracking number po, parehong parcel, dalawang beses po nasingil.
+Sa reissued po na Jul 27 – Aug 9, **259 po ang Product Summary** — kasing dami po ng Shipping Summary, hindi po ng COD. Ibig sabihin po, siningil po ang Cost of Goods base sa **ni-dispatch**, hindi po sa **na-deliver**.
 
-Ang shipping fee po niya (₱75.49) ay isang beses lang po — tama po yun. **Cost of goods lang po ang nadoble.**
+Kaya po:
 
-May 29 po ganito, naka-attach po ang buong listahan.
+- **83 parcels** po ang nasingilan ng Cost of Goods kahit **hindi pa po na-deliver** — **₱5,980.00**
+- Pero **35 parcels** naman po na na-deliver ay **hindi po nasingilan** — **₱2,587.50** (pabor po sa inyo ito, kasama ko na po sa computation)
 
-Kaya po ang tamang payout sana ay **₱21,810.67**, hindi po ₱19,510.67.
+**Net sobra po: ₱3,392.50**
 
-Salamat po!
+Lumalabas na po ito ngayon: sa 83 na yun, **29 po ang na-deliver na** at nasingilan po **ulit** sa SOA ng Aug 10–13 — parehong tracking number, parehong halaga. Halimbawa po, **JT0022224416022** (Remie De Dios): ₱172.50 po sa Jul 27 – Aug 9, tapos ₱172.50 po ulit sa Aug 10–13.
 
----
+Ang shipping fee po at parcel count po ay tama naman — isang beses lang po. Cost of Goods lang po po ang naapektuhan.
 
-## KAPAG SUMAGOT NA SIYA, SAKA MO IDAGDAG ITO
+Naka-attach po ang listahan ng 29 na nadoble na, para po ma-verify ninyo agad.
 
-Huwag mo pong isabay agad — isa-isa lang para hindi malito.
+Kung maayos po natin ang basehan sa Jul 27 – Aug 9 (Cost of Goods sa 211 na na-deliver, hindi po sa 259 na ni-dispatch), maaayos po lahat nang sabay — pati po yung 14 parcels na in-transit pa na madodoble rin po pagka-deliver, at yung 40 na RTS po na nakabalik na sa warehouse ninyo pero nasingilan pa rin ng Cost of Goods.
 
-Hi [Name], salamat po. Dalawa pa po pala akong napansin na kaugnay din po nito:
-
-1. May **14 parcels** po (₱862.50) na nasingil na po ng cost of goods sa SOA ng Jul 27 – Aug 9, pero **hindi pa po na-deliver hanggang ngayon**. Baka po masingil ulit pagka-deliver nila. Pwede po bang ma-check na hindi na po maulit?
-
-2. May **40 parcels** din po (₱2,817.50) na nasingil ng cost of goods, pero **RTS po — nakabalik na po sa warehouse ninyo**. Nasa inyo na po ulit yung stock, kaya pwede po bang ma-credit back yung cost of goods?
-
-Salamat po!
+Salamat po sa pag-aasikaso!
 
 ---
 
@@ -43,50 +44,63 @@ Salamat po!
 
 Hi [Name],
 
-Thank you for the SOA covering August 10–13. The computation is correct and the period is complete.
+Thank you for the SOA covering August 10–13. That one is correct — complete period and the computation reconciles.
 
-However, 29 parcels have been charged cost of goods **twice**, totalling **₱2,300.00**.
+The issue is in your **reissued July 27 – August 9 SOA**.
 
-For example, tracking **JT0022224416022** (Remie De Dios, 3Pc Testomaxx 90):
+In every statement you have sent, Cost of Goods is based on the parcels **delivered** — the Product Summary has the same number of rows as the COD Summary:
 
-- In the Product Summary of your **July 27 – August 9** SOA → Total Cost of Goods **₱172.50**
-- In the Product Summary of your **August 10 – 13** SOA → Total Cost of Goods **₱172.50** again
+| SOA | COD Summary | Product Summary |
+|---|---|---|
+| Digilex2731.xlsx | 66 | **66** ✓ |
+| July27Aug9Digilex.xlsx (original) | 114 | **114** ✓ |
+| DigilexAug1013.xlsx | 74 | **74** ✓ |
+| **Digilex27Aug9Revised.xlsx** | **211** | **259** ✗ |
 
-Same tracking number, same parcel, charged twice.
+In the reissued file the Product Summary has 259 rows — matching the Shipping Summary, not the COD Summary. Cost of Goods was charged on parcels **dispatched** rather than **delivered**.
 
-Its shipping fee (₱75.49) was correctly charged only once. **Only the cost of goods was duplicated.**
+The result:
 
-There are 29 parcels like this — the full list is attached.
+- **83 parcels** were charged Cost of Goods without having been delivered — **₱5,980.00**
+- **35 parcels** that were delivered were **not** charged — **₱2,587.50** (in your favour, and included in the figure below)
 
-The corrected payout should therefore be **₱21,810.67** rather than ₱19,510.67.
+**Net overcharge: ₱3,392.50**
 
-Thank you.
+This is now surfacing: 29 of those 83 have since been delivered and charged Cost of Goods **again** in the August 10–13 SOA — same tracking numbers, identical amounts. For example **JT0022224416022** (Remie De Dios): ₱172.50 in July 27 – August 9, then ₱172.50 again in August 10–13.
+
+The shipping fees and parcel counts are correct and were charged once only. Only Cost of Goods is affected.
+
+The list of the 29 already double-charged is attached for your verification.
+
+Correcting the basis in the July 27 – August 9 SOA — Cost of Goods on the 211 delivered rather than the 259 dispatched — resolves all of it at once, including the 14 parcels still in transit that would otherwise be double-charged on delivery, and the 40 RTS parcels charged Cost of Goods for stock already returned to your warehouse.
+
+Thank you for looking into this.
 
 [Your name]
 Digilex
 
 ---
 
-## PARA SA'YO LANG — hindi kasama sa message
+## PARA SA'YO LANG
 
-### Kung tanungin ka niya, ito ang sagot
+### Bakit mas maganda itong bagong bersyon
 
-**"Nasa shipping fee po ba?"**
-> Hindi po. Isang beses lang po nasingil ang shipping fee, insurance at ₱15 fulfillment fee. Cost of goods lang po.
+Yung dati kong draft, hiwalay-hiwalay: ₱2,300 muna, tapos ₱862.50, tapos ₱2,817.50. Tatlong usapan, at kailangan mong ipaliwanag kung bakit nagkaiba ang sistema.
 
-**"Nadoble po ba ang parcel count?"**
-> Hindi rin po. 259 parcels po sa Jul 27 – Aug 9, 259 po sa Shipping Summary. 127 naman po sa Aug 10–13. Walang magkapatong po. Product Summary lang po ang umulit.
+Itong bago: **ang patakaran nila mismo ang gamit mo.** Sa tatlong SOA nila, `Product = COD`. Sa isang file lang nagkaiba. Hindi mo na kailangang ipaliwanag — ipapakita mo lang yung apat na numero at siya na ang makakakita.
 
-**"Baka po iba yung parcel?"**
-> Parehong tracking number po, parehong produkto, parehong halaga. Nasa attached list po lahat ng 29.
+At **isang hiling na lang** — ayusin ang basehan sa isang file, kasama na lahat: yung 29 na nadoble, yung 14 na madodoble pa, at yung 40 RTS.
 
-**"Bakit po nangyari?"**
-> Sa SOA po ng Jul 27 – Aug 9, sa mga **ni-dispatch** po sinisingil ang cost of goods. Sa Aug 10–13 po, sa mga **na-deliver**. Kaya po yung mga parcel na ni-dispatch sa una tapos na-deliver sa pangalawa, dalawang beses po nasingil.
+### Bakit ₱3,392.50 at hindi ₱5,980
 
-*(Huwag mo pong sabihin ito agad — siya na po ang mag-explain. Kung ikaw pa ang magpaliwanag ng system nila, baka mapunta sa debate kung tama ba yung method nila. Ang mahalaga po: parehong tracking number, dalawang singil. Yun lang.)*
+Kasama sa computation yung **₱2,587.50 na pabor sa kanila** — 35 parcels na na-deliver pero hindi nasingilan sa reissue.
 
-### Bakit maikli lang ang message
+Sinabi ko ito nang tapat kasi: kapag ininspeksyon niya at nakita niyang may ₱2,587.50 na hindi mo binanggit, mawawalan ng bigat yung buong claim mo. Kapag ikaw mismo ang nagsabi, mas malakas ka — malinaw na tama ang tingin mo sa numero, hindi lang naghahanap ng mabawi.
 
-Ang mahina sa mahabang paliwanag: kailangan niyang intindihin muna yung dalawang magkaibang sistema bago niya makita yung problema. Madaling pagtalunan yun.
+### Kung sabihin niyang "tama naman po yung Aug 10–13"
 
-Ang malakas: **isang tracking number, dalawang singil, parehong halaga.** Hindi niya matatanggi kasi galing sa sariling file niya. Yun lang ang kailangan.
+Sang-ayon ka. **Tama nga yun.** Ang mali ay yung Jul 27 – Aug 9 reissue. Doon mo ituro, hindi sa bago.
+
+### Attach
+
+`NPMCM-double-charged-COGS-29-parcels.csv` — yung 29 na nadoble na, may tracking number, halaga sa parehong SOA, at yung shipping fee column na nagpapakita na isang beses lang naman yun nasingil.
