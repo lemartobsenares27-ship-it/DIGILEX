@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Attendance — DIGILEX HR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+<div class="app-shell">
+  <div id="sidebar-root"></div>
+  <div class="main-content">
+    <div id="header-root"></div>
+    <div class="page-body">
+
+      <div class="dlx-split">
+        <div style="min-width:0">
+          <div class="dlx-card" style="margin-bottom:16px">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+              <select id="att-month" class="field-select" style="max-width:150px"></select>
+              <input type="number" id="att-year" class="field-input" style="max-width:100px">
+              <select id="att-filter-department" class="field-select" style="max-width:190px"></select>
+              <select id="att-filter-status" class="field-select" style="max-width:150px">
+                <option value="">All Status</option>
+                <option>Present</option><option>Late</option><option>Half Day</option><option>Absent</option><option>On Leave</option><option>Rest Day</option><option>Holiday</option>
+              </select>
+              <div style="margin-left:auto;display:flex;gap:8px">
+                <button class="btn btn-secondary" id="btn-att-export"><i class="fa-solid fa-download"></i> Export CSV</button>
+                <button class="btn btn-primary" id="btn-mark-all-present"><i class="fa-solid fa-check-double"></i> Mark All Present (Today)</button>
+              </div>
+            </div>
+            <div id="att-working-days" style="margin-top:12px;font-size:.82rem;color:#475569;background:#F8FAFC;padding:8px 12px;border-radius:8px"></div>
+          </div>
+
+          <div class="dlx-card" style="margin-bottom:16px">
+            <div style="font-weight:700;margin-bottom:12px">Monthly Attendance Matrix</div>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;font-size:.72rem">
+              <span><span class="att-cell att-present" style="width:18px;height:18px">P</span> Present</span>
+              <span><span class="att-cell att-late" style="width:18px;height:18px">L</span> Late</span>
+              <span><span class="att-cell att-halfday" style="width:18px;height:18px">H</span> Half Day</span>
+              <span><span class="att-cell att-absent" style="width:18px;height:18px">A</span> Absent</span>
+              <span><span class="att-cell att-leave" style="width:18px;height:18px">LV</span> On Leave</span>
+              <span><span class="att-cell att-restday" style="width:18px;height:18px">R</span> Rest Day/Holiday</span>
+              <span><span class="att-cell att-future" style="width:18px;height:18px"></span> No Data</span>
+            </div>
+            <div class="att-matrix-wrap" id="att-matrix-wrap"></div>
+          </div>
+
+          <div class="dlx-card">
+            <div style="font-weight:700;margin-bottom:12px">Attendance Summary</div>
+            <div style="overflow-x:auto">
+              <table class="dlx-table">
+                <thead><tr><th>Employee</th><th style="text-align:center">Present</th><th style="text-align:center">Late</th><th style="text-align:center">Absent</th><th style="text-align:center">Leave</th><th style="text-align:center">Hours Worked</th><th style="text-align:center">Break Time</th><th style="text-align:center">Working Days</th><th>Attendance Rate</th></tr></thead>
+                <tbody id="att-summary-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="dlx-card">
+          <div style="font-weight:700;margin-bottom:12px"><i class="fa-solid fa-pen"></i> Log Attendance</div>
+          <form id="log-form">
+            <div class="field-group"><label class="field-label">Employee</label><select class="field-select" id="log-employee" required></select></div>
+            <div class="field-group"><label class="field-label">Date</label><input type="date" class="field-input" id="log-date" required></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+              <div class="field-group"><label class="field-label">Time In</label><input type="time" class="field-input" id="log-timein"></div>
+              <div class="field-group"><label class="field-label">Time Out</label><input type="time" class="field-input" id="log-timeout"></div>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Status (auto-detected)</label>
+              <select class="field-select" id="log-status">
+                <option>Present</option><option>Late</option><option>Half Day</option><option>Absent</option><option>On Leave</option>
+              </select>
+            </div>
+            <div style="font-size:.8rem;color:#64748B;margin-bottom:14px">Hours worked: <strong id="log-hours">0.0 hrs</strong></div>
+            <div class="field-group"><label class="field-label">Break Minutes (lunch + short breaks)</label><input type="number" min="0" class="field-input" id="log-breakmins" value="0"></div>
+            <div class="field-group"><label class="field-label">Notes</label><textarea class="field-textarea" id="log-notes" rows="2"></textarea></div>
+            <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center"><i class="fa-solid fa-floppy-disk"></i> Save Log</button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/data.js"></script>
+<script src="../js/auth.js"></script>
+<script>DigilexAuth.requireRole("admin");</script>
+<script src="../js/app.js"></script>
+<script src="../js/attendance.js"></script>
+</body>
+</html>

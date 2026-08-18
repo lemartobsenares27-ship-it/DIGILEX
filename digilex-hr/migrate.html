@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Move data to the cloud — DIGILEX HR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body style="background:var(--dlx-bg);padding:20px">
+
+<div style="max-width:720px;margin:0 auto">
+
+  <div style="text-align:center;margin-bottom:20px">
+    <div class="brand-mark" style="width:48px;height:48px;font-size:1.3rem;margin:0 auto 10px">D</div>
+    <div style="font-weight:800;font-size:1.2rem;color:var(--dlx-primary)">Move data to the cloud</div>
+    <div style="color:#64748B;font-size:.84rem;margin-top:4px">One-time step: copies the employees on <strong>this device</strong> into your shared database.</div>
+  </div>
+
+  <div class="dlx-card" style="margin-bottom:16px">
+    <div style="font-weight:700;margin-bottom:10px">Step 1 — Sign in as the owner</div>
+    <div id="mig-signed-out">
+      <div class="field-group"><label class="field-label">Your Supabase email</label><input class="field-input" id="mig-email" type="email" autocomplete="username" placeholder="the email you created in Supabase"></div>
+      <div class="field-group"><label class="field-label">Password</label><input class="field-input" id="mig-password" type="password" autocomplete="current-password"></div>
+      <button class="btn btn-primary" id="btn-mig-signin" style="width:100%;justify-content:center"><i class="fa-solid fa-right-to-bracket"></i> Sign in</button>
+    </div>
+    <div id="mig-signed-in" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;font-size:.86rem">
+        <span class="badge badge-green">Signed in</span>
+        <span id="mig-who" style="color:#475569"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dlx-card" style="margin-bottom:16px">
+    <div style="font-weight:700;margin-bottom:6px">Step 2 — Review what will be copied</div>
+    <div style="font-size:.8rem;color:#94A3B8;margin-bottom:12px">Read from this browser's local storage. Nothing is deleted locally.</div>
+    <div id="mig-preview" style="font-size:.86rem"></div>
+  </div>
+
+  <div class="dlx-card" style="margin-bottom:16px">
+    <div style="font-weight:700;margin-bottom:6px">Step 3 — Copy to the cloud</div>
+    <div style="font-size:.8rem;color:#94A3B8;margin-bottom:12px">
+      Safe to run more than once — records are matched by employee ID and updated in place rather than duplicated.
+    </div>
+    <button class="btn btn-primary" id="btn-mig-run" style="width:100%;justify-content:center" disabled><i class="fa-solid fa-cloud-arrow-up"></i> Copy employees to the cloud</button>
+    <div id="mig-log" style="margin-top:14px;font-size:.82rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;color:#334155"></div>
+  </div>
+
+  <div style="text-align:center"><a href="index.html" style="font-size:.82rem;color:#64748B">← Back to the dashboard</a></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/supabase-client.js"></script>
+<script src="js/data.js"></script>
+<script>
+(function () {
+  "use strict";
+  var S = window.DigilexSupabase;
+  var logEl = document.getElementById("mig-log");
+  var runBtn = document.getElementById("btn-mig-run");
+
+  function log(msg, kind) {
+    var color = kind === "error" ? "#B91C1C" : kind === "ok" ? "#166534" : "#334155";
+    logEl.innerHTML += '<div style="color:' + color + '">' + msg + "</div>";
+  }
+
+  function readLocal(key, fallback) {
+    try {
+      var raw = localStorage.getItem(key);
+      return raw === null ? fallback : JSON.parse(raw);
+    } catch (e) { return fallback; }
+  }
+
+  var employees = readLocal("digilex_hr_employees", []);
+
+  // Preview
+  var preview = document.getElementById("mig-preview");
+  if (!employees.length) {
+    preview.innerHTML = '<span style="color:#B91C1C">No employees found in this browser. Open the app on the device where you added them, then run this page there.</span>';
+  } else {
+    preview.innerHTML =
+      "<strong>" + employees.length + " employee(s)</strong> on this device:<br>" +
+      '<div style="margin-top:8px;color:#475569">' +
+      employees.map(function (e) {
+        return "• " + (e.firstName || "") + " " + (e.lastName || "") + " <span style='color:#94A3B8'>(" + e.id + (e.archived ? ", archived" : "") + ")</span>";
+      }).join("<br>") + "</div>";
+  }
+
+  if (!S.available) {
+    log("Cloud not available: " + (S.unavailableReason() || "unknown reason"), "error");
+    return;
+  }
+
+  // Step 1 — sign in
+  document.getElementById("btn-mig-signin").addEventListener("click", function () {
+    var email = document.getElementById("mig-email").value.trim();
+    var password = document.getElementById("mig-password").value;
+    logEl.innerHTML = "";
+    S.client.auth.signInWithPassword({ email: email, password: password }).then(function (res) {
+      if (res.error) { log("Sign-in failed: " + res.error.message, "error"); return; }
+      return S.client.from("profiles").select("employee_id, role").eq("id", res.data.user.id).maybeSingle().then(function (p) {
+        if (p.error || !p.data) { log("Signed in, but this account has no profile row. Run Step 4 of SETUP.md first.", "error"); return; }
+        if (p.data.role !== "admin") { log("This account is not an admin, so it cannot write employee records.", "error"); return; }
+        document.getElementById("mig-signed-out").style.display = "none";
+        document.getElementById("mig-signed-in").style.display = "block";
+        document.getElementById("mig-who").textContent = email + " · admin · " + p.data.employee_id;
+        runBtn.disabled = !employees.length;
+        log("Signed in as admin. Ready to copy.", "ok");
+      });
+    }).catch(function (e) { log("Sign-in error: " + e.message, "error"); });
+  });
+
+  // Step 3 — push employees
+  runBtn.addEventListener("click", function () {
+    runBtn.disabled = true;
+    runBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Copying…';
+    logEl.innerHTML = "";
+
+    var rows = employees.map(function (e) {
+      return {
+        id: e.id,
+        full_name: ((e.firstName || "") + " " + (e.lastName || "")).trim(),
+        department: e.department || null,
+        status: e.status || null,
+        archived: !!e.archived,
+        data: e, // the untouched app-shape record
+        updated_at: new Date().toISOString(),
+      };
+    });
+
+    S.client.from("employees").upsert(rows, { onConflict: "id" }).select("id").then(function (res) {
+      if (res.error) {
+        log("Failed: " + res.error.message, "error");
+        if (/row-level security/i.test(res.error.message)) {
+          log("That's the security rules rejecting the write — confirm your account has role 'admin' in the profiles table.", "error");
+        }
+        runBtn.disabled = false;
+        runBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Copy employees to the cloud';
+        return;
+      }
+      log("Copied " + (res.data ? res.data.length : rows.length) + " employee record(s) to the cloud.", "ok");
+      log("", "");
+      log("Next: each person still needs a login before they can sign in.", "");
+      log("Tell me when this succeeds and I'll set that part up.", "");
+      runBtn.innerHTML = '<i class="fa-solid fa-check"></i> Done';
+    }).catch(function (e) {
+      log("Error: " + e.message, "error");
+      runBtn.disabled = false;
+      runBtn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Copy employees to the cloud';
+    });
+  });
+})();
+</script>
+</body>
+</html>
