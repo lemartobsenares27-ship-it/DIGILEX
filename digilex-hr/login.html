@@ -30,6 +30,7 @@
           <input type="password" class="field-input" id="login-password" placeholder="••••••••" autocomplete="current-password" required>
         </div>
         <div id="login-error" style="display:none;color:var(--dlx-danger);font-size:.8rem;margin-bottom:14px"></div>
+        <div id="login-mode-note" style="display:none;color:#92400E;background:#FEF3C7;border:1px solid #FDE68A;border-radius:8px;padding:8px 10px;font-size:.75rem;margin-bottom:14px"></div>
         <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center"><i class="fa-solid fa-right-to-bracket"></i> Sign In</button>
       </form>
     </div>
@@ -43,6 +44,9 @@
     </div>
   </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/supabase-client.js"></script>
 <script src="js/data.js"></script>
 <script src="js/auth.js"></script>
 <script>
@@ -50,18 +54,42 @@
     var existing = DigilexAuth.getSession();
     if (existing) { location.href = DigilexAuth.landingPageFor(existing.role); return; }
 
-    document.getElementById("login-form").addEventListener("submit", function (ev) {
+    var form = document.getElementById("login-form");
+    var errEl = document.getElementById("login-error");
+    var submitBtn = form.querySelector("button[type=submit]");
+    var originalBtn = submitBtn.innerHTML;
+
+    // Tell people plainly which copy of the data they're signing into,
+    // instead of silently falling back and leaving them puzzled when a
+    // colleague's clock-in doesn't show up.
+    var reason = window.DigilexSupabase && window.DigilexSupabase.unavailableReason();
+    if (reason) {
+      var note = document.getElementById("login-mode-note");
+      if (note) {
+        note.textContent = "Offline mode — " + reason + " Data stays on this device only.";
+        note.style.display = "block";
+      }
+    }
+
+    form.addEventListener("submit", function (ev) {
       ev.preventDefault();
+      errEl.style.display = "none";
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Signing in…';
+
       var username = document.getElementById("login-username").value;
       var password = document.getElementById("login-password").value;
-      var account = DigilexAuth.login(username, password);
-      var errEl = document.getElementById("login-error");
-      if (!account) {
-        errEl.textContent = "We couldn't match that name or ID with that password. If two people share a first name, use your full name or your Employee ID.";
-        errEl.style.display = "block";
-        return;
-      }
-      location.href = DigilexAuth.landingPageFor(account.role);
+
+      DigilexAuth.cloudLogin(username, password).then(function (result) {
+        if (!result.ok) {
+          errEl.textContent = result.error;
+          errEl.style.display = "block";
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = originalBtn;
+          return;
+        }
+        location.href = DigilexAuth.landingPageFor(result.role);
+      });
     });
   })();
 </script>

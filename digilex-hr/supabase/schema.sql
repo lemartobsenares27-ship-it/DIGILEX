@@ -23,6 +23,12 @@ create table if not exists public.profiles (
   created_at  timestamptz not null default now()
 );
 
+-- A separate ALTER, not an inline column above: CREATE TABLE IF NOT EXISTS
+-- is a no-op against a table that already exists, so this is what actually
+-- adds the column when re-running this script against a project that ran
+-- an earlier version of it.
+alter table public.profiles add column if not exists email text; -- the literal Supabase Auth email for this account (real or synthetic)
+
 alter table public.profiles enable row level security;
 
 -- Helper functions. SECURITY DEFINER so they can read profiles without
@@ -82,6 +88,30 @@ create policy "employee reads own record" on public.employees
 drop policy if exists "admin manages employees" on public.employees;
 create policy "admin manages employees" on public.employees
   for all using (public.is_admin()) with check (public.is_admin());
+
+-- Login lookup: the app needs to turn "Maria Santos" or "DLX-002" into the
+-- Supabase Auth email to sign in with, and it has to do that BEFORE the
+-- person is authenticated (chicken-and-egg). This view exposes only a name
+-- and a login email for active, non-archived employees — never salary,
+-- government IDs, or anything from the `data` column. Views run with the
+-- privileges of their owner by default, so this intentionally reads across
+-- all employees despite the RLS policy above restricting the base table.
+-- security_invoker = false is stated explicitly (it is also the default)
+-- because this view MUST run with its owner's privileges: the person
+-- signing in is still anonymous at that moment, so an invoker-rights
+-- view would return zero rows and nobody could ever log in.
+create or replace view public.login_directory with (security_invoker = false) as
+select
+  p.employee_id,
+  trim(coalesce(e.data->>'firstName', '') || ' ' || coalesce(e.data->>'lastName', '')) as full_name,
+  coalesce(e.data->>'firstName', '') as first_name,
+  coalesce(e.data->>'lastName', '')  as last_name,
+  p.email
+from public.profiles p
+join public.employees e on e.id = p.employee_id
+where not e.archived;
+
+grant select on public.login_directory to anon, authenticated;
 
 -- ---------------------------------------------------------------------
 -- 3. Attendance — staff clock themselves in/out, and read only their own
@@ -254,13 +284,20 @@ create policy "admin writes announcements" on public.announcements
 -- 1. Authentication -> Users -> "Add user" -> create your own login
 --    (your email + a password). Copy the generated User UID.
 --
--- 2. Make yourself the admin by running, with your real values:
+-- 2. Make yourself the admin AND record your login email, with your
+--    real values (this is what lets the app resolve your name to this
+--    account before you're signed in):
 --
---      insert into public.profiles (id, employee_id, role)
---      values ('<paste-your-User-UID>', 'DLX-001', 'admin');
+--      insert into public.profiles (id, employee_id, role, email)
+--      values ('<paste-your-User-UID>', 'DLX-001', 'admin', '<the email you used in step 1>')
+--      on conflict (id) do update set role = excluded.role, email = excluded.email;
 --
 -- 3. Send me your Project URL and the anon public key from
 --    Project Settings -> API, and I'll connect the app to it.
+--
+-- This script is safe to re-run — every statement either checks "if not
+-- exists" first or replaces its own prior version, so running it again
+-- (e.g. after a schema update) won't duplicate or destroy anything.
 --
 -- The anon key is safe to put in front-end code — it is designed for
 -- that, and the policies above are what actually protect the data.

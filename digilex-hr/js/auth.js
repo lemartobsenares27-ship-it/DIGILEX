@@ -88,8 +88,111 @@
     return match;
   }
 
+  // -------------------------------------------------------------------
+  // Cloud sign-in (Supabase). Falls back to the local login above when
+  // the project isn't configured or the network is down, so the app is
+  // never completely unusable.
+  //
+  // Resolves to { ok: true, role } or { ok: false, error, code }.
+  // -------------------------------------------------------------------
+  function cloudEnabled() {
+    var S = global.DigilexSupabase;
+    return !!(S && S.available && S.client);
+  }
+
+  // Turn what the person typed ("Maria Santos" / "maria" / "DLX-002")
+  // into the email their Supabase account was created against. Reads the
+  // login_directory view, which deliberately exposes only names and login
+  // emails — never salaries or government IDs.
+  function lookupLoginEmail(typedName) {
+    var S = global.DigilexSupabase;
+    var typed = norm(typedName);
+    if (!typed) return Promise.resolve(null);
+
+    return S.client
+      .from("login_directory")
+      .select("employee_id, full_name, first_name, last_name, email")
+      .then(function (res) {
+        if (res.error || !res.data) return null;
+        var rows = res.data.filter(function (r) { return r.email; });
+
+        // Exact employee ID first, then full name, then first/last name —
+        // but only when a single person matches, so two people sharing a
+        // first name can never sign into each other's account.
+        var byId = rows.filter(function (r) { return norm(r.employee_id) === typed; });
+        if (byId.length === 1) return byId[0];
+
+        var candidates = [
+          function (r) { return norm(r.full_name); },
+          function (r) { return norm(r.first_name); },
+          function (r) { return norm(r.last_name); },
+        ];
+        for (var i = 0; i < candidates.length; i++) {
+          var hits = rows.filter(function (r) { return candidates[i](r) === typed; });
+          if (hits.length === 1) return hits[0];
+          if (hits.length > 1) return { ambiguous: true };
+        }
+        return null;
+      })
+      .catch(function () { return null; });
+  }
+
+  function cloudLogin(username, password) {
+    if (!cloudEnabled()) {
+      var local = login(username, password);
+      return Promise.resolve(
+        local
+          ? { ok: true, role: local.role, offline: true }
+          : { ok: false, code: "bad_credentials", error: "That name or password doesn't match." }
+      );
+    }
+
+    var S = global.DigilexSupabase;
+    var typed = String(username || "").trim();
+
+    return lookupLoginEmail(typed).then(function (found) {
+      if (found && found.ambiguous) {
+        return { ok: false, code: "ambiguous", error: "More than one person matches that name. Please use your full name or Employee ID." };
+      }
+      // Allow signing in with a real email address directly too.
+      var email = found ? found.email : (typed.indexOf("@") !== -1 ? typed : null);
+      if (!email) {
+        return { ok: false, code: "unknown_user", error: "We couldn't find an account under that name. Check the spelling, or ask HR to set up your login." };
+      }
+
+      return S.client.auth.signInWithPassword({ email: email, password: password }).then(function (res) {
+        if (res.error) {
+          return { ok: false, code: "bad_credentials", error: "That password doesn't match. Try again, or ask HR to reset it." };
+        }
+        // Load role + employee id, and mirror them into the local session
+        // so every existing page guard keeps working synchronously.
+        return S.client
+          .from("profiles")
+          .select("employee_id, role")
+          .eq("id", res.data.user.id)
+          .maybeSingle()
+          .then(function (p) {
+            if (p.error || !p.data) {
+              return S.client.auth.signOut().then(function () {
+                return { ok: false, code: "no_profile", error: "This login exists but isn't linked to an employee record yet. Ask HR to finish setting it up." };
+              });
+            }
+            setSession({ employeeId: p.data.employee_id, role: p.data.role, cloud: true });
+            return { ok: true, role: p.data.role };
+          });
+      });
+    }).catch(function (err) {
+      return { ok: false, code: "network", error: "Couldn't reach the server. Check your internet connection and try again." };
+    });
+  }
+
   function logout() {
+    var S = global.DigilexSupabase;
     clearSession();
+    if (cloudEnabled()) {
+      S.client.auth.signOut().finally(function () { location.href = rootPath("login.html"); });
+      return;
+    }
     location.href = rootPath("login.html");
   }
 
@@ -210,6 +313,8 @@
     setAccounts: setAccounts,
     getSession: getSession,
     login: login,
+    cloudLogin: cloudLogin,
+    cloudEnabled: cloudEnabled,
     logout: logout,
     ensureAccountFor: ensureAccountFor,
     resetPassword: resetPassword,
