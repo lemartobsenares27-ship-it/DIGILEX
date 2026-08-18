@@ -263,11 +263,92 @@
     X.toast("Attendance exported.", "success");
   }
 
+  // ---------------------------------------------------------------------
+  // Leave requests (employee self-service — files a Pending request that
+  // HR approves on the admin Leave page; the employee only ever sees and
+  // files their own).
+  // ---------------------------------------------------------------------
+  function leaveTypeName(code) {
+    var t = D.LEAVE_TYPES.find(function (x) { return x.code === code; });
+    return t ? t.name : code;
+  }
+
+  function populateLeaveForm() {
+    document.getElementById("portal-lv-type").innerHTML = D.LEAVE_TYPES.map(function (t) {
+      return '<option value="' + t.code + '">' + X.escapeHtml(t.name) + "</option>";
+    }).join("");
+    document.getElementById("portal-lv-from").value = X.todayIso();
+    document.getElementById("portal-lv-to").value = X.todayIso();
+    recalcLeaveDays();
+  }
+
+  function recalcLeaveDays() {
+    var from = document.getElementById("portal-lv-from").value;
+    var to = document.getElementById("portal-lv-to").value;
+    var out = document.getElementById("portal-lv-days");
+    if (!from || !to || to < from) { out.textContent = "0 day(s)"; return 0; }
+    var days = X.daysBetweenInclusive(from, to, [0]); // Sundays excluded
+    out.textContent = days + " day(s) (Sundays excluded)";
+    return days;
+  }
+
+  function submitLeaveRequest(ev) {
+    ev.preventDefault();
+    var from = document.getElementById("portal-lv-from").value;
+    var to = document.getElementById("portal-lv-to").value;
+    if (!from || !to) { X.toast("Please choose both dates.", "danger"); return; }
+    if (to < from) { X.toast("The end date can't be before the start date.", "danger"); return; }
+    var days = recalcLeaveDays();
+    if (days <= 0) { X.toast("That range has no working days in it.", "warning"); return; }
+
+    var requests = Store.getLeaveRequests();
+    requests.push({
+      id: X.uid("LV"),
+      employeeId: employee.id, // always the signed-in employee, never a picker
+      leaveType: document.getElementById("portal-lv-type").value,
+      dateFrom: from,
+      dateTo: to,
+      days: days,
+      reason: document.getElementById("portal-lv-reason").value.trim(),
+      status: "Pending",
+      dateFiled: X.todayIso(),
+    });
+    Store.setLeaveRequests(requests);
+    X.toast("Leave request submitted for approval.", "success");
+    document.getElementById("portal-leave-form").reset();
+    populateLeaveForm();
+    renderMyLeave();
+  }
+
+  function renderMyLeave() {
+    var mine = Store.getLeaveRequests()
+      .filter(function (r) { return r.employeeId === employee.id; })
+      .sort(function (a, b) { return (b.dateFiled || "").localeCompare(a.dateFiled || ""); });
+    var colors = { Pending: "yellow", Approved: "green", Denied: "red" };
+    document.getElementById("portal-leave-list").innerHTML = mine.map(function (r) {
+      return (
+        '<div style="padding:10px 0;border-bottom:1px solid #F1F5F9">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">' +
+        '<div style="font-weight:600;font-size:.85rem">' + X.escapeHtml(leaveTypeName(r.leaveType)) + "</div>" +
+        '<span class="badge badge-' + (colors[r.status] || "gray") + '">' + X.escapeHtml(r.status) + "</span>" +
+        "</div>" +
+        '<div style="font-size:.75rem;color:#64748B;margin-top:3px">' + X.fmtDate(r.dateFrom) + " – " + X.fmtDate(r.dateTo) + " &middot; " + r.days + " day(s)</div>" +
+        (r.reason ? '<div style="font-size:.75rem;color:#94A3B8;margin-top:2px">' + X.escapeHtml(r.reason) + "</div>" : "") +
+        "</div>"
+      );
+    }).join("") || '<div style="color:#94A3B8;font-size:.82rem">No leave requests yet.</div>';
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     renderHeader();
     renderClock();
     renderHistory();
     renderMonthSummary();
+    populateLeaveForm();
+    renderMyLeave();
+    document.getElementById("portal-leave-form").addEventListener("submit", submitLeaveRequest);
+    document.getElementById("portal-lv-from").addEventListener("change", recalcLeaveDays);
+    document.getElementById("portal-lv-to").addEventListener("change", recalcLeaveDays);
     document.getElementById("btn-time-in").addEventListener("click", timeIn);
     document.getElementById("btn-time-out").addEventListener("click", timeOut);
     document.getElementById("btn-break-start").addEventListener("click", breakStart);

@@ -320,6 +320,41 @@ body.modal-open { overflow: hidden; }
 .portal-quick-tile i { font-size: 1.15rem; color: var(--dlx-accent); }
 .portal-quick-tile:hover { background: #F8FAFC; border-color: var(--dlx-accent); }
 
+/* ---------------- Responsive layout primitives ----------------
+   These replace hardcoded inline grid-template-columns, which an inline
+   style attribute makes impossible to override from a media query — that
+   was forcing multi-column desktop layouts onto phone screens. */
+.dlx-split { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; align-items: start; }
+.dlx-split-wide { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; align-items: start; }
+.dlx-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.dlx-split > *, .dlx-split-wide > *, .dlx-grid-3 > * { min-width: 0; }
+
+@media (max-width: 1100px) {
+  .dlx-grid-3 { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 900px) {
+  .dlx-split, .dlx-split-wide, .dlx-grid-3 { grid-template-columns: 1fr; }
+}
+
+/* ---------------- Mobile ergonomics ----------------
+   Comfortable touch targets (>=44px) and no accidental iOS zoom on focus
+   (any font-size under 16px makes Safari zoom the page on input focus). */
+@media (max-width: 900px) {
+  html, body { overflow-x: hidden; }
+  .btn { min-height: 44px; padding: 11px 16px; }
+  .btn-sm { min-height: 38px; }
+  .field-input, .field-select, .field-textarea { min-height: 44px; font-size: 16px; }
+  .page-body { padding: 14px; }
+
+  /* Employee portal: stack each schedule step so the action button gets a
+     full-width tap target instead of being squeezed against the label. */
+  .portal-step { flex-wrap: wrap; }
+  .portal-step > :last-child { flex: 1 1 100%; margin-top: 10px; display: flex; gap: 8px; }
+  .portal-step > :last-child .btn { flex: 1; justify-content: center; }
+  .portal-step > :last-child .field-select { flex: 1; max-width: none; }
+  .portal-step-body { flex: 1 1 auto; }
+}
+
 /* ---------------- Dashboard: dark "control center" theme ---------------- */
 body.dashboard-dark {
   background: #0A0B0F;

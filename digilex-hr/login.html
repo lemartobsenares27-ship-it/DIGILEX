@@ -22,8 +22,8 @@
     <div class="dlx-card">
       <form id="login-form">
         <div class="field-group">
-          <label class="field-label">Employee ID</label>
-          <input class="field-input" id="login-username" placeholder="e.g. DLX-002" autocomplete="username" required>
+          <label class="field-label">Your Name or Employee ID</label>
+          <input class="field-input" id="login-username" placeholder="e.g. Maria Santos" autocomplete="username" required>
         </div>
         <div class="field-group">
           <label class="field-label">Password</label>
@@ -37,8 +37,8 @@
     <div class="dlx-card" style="margin-top:14px;background:#F8FAFC">
       <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#64748B;margin-bottom:8px">Demo accounts</div>
       <div style="font-size:.8rem;color:#475569;line-height:1.6">
-        <strong>Admin</strong> — ID <code>DLX-001</code>, password <code>digilex123</code><br>
-        <strong>Employee</strong> — any other ID (e.g. <code>DLX-002</code>), password <code>digilex123</code>
+        Sign in with your <strong>name</strong> (e.g. <code>Maria Santos</code>) or your Employee ID.<br>
+        Default password for everyone: <code>digilex123</code> — change it after your first sign-in.
       </div>
     </div>
   </div>
@@ -57,7 +57,7 @@
       var account = DigilexAuth.login(username, password);
       var errEl = document.getElementById("login-error");
       if (!account) {
-        errEl.textContent = "Invalid Employee ID or password.";
+        errEl.textContent = "We couldn't match that name or ID with that password. If two people share a first name, use your full name or your Employee ID.";
         errEl.style.display = "block";
         return;
       }

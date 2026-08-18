@@ -39,10 +39,49 @@
     return role === "admin" ? rootPath("index.html") : pagesPath("portal.html");
   }
 
+  function norm(s) { return String(s || "").trim().toLowerCase().replace(/\s+/g, " "); }
+
+  // Employees live under app.js's store key, but auth.js also runs on
+  // login.html where app.js is not loaded — so read the key directly here
+  // rather than through Digilex.Store, falling back to seed data on a
+  // browser that hasn't opened an app page yet.
+  function allEmployees() {
+    var stored = readJson("digilex_hr_employees", null);
+    if (stored && stored.length) return stored;
+    var D = global.DigilexData;
+    return (D && D.SEED_EMPLOYEES) || [];
+  }
+
+  // Accepts an employee ID ("DLX-002") or the person's name ("Maria Santos",
+  // or just "Maria" when that name is unambiguous). Forcing staff to recall
+  // an ID code was a real barrier to them signing in at all.
+  function resolveUsername(input) {
+    var typed = norm(input);
+    if (!typed) return null;
+
+    var byId = getAccounts().find(function (a) { return norm(a.username) === typed; });
+    if (byId) return byId.username;
+
+    var employees = allEmployees();
+    var matchers = [
+      function (e) { return norm(e.firstName + " " + e.lastName); },
+      function (e) { return norm(e.firstName); },
+      function (e) { return norm(e.lastName); },
+    ];
+    for (var i = 0; i < matchers.length; i++) {
+      var hits = employees.filter(function (e) { return matchers[i](e) === typed; });
+      if (hits.length === 1) return hits[0].id;
+      if (hits.length > 1) return null; // ambiguous — make them use their ID
+    }
+    return null;
+  }
+
   function login(username, password) {
+    var resolved = resolveUsername(username);
+    if (!resolved) return null;
     var accounts = getAccounts();
     var match = accounts.find(function (a) {
-      return a.username.toLowerCase() === String(username || "").trim().toLowerCase() && a.password === password;
+      return norm(a.username) === norm(resolved) && a.password === password;
     });
     if (!match) return null;
     setSession({ employeeId: match.employeeId, role: match.role });

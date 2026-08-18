@@ -36,7 +36,7 @@
       <div id="portal-today-date" style="color:#64748B;font-size:.85rem;margin-top:2px"></div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start;margin-bottom:16px">
+    <div class="dlx-split-wide" style="margin-bottom:16px">
       <div class="dlx-card">
         <div style="font-weight:700;margin-bottom:14px">Today's Schedule</div>
 
@@ -96,6 +96,31 @@
     </div>
 
     <div id="portal-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:16px"></div>
+
+    <div class="dlx-split-wide" style="margin-bottom:16px">
+      <div class="dlx-card" id="portal-leave-card">
+        <div style="font-weight:700;margin-bottom:4px"><i class="fa-solid fa-plane-departure"></i> Request Leave</div>
+        <div style="font-size:.78rem;color:#94A3B8;margin-bottom:14px">Your request goes to HR for approval. You'll see the status below.</div>
+        <form id="portal-leave-form">
+          <div class="field-group">
+            <label class="field-label">Leave Type</label>
+            <select class="field-select" id="portal-lv-type" required></select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="field-group"><label class="field-label">From</label><input type="date" class="field-input" id="portal-lv-from" required></div>
+            <div class="field-group"><label class="field-label">To</label><input type="date" class="field-input" id="portal-lv-to" required></div>
+          </div>
+          <div style="font-size:.8rem;color:#64748B;margin-bottom:12px">Duration: <strong id="portal-lv-days">0 day(s)</strong></div>
+          <div class="field-group"><label class="field-label">Reason</label><textarea class="field-textarea" id="portal-lv-reason" rows="2" placeholder="Briefly explain your request"></textarea></div>
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center"><i class="fa-solid fa-paper-plane"></i> Submit Request</button>
+        </form>
+      </div>
+
+      <div class="dlx-card">
+        <div style="font-weight:700;margin-bottom:12px">My Leave Requests</div>
+        <div id="portal-leave-list"></div>
+      </div>
+    </div>
 
     <div class="dlx-card" id="portal-history-card">
       <div style="font-weight:700;margin-bottom:12px">My Attendance History</div>
