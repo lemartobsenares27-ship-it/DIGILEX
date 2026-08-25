@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { db } from '../lib/db'
 import { useLiveTable } from '../hooks/useLiveTable'
 import PageHeader from '../components/PageHeader'
@@ -7,7 +7,8 @@ import Card from '../components/Card'
 import DataTable, { type ColumnDef } from '../components/DataTable'
 import type { POSReconciliationRow } from '../lib/types'
 import { formatCurrency, formatNumber, formatPercent } from '../lib/format'
-import { allTimeDeliveryStats, monthlyRtsBreakdown } from '../lib/analytics'
+import { allTimeDeliveryStats, monthlyRtsBreakdown, rtsByBucket, rtsBaseline } from '../lib/analytics'
+import RtsTrendChart from '../components/charts/RtsTrendChart'
 import seed from '../data/posOrderReconciliation.json'
 
 const COLUMNS: ColumnDef<POSReconciliationRow>[] = [
@@ -27,6 +28,13 @@ export default function POSReconciliation() {
   const allTime = useMemo(() => allTimeDeliveryStats(rows), [rows])
   const monthly = useMemo(() => monthlyRtsBreakdown(rows, orders), [rows, orders])
   const latestMonth = monthly[monthly.length - 1]?.month
+
+  const [grain, setGrain] = useState<'day' | 'week'>('week')
+  const baseline = useMemo(() => rtsBaseline(monthly), [monthly])
+  const buckets = useMemo(() => rtsByBucket(rows, orders, grain), [rows, orders, grain])
+  // Weeks are stable enough to read a trend from; days need a longer window to be
+  // worth plotting at all, and older ones are noise for monitoring purposes.
+  const recent = useMemo(() => buckets.slice(grain === 'week' ? -14 : -30), [buckets, grain])
 
   return (
     <div>
@@ -131,6 +139,90 @@ export default function POSReconciliation() {
         <p className="mt-3 text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
           {seed.coverage.value}
         </p>
+      </Card>
+
+      <Card
+        title="RTS Trend — by Week or by Day"
+        description="Grouped by the day each parcel SHIPPED, so a spike points at the dispatch date that caused it. Hollow points are low-volume buckets — one or two returns move them several points, so read them as noise, not a trend. Amber points are windows where the POS export captured only delivered orders, so the returns are missing entirely: those are a data gap, not a good week."
+        className="mb-4"
+        actions={
+          <div className="flex gap-1 rounded-lg p-0.5" style={{ background: 'color-mix(in srgb, var(--text-primary) 6%, transparent)' }}>
+            {(['week', 'day'] as const).map((g) => (
+              <button
+                key={g}
+                onClick={() => setGrain(g)}
+                className="rounded-md px-3 py-1 text-xs font-medium capitalize transition-colors"
+                style={{
+                  background: grain === g ? 'var(--surface-card)' : 'transparent',
+                  color: grain === g ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  boxShadow: grain === g ? '0 1px 2px rgb(0 0 0 / 0.06)' : undefined,
+                }}
+              >
+                {g === 'week' ? 'Weekly' : 'Daily'}
+              </button>
+            ))}
+          </div>
+        }
+      >
+        <RtsTrendChart data={recent} baseline={baseline} />
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr style={{ background: 'color-mix(in srgb, var(--text-primary) 3%, transparent)' }}>
+                {[grain === 'week' ? 'Week shipped' : 'Day shipped', 'Shipped', 'Delivered', 'RTS', 'In transit', 'RTS Rate', 'vs normal'].map((h) => (
+                  <th key={h} className="whitespace-nowrap px-3 py-2 text-left text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[...recent].reverse().map((b) => {
+                const delta = b.rate - baseline
+                const thin = b.total < 15
+                return (
+                  <tr key={b.key} className="border-t" style={{ borderColor: 'var(--border-hairline)' }}>
+                    <td className="whitespace-nowrap px-3 py-2 font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {b.label}
+                      {b.suspect ? (
+                        <span className="ml-2 text-xs font-normal" style={{ color: 'var(--status-warning)' }}>
+                          incomplete data
+                        </span>
+                      ) : thin ? (
+                        <span className="ml-2 text-xs font-normal" style={{ color: 'var(--text-muted)' }}>
+                          low volume
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-2 tabular" style={{ color: 'var(--text-primary)' }}>{formatNumber(b.total)}</td>
+                    <td className="px-3 py-2 tabular" style={{ color: 'var(--text-primary)' }}>{formatNumber(b.delivered)}</td>
+                    <td className="px-3 py-2 tabular" style={{ color: 'var(--text-primary)' }}>{formatNumber(b.rts)}</td>
+                    <td className="px-3 py-2 tabular" style={{ color: 'var(--text-muted)' }}>{b.transit > 0 ? formatNumber(b.transit) : '—'}</td>
+                    <td className="px-3 py-2 tabular font-semibold" style={{ color: 'var(--text-primary)' }}>
+                      {formatPercent(b.rate)}
+                    </td>
+                    <td className="px-3 py-2 tabular text-xs">
+                      <span
+                        style={{
+                          color: thin || b.suspect
+                            ? 'var(--text-muted)'
+                            : delta > 0.05
+                              ? 'var(--status-critical)'
+                              : delta < -0.05
+                                ? 'var(--status-good)'
+                                : 'var(--text-muted)',
+                        }}
+                      >
+                        {delta >= 0 ? '+' : ''}
+                        {(delta * 100).toFixed(1)} pts
+                      </span>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </Card>
 
       <DataTable

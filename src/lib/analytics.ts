@@ -140,3 +140,126 @@ export function monthlyRtsBreakdown(posRows: POSReconciliationRow[], orders: Ord
       }
     })
 }
+
+export interface RtsBucketRow {
+  /** Bucket key, e.g. "2026-08-19" for a day or "2026-08-17" (Monday) for a week. */
+  key: string
+  /** Human label for the axis / table. */
+  label: string
+  delivered: number
+  rts: number
+  transit: number
+  /** Parcels shipped in this bucket, resolved or not. */
+  total: number
+  rate: number
+  rateFloor: number
+  rateCeiling: number
+  maturity: number
+  /**
+   * True when the bucket has real volume but zero returns. At the ~16% baseline
+   * that is near-impossible (p < 0.05 by 18 parcels), so it means the POS export
+   * covering those dates captured only delivered orders and the returns are
+   * simply absent - not that the week went perfectly. Flagged so it is never
+   * read as a genuine low.
+   */
+  suspect: boolean
+}
+
+/**
+ * Buckets POS outcomes by the day or week the parcel SHIPPED, so a spike can be
+ * traced to the dispatch date that caused it (weather, a courier backlog) rather
+ * than the date it happened to resolve.
+ *
+ * Ship dates come from Orders Database, which only knows a date for parcels that
+ * appeared in an NPMCM SOA. Parcels that never reached a statement carry no date
+ * and are skipped here - they are still counted in the all-time rate.
+ */
+export function rtsByBucket(
+  posRows: POSReconciliationRow[],
+  orders: OrderRow[],
+  granularity: 'day' | 'week',
+): RtsBucketRow[] {
+  const shipDateByTracking = new Map<string, string | null>()
+  for (const o of orders) {
+    const t = o['Order / Tracking #']
+    if (t) shipDateByTracking.set(t, o['Date Ordered (Shipped)'])
+  }
+
+  // Always tally by day first. Contamination (an export that captured only
+  // delivered orders) shows up at day level; rolling that flag up is the only way
+  // a week containing bad days gets marked, since its own total is rarely zero.
+  const days = new Map<string, { delivered: number; rts: number; transit: number }>()
+  for (const r of posRows) {
+    const tracking = r['J&T Tracking Number']
+    const shipDate = tracking ? shipDateByTracking.get(tracking) : null
+    if (!shipDate) continue
+    const key = shipDate.slice(0, 10)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue
+
+    const b = days.get(key) ?? { delivered: 0, rts: 0, transit: 0 }
+    const status = (r['POS Status'] ?? '').toLowerCase()
+    if (status === 'delivered') b.delivered++
+    else if (status.startsWith('return')) b.rts++
+    else if (status === 'shipped' || status.includes('pick up')) b.transit++
+    days.set(key, b)
+  }
+
+  const dayIsSuspect = (b: { delivered: number; rts: number }) => b.rts === 0 && b.delivered >= 18
+
+  const weekKey = (isoDay: string) => {
+    const [y, m, d] = isoDay.split('-').map(Number)
+    const dt = new Date(Date.UTC(y, m - 1, d))
+    dt.setUTCDate(dt.getUTCDate() - ((dt.getUTCDay() + 6) % 7))
+    return dt.toISOString().slice(0, 10)
+  }
+
+  const buckets = new Map<string, { delivered: number; rts: number; transit: number; suspect: boolean }>()
+  for (const [day, b] of days) {
+    const key = granularity === 'week' ? weekKey(day) : day
+    const acc = buckets.get(key) ?? { delivered: 0, rts: 0, transit: 0, suspect: false }
+    acc.delivered += b.delivered
+    acc.rts += b.rts
+    acc.transit += b.transit
+    acc.suspect = acc.suspect || dayIsSuspect(b)
+    buckets.set(key, acc)
+  }
+
+  return [...buckets.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([key, b]) => {
+      const resolved = b.delivered + b.rts
+      const total = resolved + b.transit
+      const [y, m, d] = key.split('-')
+      const label =
+        granularity === 'week'
+          ? `Wk of ${MONTH_NAMES[Number(m) - 1]} ${Number(d)}`
+          : `${MONTH_NAMES[Number(m) - 1]} ${Number(d)}`
+      return {
+        key,
+        label: granularity === 'week' ? label : `${label}, ${y}`,
+        delivered: b.delivered,
+        rts: b.rts,
+        transit: b.transit,
+        total,
+        rate: resolved > 0 ? b.rts / resolved : 0,
+        rateFloor: total > 0 ? b.rts / total : 0,
+        rateCeiling: total > 0 ? (b.rts + b.transit) / total : 0,
+        maturity: total > 0 ? resolved / total : 1,
+        suspect: b.suspect,
+      }
+    })
+}
+
+/**
+ * Blended RTS across settled months, used as the "normal" reference line.
+ *
+ * A month counts as settled once essentially everything has resolved rather than
+ * only at exactly zero in transit - otherwise a single parcel left hanging from
+ * months ago would drop that whole month out of the baseline and skew it.
+ */
+export function rtsBaseline(rows: MonthlyRtsRow[]): number {
+  const settled = rows.filter((r) => r.maturity >= 0.99 && r.delivered + r.rts > 0)
+  const d = settled.reduce((s, r) => s + r.delivered, 0)
+  const t = settled.reduce((s, r) => s + r.rts, 0)
+  return d + t > 0 ? t / (d + t) : 0
+}
