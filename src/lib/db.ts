@@ -193,7 +193,7 @@ async function loadJson<T>(name: string): Promise<T> {
  * a data refresh can never wipe manual edits; corrections to those go through
  * their own targeted migrations above.
  */
-export const DATA_VERSION = '2026-08-25-aug1423-remit'
+export const DATA_VERSION = '2026-08-25-rts-audit'
 export const DATA_VERSION_LABEL = 'Aug 25, 2026 — Aug 14–23 SOA, POS orders_13, remittances confirmed'
 
 async function ensureDerivedDataFresh(): Promise<void> {

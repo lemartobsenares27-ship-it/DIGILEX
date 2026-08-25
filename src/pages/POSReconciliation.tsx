@@ -128,6 +128,9 @@ export default function POSReconciliation() {
             </tbody>
           </table>
         </div>
+        <p className="mt-3 text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+          {seed.coverage.value}
+        </p>
       </Card>
 
       <DataTable
