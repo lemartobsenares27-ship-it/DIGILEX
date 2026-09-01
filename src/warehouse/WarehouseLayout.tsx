@@ -8,6 +8,7 @@ import {
   Truck,
   ArrowLeftRight,
   ClipboardList,
+  Hammer,
   ShoppingCart,
   AlertTriangle,
   Tags,
@@ -36,6 +37,10 @@ const NAV: { title: string; items: { to: string; label: string; icon: typeof Lay
       { to: '/transfers', label: 'Transfers', icon: ArrowLeftRight },
       { to: '/stock-count', label: 'Stock Count', icon: ClipboardList },
     ],
+  },
+  {
+    title: 'Production',
+    items: [{ to: '/production', label: 'Build / BOM', icon: Hammer }],
   },
   {
     title: 'Planning',

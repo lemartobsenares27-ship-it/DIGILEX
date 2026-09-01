@@ -10,6 +10,7 @@ const Fulfillment = lazy(() => import('../pages/warehouse/Fulfillment'))
 const Rts = lazy(() => import('../pages/warehouse/Rts'))
 const Transfers = lazy(() => import('../pages/warehouse/Transfers'))
 const StockCount = lazy(() => import('../pages/warehouse/StockCount'))
+const Production = lazy(() => import('../pages/warehouse/Production'))
 const Purchases = lazy(() => import('../pages/warehouse/Purchases'))
 const Discrepancies = lazy(() => import('../pages/warehouse/Discrepancies'))
 const Products = lazy(() => import('../pages/warehouse/Products'))
@@ -60,6 +61,7 @@ export default function WarehouseApp() {
           <Route path="/rts" element={<Rts />} />
           <Route path="/transfers" element={<Transfers />} />
           <Route path="/stock-count" element={<StockCount />} />
+          <Route path="/production" element={<Production />} />
           <Route path="/purchases" element={<Purchases />} />
           <Route path="/discrepancies" element={<Discrepancies />} />
           <Route path="/products" element={<Products />} />

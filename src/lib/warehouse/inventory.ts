@@ -15,6 +15,7 @@ import {
   type MovementType,
   type ProductRow,
   type PurchaseOrderItemRow,
+  type BomLineRow,
 } from './types'
 
 /** balances[productId][locationId][state] = quantity */
@@ -279,4 +280,71 @@ export async function logWarehouseAudit(entry: {
     user: entry.user ?? null,
     reason: entry.reason ?? null,
   })
+}
+
+
+// ---------------------------------------------------------------------------
+// Assembly maths
+// ---------------------------------------------------------------------------
+
+export interface BuildConstraint {
+  componentProductId: number
+  quantityPerUnit: number
+  available: number
+  /** How many finished units this one component alone could support. */
+  supports: number
+}
+
+export interface Buildability {
+  finishedProductId: number
+  /** Units you can assemble right now — the scarcest component decides. */
+  buildable: number
+  constraints: BuildConstraint[]
+  /** The component actually capping output, if any. */
+  limitingComponentId: number | null
+  /** Component cost of one finished unit, at each component's unit cost. */
+  unitComponentCost: number
+}
+
+/**
+ * Works out how many finished units the components on hand can produce.
+ *
+ * A finished product with no recipe is not buildable — returning 0 rather than
+ * Infinity keeps an unconfigured BOM from looking like unlimited stock.
+ */
+export function computeBuildability(
+  finishedProductId: number,
+  bomLines: BomLineRow[],
+  balances: BalanceIndex,
+  productById: Map<number, ProductRow>,
+): Buildability {
+  const lines = bomLines.filter((l) => l.finishedProductId === finishedProductId && l.quantityPerUnit > 0)
+  if (lines.length === 0) {
+    return { finishedProductId, buildable: 0, constraints: [], limitingComponentId: null, unitComponentCost: 0 }
+  }
+
+  const constraints: BuildConstraint[] = lines.map((l) => {
+    const available = stateTotal(balances, l.componentProductId, 'AVAILABLE')
+    return {
+      componentProductId: l.componentProductId,
+      quantityPerUnit: l.quantityPerUnit,
+      available,
+      supports: Math.floor(available / l.quantityPerUnit),
+    }
+  })
+
+  const buildable = Math.min(...constraints.map((c) => c.supports))
+  const limiting = constraints.find((c) => c.supports === buildable) ?? null
+  const unitComponentCost = lines.reduce(
+    (sum, l) => sum + l.quantityPerUnit * (productById.get(l.componentProductId)?.unitCost ?? 0),
+    0,
+  )
+
+  return {
+    finishedProductId,
+    buildable: Number.isFinite(buildable) ? buildable : 0,
+    constraints,
+    limitingComponentId: limiting?.componentProductId ?? null,
+    unitComponentCost: Number(unitComponentCost.toFixed(2)),
+  }
 }

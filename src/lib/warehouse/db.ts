@@ -11,6 +11,7 @@ import type {
   PurchaseOrderRow,
   PurchaseOrderItemRow,
   RtsReturnRow,
+  BomLineRow,
   StockCountRow,
   StockCountItemRow,
   WarehouseAuditLogRow,
@@ -30,6 +31,7 @@ class WarehouseDB extends Dexie {
   rtsReturns!: Table<RtsReturnRow, number>
   stockCounts!: Table<StockCountRow, number>
   stockCountItems!: Table<StockCountItemRow, number>
+  bom!: Table<BomLineRow, number>
   auditLog!: Table<WarehouseAuditLogRow, number>
   meta!: Table<WarehouseMetaRow, string>
 
@@ -47,6 +49,12 @@ class WarehouseDB extends Dexie {
       stockCountItems: '++id, countId, productId',
       auditLog: '++id, timestamp, entity, entityId',
       meta: 'key',
+    })
+    // Bill of materials: a finished product is assembled from components, so
+    // "how many can I make" is a question about the scarcest one, not about
+    // any single stock level.
+    this.version(2).stores({
+      bom: '++id, finishedProductId, componentProductId',
     })
   }
 }

@@ -6,8 +6,17 @@ import { warehouseDb } from '../../lib/warehouse/db'
 import { logWarehouseAudit } from '../../lib/warehouse/inventory'
 import { useInventory } from './hooks'
 import { Field, TextInput, TextArea, Select, SubmitButton, ErrorNote, SuccessNote, locationOptions } from './FormBits'
+import type { ProductRow } from '../../lib/warehouse/types'
+
+const KINDS = [
+  { value: 'COMPONENT', label: 'Component — consumed to build something' },
+  { value: 'FINISHED', label: 'Finished — assembled from components' },
+  { value: 'SIMPLE', label: 'Simple — bought and sold as-is' },
+  { value: 'CONSUMABLE', label: 'Consumable — used up, not part of a unit' },
+]
 
 const EMPTY = {
+  kind: 'COMPONENT',
   sku: '',
   name: '',
   variant: '',
@@ -17,6 +26,7 @@ const EMPTY = {
   unitCost: '',
   sellingPrice: '',
   unit: 'pc',
+  unitsPerPack: '',
   barcode: '',
   reorderPoint: '',
   targetStockLevel: '',
@@ -42,6 +52,7 @@ export default function Products() {
     const p = row.product
     setEditingId(id)
     setForm({
+      kind: p.kind ?? 'COMPONENT',
       sku: p.sku,
       name: p.name,
       variant: p.variant ?? '',
@@ -51,6 +62,7 @@ export default function Products() {
       unitCost: p.unitCost != null ? String(p.unitCost) : '',
       sellingPrice: p.sellingPrice != null ? String(p.sellingPrice) : '',
       unit: p.unit ?? 'pc',
+      unitsPerPack: p.unitsPerPack != null ? String(p.unitsPerPack) : '',
       barcode: p.barcode ?? '',
       reorderPoint: p.reorderPoint != null ? String(p.reorderPoint) : '',
       targetStockLevel: p.targetStockLevel != null ? String(p.targetStockLevel) : '',
@@ -69,6 +81,7 @@ export default function Products() {
 
     const num = (v: string) => (v.trim() === '' ? null : Number(v))
     const payload = {
+      kind: form.kind as ProductRow['kind'],
       sku: form.sku.trim(),
       name: form.name.trim(),
       variant: form.variant.trim() || null,
@@ -78,6 +91,7 @@ export default function Products() {
       unitCost: num(form.unitCost),
       sellingPrice: num(form.sellingPrice),
       unit: form.unit.trim() || null,
+      unitsPerPack: num(form.unitsPerPack),
       barcode: form.barcode.trim() || null,
       minStockLevel: num(form.minStockLevel),
       reorderPoint: num(form.reorderPoint),
@@ -125,8 +139,11 @@ export default function Products() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card title={editingId != null ? 'Edit product' : 'Add product'} className="lg:col-span-1">
           <div className="grid grid-cols-1 gap-3">
+            <Field label="Type" hint="Decides whether it can be built, or used to build.">
+              <Select value={form.kind} onChange={set('kind')} options={KINDS} placeholder="" />
+            </Field>
             <Field label="SKU">
-              <TextInput value={form.sku} onChange={set('sku')} placeholder="FISH-OIL-001" />
+              <TextInput value={form.sku} onChange={set('sku')} placeholder="BOTTLE-100ML" />
             </Field>
             <Field label="Product name">
               <TextInput value={form.name} onChange={set('name')} placeholder="Bellevine Fish Oil" />
@@ -168,8 +185,8 @@ export default function Products() {
               <Field label="Unit">
                 <TextInput value={form.unit} onChange={set('unit')} placeholder="pc, box, bottle" />
               </Field>
-              <Field label="Barcode">
-                <TextInput value={form.barcode} onChange={set('barcode')} />
+              <Field label="Pieces per pack" hint="You buy packs; stock counts pieces.">
+                <TextInput value={form.unitsPerPack} onChange={set('unitsPerPack')} type="number" min={1} />
               </Field>
             </div>
             <Field label="Default location">
@@ -213,7 +230,7 @@ export default function Products() {
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr style={{ background: 'color-mix(in srgb, var(--text-primary) 3%, transparent)' }}>
-                    {['SKU', 'Name', 'Variant', 'Cost', 'Reorder', 'Target', 'Sellable', 'Status', ''].map((h) => (
+                    {['SKU', 'Name', 'Type', 'Cost', 'Pack', 'Sellable', 'Status', ''].map((h) => (
                       <th key={h} className="whitespace-nowrap px-3 py-2 text-left text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>
                         {h}
                       </th>
@@ -225,10 +242,9 @@ export default function Products() {
                     <tr key={r.product.id} className="border-t" style={{ borderColor: 'var(--border-hairline)' }}>
                       <td className="px-3 py-2 text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{r.product.sku}</td>
                       <td className="px-3 py-2 text-xs" style={{ color: 'var(--text-primary)' }}>{r.product.name}</td>
-                      <td className="px-3 py-2 text-xs" style={{ color: 'var(--text-muted)' }}>{r.product.variant ?? '—'}</td>
+                      <td className="px-3 py-2 text-xs" style={{ color: 'var(--text-muted)' }}>{r.product.kind ?? '—'}</td>
                       <td className="px-3 py-2 text-xs tabular" style={{ color: 'var(--text-secondary)' }}>{r.product.unitCost != null ? formatCurrency(r.product.unitCost) : '—'}</td>
-                      <td className="px-3 py-2 text-xs tabular" style={{ color: 'var(--text-muted)' }}>{r.product.reorderPoint ?? '—'}</td>
-                      <td className="px-3 py-2 text-xs tabular" style={{ color: 'var(--text-muted)' }}>{r.product.targetStockLevel ?? '—'}</td>
+                      <td className="px-3 py-2 text-xs tabular" style={{ color: 'var(--text-muted)' }}>{r.product.unitsPerPack ?? '—'}</td>
                       <td className="px-3 py-2 text-xs tabular font-semibold" style={{ color: 'var(--text-primary)' }}>{formatNumber(r.stock.sellable)}</td>
                       <td className="px-3 py-2 text-xs" style={{ color: r.product.active ? 'var(--status-good)' : 'var(--text-muted)' }}>
                         {r.product.active ? 'Active' : 'Inactive'}

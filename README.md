@@ -185,12 +185,34 @@ inspection 10, fulfillment 30); inspected damaged (→ damaged 11, available
 still 57); counted 50 vs ledger 57 (→ adjusted, 7 missing); PO for 500
 (→ incoming 500, available still 50).
 
+### Production / bill of materials
+
+Products carry a `kind`: COMPONENT (consumed to build something), FINISHED
+(assembled from components), SIMPLE (bought and sold as-is) or CONSUMABLE
+(used by the operation, not part of any one unit — packing tape). A finished
+product's recipe lives in the `bom` table as component + quantity-per-unit.
+
+This exists because stock level is the wrong question for an assembled
+product. With 100 bottles, 300 foam seals and no labels, you have **zero**
+sellable units — output is capped by the scarcest component. The Production
+page shows buildable quantity, names the limiting component, and gives the
+component cost of one finished unit.
+
+Building consumes every component and creates the finished units in one
+atomic movement group. A component shortfall is refused by the same
+negative-stock check that guards every other operation, so a build can never
+half-consume a recipe.
+
+Products also carry `unitsPerPack`, because suppliers sell packs (20 bottles,
+50 foam seals) while the ledger counts pieces.
+
 ### Not built yet
 
 Barcode scanning, FEFO/FIFO allocation, expiry alerting, order reservation
 from POS, bulk import, and PDF reports are designed for but not implemented —
 the schema carries `batchNo`, `expiryDate` and the `RESERVED` state so they
-can be added without reshaping the ledger.
+can be added without reshaping the ledger. Multi-level BOMs (a component
+that is itself assembled) are not supported; recipes are one level deep.
 
 ## Development
 

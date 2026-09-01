@@ -409,3 +409,66 @@ export async function refreshPurchaseOrderStatus(poId: number): Promise<Purchase
 
 /** Statuses whose outstanding quantity still counts as incoming stock. */
 export const OPEN_PO_STATUSES: PurchaseOrderStatus[] = ['ORDERED', 'PARTIALLY_RECEIVED']
+
+// ---------------------------------------------------------------------------
+// Production / assembly
+// ---------------------------------------------------------------------------
+
+/**
+ * Assembles finished units from their components in one atomic act: every
+ * component is consumed and the finished goods appear together, or nothing
+ * happens at all. Component shortfalls are refused by postMovements' negative
+ * check, which sees the whole batch — so a build cannot half-consume a recipe.
+ */
+export async function produceFinishedGoods(input: {
+  finishedProductId: number
+  quantity: number
+  locationId: number
+  reference: string | null
+  user: string
+  notes: string | null
+}): Promise<{ groupId: string; consumed: { componentProductId: number; quantity: number }[] }> {
+  if (!Number.isFinite(input.quantity) || input.quantity <= 0) {
+    throw new Error('Build quantity must be greater than zero.')
+  }
+
+  const lines = await warehouseDb.bom.where('finishedProductId').equals(input.finishedProductId).toArray()
+  if (lines.length === 0) {
+    throw new Error('This product has no bill of materials yet — add its components before building it.')
+  }
+
+  const consumed = lines.map((l) => ({ componentProductId: l.componentProductId, quantity: l.quantityPerUnit * input.quantity }))
+
+  const drafts: MovementDraft[] = [
+    ...consumed.map((c) => ({
+      productId: c.componentProductId,
+      quantity: c.quantity,
+      type: 'PRODUCTION_CONSUME' as const,
+      fromLocationId: input.locationId,
+      fromState: 'AVAILABLE' as const,
+      // No `to`: the component ceases to exist as itself once assembled.
+      toLocationId: null,
+      toState: null,
+      reference: input.reference,
+      reason: 'Consumed building finished goods',
+      user: input.user,
+      notes: input.notes,
+    })),
+    {
+      productId: input.finishedProductId,
+      quantity: input.quantity,
+      type: 'PRODUCTION_OUTPUT',
+      fromLocationId: null,
+      fromState: null,
+      toLocationId: input.locationId,
+      toState: 'AVAILABLE',
+      reference: input.reference,
+      reason: 'Assembled from components',
+      user: input.user,
+      notes: input.notes,
+    },
+  ]
+
+  const groupId = await postMovements(drafts)
+  return { groupId, consumed }
+}

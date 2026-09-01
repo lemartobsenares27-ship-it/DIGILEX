@@ -76,6 +76,8 @@ export type MovementType =
   | 'ADJUSTMENT'
   | 'RESERVATION'
   | 'RELEASE'
+  | 'PRODUCTION_CONSUME'
+  | 'PRODUCTION_OUTPUT'
   | 'SALE'
   | 'DAMAGE'
   | 'LOSS'
@@ -90,6 +92,8 @@ export const MOVEMENT_TYPE_LABEL: Record<MovementType, string> = {
   TRANSFER_IN: 'Transfer received',
   ADJUSTMENT: 'Adjustment',
   RESERVATION: 'Reserved',
+  PRODUCTION_CONSUME: 'Consumed in assembly',
+  PRODUCTION_OUTPUT: 'Assembled',
   RELEASE: 'Reservation released',
   SALE: 'Sold / shipped to customer',
   DAMAGE: 'Damage recorded',
@@ -97,8 +101,17 @@ export const MOVEMENT_TYPE_LABEL: Record<MovementType, string> = {
   DISPOSAL: 'Disposed',
 }
 
+/**
+ * COMPONENT — a part you buy and consume (bottle, cap seal, label).
+ * FINISHED  — something you assemble from components and sell.
+ * SIMPLE    — bought and sold as-is, no assembly.
+ * CONSUMABLE— used by the operation but not part of any one unit (packing tape).
+ */
+export type ProductKind = 'COMPONENT' | 'FINISHED' | 'SIMPLE' | 'CONSUMABLE'
+
 export interface ProductRow {
   id?: number
+  kind: ProductKind
   sku: string
   name: string
   variant: string | null
@@ -108,6 +121,8 @@ export interface ProductRow {
   unitCost: number | null
   sellingPrice: number | null
   unit: string | null
+  /** Pieces per purchased pack. Suppliers sell packs; the ledger counts pieces. */
+  unitsPerPack: number | null
   barcode: string | null
   minStockLevel: number | null
   reorderPoint: number | null
@@ -154,6 +169,16 @@ export interface MovementRow {
   expiryDate: string | null
   unitCost: number | null
   groupId: string | null
+}
+
+/** One component line of a finished product's recipe. */
+export interface BomLineRow {
+  id?: number
+  finishedProductId: number
+  componentProductId: number
+  /** Pieces of this component consumed per one finished unit. */
+  quantityPerUnit: number
+  notes: string | null
 }
 
 export type PurchaseOrderStatus = 'DRAFT' | 'ORDERED' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED'
