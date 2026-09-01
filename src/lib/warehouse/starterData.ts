@@ -18,26 +18,6 @@ const PRODUCTS: SeedProduct[] = [
   // --- Resale: finished supplements bought by the bottle from Bellevine ----
   {
     kind: 'SIMPLE',
-    sku: 'BV-ALAGANG',
-    name: 'Bellevine Alagang Capsules',
-    variant: null,
-    category: 'Supplements — resale',
-    brand: 'Bellevine',
-    supplier: 'Bellevine Herbal Food Supplements',
-    unitCost: 80,
-    sellingPrice: null,
-    unit: 'btl',
-    unitsPerPack: 1,
-    barcode: null,
-    minStockLevel: null,
-    reorderPoint: null,
-    targetStockLevel: null,
-    tracksExpiry: true,
-    active: true,
-    notes: 'PO 8/25/2026 — 240 btl @ ₱80 = ₱19,200. Paid via GCash / AUB 529010001223 Majestic Line Mfg. Corp.',
-  },
-  {
-    kind: 'SIMPLE',
     sku: 'ALASKA-GARLIC-500',
     name: "Alaska Garlic 500's (Big)",
     variant: null,
@@ -54,7 +34,7 @@ const PRODUCTS: SeedProduct[] = [
     targetStockLevel: null,
     tracksExpiry: true,
     active: true,
-    notes: 'Ordered twice: 8/25/2026 and 8/26/2026, 120 btl @ ₱155 = ₱18,600 each.',
+    notes: 'PO 8/26/2026 — 120 btl @ ₱155 = ₱18,600. Paid to AUB 529010001223 Majestic Line Mfg. Corp.',
   },
 
   // --- Components for the EYE CARE ADVANCE build --------------------------
@@ -227,21 +207,11 @@ const RECEIPTS: { sku: string; pieces: number; supplier: string; reference: stri
 /** Orders placed but not yet in hand — these count as incoming, never as stock. */
 const OPEN_POS: { poNumber: string; supplier: string; orderDate: string; lines: { sku: string; qty: number; unitCost: number | null }[]; notes: string }[] = [
   {
-    poNumber: 'BV-2026-0825',
-    supplier: 'Bellevine Herbal Food Supplements',
-    orderDate: '2026-08-25',
-    lines: [
-      { sku: 'BV-ALAGANG', qty: 240, unitCost: 80 },
-      { sku: 'ALASKA-GARLIC-500', qty: 120, unitCost: 155 },
-    ],
-    notes: '360 pieces total. Mode of payment: GCash.',
-  },
-  {
     poNumber: 'BV-2026-0826',
     supplier: 'Bellevine Herbal Food Supplements',
     orderDate: '2026-08-26',
     lines: [{ sku: 'ALASKA-GARLIC-500', qty: 120, unitCost: 155 }],
-    notes: '₱18,600 paid to AUB 529010001223 Majestic Line Mfg. Corp.',
+    notes: '120 pieces, ₱18,600 total. GCash / AUB 529010001223 Majestic Line Mfg. Corp.',
   },
   {
     poNumber: 'SHOPEE-BOTTLES-8PK',
@@ -274,6 +244,8 @@ export interface StarterLoadResult {
  */
 export async function loadStarterData(warehouseLocationId: number, user: string): Promise<StarterLoadResult> {
   const result: StarterLoadResult = { productsAdded: 0, bomLinesAdded: 0, receiptsPosted: 0, posCreated: 0, skipped: [] }
+
+  await removeMisreadBellevineOrder(user)
 
   const existing = await warehouseDb.products.toArray()
   const idBySku = new Map(existing.map((p) => [p.sku, p.id!]))
@@ -362,4 +334,53 @@ export async function loadStarterData(warehouseLocationId: number, user: string)
   })
 
   return result
+}
+
+/**
+ * An earlier version of this seed misread a blurred purchase order and invented
+ * a "Bellevine Alagang Capsules" line that was never ordered. This removes it
+ * from any browser that already loaded it.
+ *
+ * It only ever deletes untouched data: the product goes only if no movement
+ * references it, and the PO only if nothing has been received against it. If
+ * either has been used, both are left alone for a human to sort out — silently
+ * deleting stock that someone has since handled would be worse than the bug.
+ */
+async function removeMisreadBellevineOrder(user: string): Promise<void> {
+  const bogusProduct = await warehouseDb.products.where('sku').equals('BV-ALAGANG').first()
+  const bogusPo = (await warehouseDb.purchaseOrders.toArray()).find((p) => p.poNumber === 'BV-2026-0825')
+  if (!bogusProduct && !bogusPo) return
+
+  if (bogusPo?.id != null) {
+    const items = await warehouseDb.purchaseOrderItems.where('poId').equals(bogusPo.id).toArray()
+    const anyReceived = items.some((i) => i.quantityReceived > 0)
+    if (!anyReceived) {
+      await warehouseDb.purchaseOrderItems.bulkDelete(items.map((i) => i.id!).filter((id) => id != null))
+      await warehouseDb.purchaseOrders.delete(bogusPo.id)
+      await logWarehouseAudit({
+        entity: 'purchaseOrder',
+        entityId: bogusPo.id,
+        action: 'Removed — order was misread from a blurred document',
+        previousValue: { poNumber: bogusPo.poNumber, lines: items.length },
+        user,
+        reason: 'Only Alaska Garlic was ordered; the Alagang Capsules line did not exist.',
+      })
+    }
+  }
+
+  if (bogusProduct?.id != null) {
+    const used = await warehouseDb.movements.where('productId').equals(bogusProduct.id).count()
+    const stillOnAPo = (await warehouseDb.purchaseOrderItems.toArray()).some((i) => i.productId === bogusProduct.id)
+    if (used === 0 && !stillOnAPo) {
+      await warehouseDb.products.delete(bogusProduct.id)
+      await logWarehouseAudit({
+        entity: 'product',
+        entityId: bogusProduct.id,
+        action: 'Removed — product was misread from a blurred document',
+        previousValue: { sku: bogusProduct.sku, name: bogusProduct.name },
+        user,
+        reason: 'Never ordered; only Alaska Garlic was.',
+      })
+    }
+  }
 }
