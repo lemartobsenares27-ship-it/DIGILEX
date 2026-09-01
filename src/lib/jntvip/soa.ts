@@ -6,7 +6,7 @@
 // before anything is parsed into drafts — nothing is committed on a guess.
 
 import { findColumn, gridToRecords, toDateString, toNumber, type RawSheet } from '../import/parseFile'
-import { db } from '../db'
+import { jntVipDb } from './db'
 import { guessHeaderRow, guessColumnMap } from './columnMap'
 import type { JntVipSoaDraft } from './types'
 
@@ -80,17 +80,17 @@ export function guessSoaColumnMap(headers: string[]): Record<SoaFieldKey, string
 }
 
 export async function loadSavedSoaMapping(): Promise<Record<string, string | null> | null> {
-  const row = await db.meta.get(SOA_COLUMN_MAPPING_META_KEY)
+  const row = await jntVipDb.meta.get(SOA_COLUMN_MAPPING_META_KEY)
   return (row?.value as Record<string, string | null> | undefined) ?? null
 }
 
 export async function saveSoaMapping(mapping: Record<SoaFieldKey, string | null>): Promise<void> {
-  await db.meta.put({ key: SOA_COLUMN_MAPPING_META_KEY, value: mapping })
+  await jntVipDb.meta.put({ key: SOA_COLUMN_MAPPING_META_KEY, value: mapping })
 }
 
 /** Waybill/order-reference keys already imported into J&T VIP shipments, for duplicate-vs-database detection. */
 export async function existingJntVipShipmentKeys(): Promise<{ tracking: Set<string>; orderRefs: Set<string> }> {
-  const rows = await db.jntVipShipments.toArray()
+  const rows = await jntVipDb.shipments.toArray()
   const tracking = new Set<string>()
   const orderRefs = new Set<string>()
   for (const r of rows) {

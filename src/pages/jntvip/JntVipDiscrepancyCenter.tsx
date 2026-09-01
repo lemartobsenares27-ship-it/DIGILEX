@@ -63,7 +63,7 @@ export default function JntVipDiscrepancyCenter() {
                 {formatNumber(g.openCount)} open · {formatCurrency(g.impact)} impact
               </div>
               <Link
-                to={`/jnt-vip/reconciliation?status=${GROUP_STATUS[g.type]}`}
+                to={`/reconciliation?status=${GROUP_STATUS[g.type]}`}
                 className="text-xs font-medium"
                 style={{ color: 'var(--series-blue)' }}
               >

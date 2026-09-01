@@ -1,11 +1,11 @@
 import { useLiveTable } from '../../hooks/useLiveTable'
-import { db } from '../../lib/db'
+import { jntVipDb } from '../../lib/jntvip/db'
 
 export function useJntVipTables() {
-  const posOrders = useLiveTable(db.jntVipPosOrders)
-  const shipments = useLiveTable(db.jntVipShipments)
-  const matches = useLiveTable(db.jntVipMatches)
-  const batches = useLiveTable(db.jntVipImportBatches)
-  const auditLog = useLiveTable(db.jntVipAuditLog)
+  const posOrders = useLiveTable(jntVipDb.posOrders)
+  const shipments = useLiveTable(jntVipDb.shipments)
+  const matches = useLiveTable(jntVipDb.matches)
+  const batches = useLiveTable(jntVipDb.importBatches)
+  const auditLog = useLiveTable(jntVipDb.auditLog)
   return { posOrders, shipments, matches, batches, auditLog }
 }

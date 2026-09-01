@@ -41,117 +41,89 @@ python3 scripts/extract_xlsx.py path/to/Updated_Workbook.xlsx
 then use **Settings → Reset to original data** in the app (this clears any
 in-browser edits and reseeds from the regenerated JSON).
 
-## J&T VIP Reconciliation (independent module)
+## J&T VIP Reconciliation (separate application)
 
-A separate fulfillment partner, **J&T VIP**, gets its own reconciliation
-system under the "J&T VIP Reconciliation" nav group. It is deliberately
-independent from everything above: separate Dexie tables (`jntVip*`,
-introduced in DB schema version 5), separate pages, separate import
-pipeline, its own audit log. Nothing here reads or writes any NPMCM table
-(`orders`, `soaReconciliation`, `posReconciliation`, `fulfillmentVerification`,
-`evidence`, `followUp`, etc.) — the two systems can be used, changed, or
-reset without affecting each other.
+J&T VIP is a different fulfillment partner, so it gets a **separate app**,
+not a section of this one. This repo builds two independent front-ends:
 
-**Why it's separate**: NPMCM is the existing fulfillment company (which
-itself ships via J&T Express as courier — see `Courier`/`J&T Tracking
-Number` columns on the NPMCM pages). J&T VIP is a distinct new partner with
-its own POS-side orders and its own SOA, so it needed its own end-to-end
-reconciliation rather than being bolted onto the NPMCM tables.
+| App | Entry | URL | Database |
+| --- | --- | --- | --- |
+| Digilex Financial Control Center | `index.html` | `/` | `digilex-financial-control-center` |
+| J&T VIP Reconciliation | `jnt-vip/index.html` | `/jnt-vip/` | `jnt-vip-reconciliation` |
+
+They share React components and parsing utilities at build time and **nothing
+at runtime** — separate IndexedDB databases, separate schema versions,
+separate nav, separate branding. Resetting or breaking one cannot affect the
+other. The J&T VIP database starts empty; it has no seed step, because all of
+its data comes from the POS and SOA files you import.
+
+(The Digilex database briefly carried `jntVip*` tables in schema v5. v6 drops
+them. The v5 declaration is kept so browsers that already upgraded migrate
+forward instead of finding their stored schema newer than the code.)
 
 ### Architecture
 
-- **Raw + normalized, never overwritten in place.** Every imported POS row
-  and SOA row is stored normalized (`jntVipPosOrders`, `jntVipShipments`)
-  with the original parsed record preserved verbatim in a `raw` field. The
-  comparison itself lives in a third table, `jntVipMatches` — one row per
-  POS order, per shipment, or per matched pair. Nothing is merged or
-  silently corrected; a mismatch stays a mismatch until a human resolves it.
+- **Raw + normalized, never overwritten.** Every imported POS row and SOA row
+  is stored normalized with the original parsed record preserved verbatim in
+  a `raw` field. The comparison lives in a third table, `matches` — one row
+  per POS order, per shipment, or per matched pair. Nothing is merged or
+  silently corrected.
 - **Import pipeline**: Upload → confirm column mapping → Preview & Validate
-  (counts of valid/duplicate/missing-identifier rows, shown before you
-  commit) → Import → automatic reconciliation. Every import is a batch
-  (`jntVipImportBatches`) and can be undone from the Import page, which
-  removes everything it added and re-runs reconciliation.
-- **PDF SOAs**: not parsed automatically (courier PDF layouts are too
-  inconsistent to trust). Re-export the SOA as CSV/Excel first — the
-  uploader gives a clear error rather than guessing at a PDF.
-- **Matching engine** (`src/lib/jntvip/matching.ts`) — a 4-level confidence
-  hierarchy, checked in order per POS order / shipment pair:
-  1. **HIGH** — exact tracking/waybill number match
+  (valid / duplicate / missing-identifier counts, before you commit) →
+  Import → automatic reconciliation. Every import is an undoable batch.
+- **Matching engine** (`src/lib/jntvip/matching.ts`) — four levels, in order:
+  1. **HIGH** — exact tracking/waybill (AWB) match
   2. **HIGH** — exact Order ID ↔ Order Reference match
-  3. **MEDIUM** — a partial identifier match (shared tracking suffix)
-     combined with a close COD amount
-  4. **LOW** — fuzzy match on customer name + phone + COD amount + ship
-     date proximity. A LOW-confidence match is **never** auto-confirmed —
-     it always lands as "Needs Review" for a human to confirm or reject,
-     regardless of whether the numbers happen to agree.
-  Exact duplicate tracking/order numbers within POS or within the SOA are
-  pulled out and flagged as `DUPLICATE` before matching runs, rather than
-  competing for a pairing.
-- **Reconciliation** (`src/lib/jntvip/reconcile.ts`) recomputes every match
-  from scratch off the current POS orders + shipments any time an import
-  runs, but **upserts by (POS order, shipment) key** rather than clearing
-  the table — a manual review decision and its `id` (which the audit log
-  references) survive a later re-run, e.g. a delayed SOA batch arriving
-  weeks after the POS order shipped. A manual "Link to…" pairing is pinned
-  so the automated engine can never silently re-route either side later.
-- **Financial comparison**: COD mismatch and shipping mismatch are judged
-  on the *collected* amounts (POS's expected COD/shipping vs J&T's
-  collected COD/shipping charge), independent of the *net settlement*
-  total, which naturally differs once J&T's COD fee / return fee /
-  adjustments are netted out. Both are shown — a clean COD+shipping match
-  with a nonzero "Total Difference" usually just means fees were deducted,
-  and is not flagged as a discrepancy on its own.
-- **Manual review** (`src/lib/jntvip/review.ts`): Confirm Match, Reject
-  Match, Mark as Duplicate, Mark as Expected Difference, Ignore, Reopen,
-  Add Note, and Link to POS order / Link to J&T transaction (for POS-only
-  or J&T-only rows) — each writes a before/after snapshot to
-  `jntVipAuditLog`. There's no server-side auth in this app (it's a
-  single-user, browser-only tool, same as everything else here), so
-  "Reviewed by" is just a free-text name remembered between reviews.
+  3. **MEDIUM** — partial identifier + close COD amount
+  4. **LOW** — fuzzy on name + phone + amount + ship date. A LOW match is
+     **never** auto-confirmed; it always lands in Needs Review.
+  Duplicate AWBs/order numbers are pulled out and flagged before matching.
+- **Reconciliation** recomputes from scratch on every import but upserts by
+  `(posOrderId, shipmentId)`, so manual review decisions and the row `id` the
+  audit log references survive later runs. Manual links are pinned so the
+  engine cannot silently re-route them.
+- **Financial comparison**: COD and shipping mismatches are judged on the
+  *collected* amounts, separately from *net settlement* — which legitimately
+  differs once J&T's collection fee, VAT and RTS fees are netted out. A clean
+  COD match with a nonzero total difference usually just means fees.
+
+### What a real J&T VIP SOA looks like
+
+Confirmed against an actual SOA (`MNL-V7973`, SOA `VIP-979278`, Mar 4–7 2023):
+
+- **Page 1 is a summary**: COD transaction total, less collection fee (2.75%),
+  VAT (12%), creditable withholding tax, shipping fee, RTS fee, then
+  adjustments, then `NET REMITTANCE`.
+- **Pages 2+ are the parcel detail**, with columns:
+  `AWB No. | Shipping Date | Pick Up DP | Delivery DP | POD Time | Weight (In KG) | COD`
+- **There is no consignee name, phone, or merchant order number** in the
+  detail table. The AWB is the only link to POS data, so exact AWB matching
+  carries the reconciliation and the fuzzy level effectively never fires.
+- **Only delivered (POD) parcels are listed.** There is no per-row status and
+  no per-row fee; fees exist only as summary totals. A POS order absent from
+  the SOA is therefore un-remitted, RTS, or still in transit.
 
 ### Using it
 
-1. **Import → Import POS Orders**: your Pancake POS export (or similar) —
-   confirm the column mapping (defaults are pre-guessed from Pancake's real
-   column names), preview, then post.
-2. **Import → Import J&T VIP SOA**: the Statement of Account J&T VIP sends
-   you, as CSV/Excel. Nothing about J&T VIP's column layout is assumed —
-   map every column yourself the first time; the mapping is remembered for
-   the next SOA.
-3. **Dashboard** shows the headline counts (Matched / Needs Review /
-   Mismatched / J&T Only / POS Only), total POS vs J&T value, and the
-   biggest open discrepancies.
-4. **Reconciliation Table** is the full row-level view — filter by status,
-   confidence, or SOA batch, search by order ID/tracking/customer/phone,
-   click any row to open the side-by-side detail and take a review action.
-5. **Discrepancy Center** groups every open issue by type (COD mismatch,
-   shipping mismatch, status mismatch, missing from J&T, missing from POS,
-   duplicates) ranked by financial impact.
-6. **SOA Batches** is the batch history — one row per imported SOA, with
-   its own matched/issues/difference rollup.
-7. **Audit Log** is the full trail of manual review actions.
-8. **Exports** (Reconciliation Table page): Full reconciliation, Mismatches
-   only, J&T-only, POS-only, and a financial Discrepancy Report — all
-   `.xlsx`.
+1. **Import → Import POS Orders**: your Pancake POS export. Confirm the
+   column mapping (pre-guessed from Pancake's real column names).
+2. **Import → Import J&T VIP SOA**: the SOA from J&T.
+3. **Dashboard** for headline counts and the biggest open discrepancies;
+   **Reconciliation Table** for the row-level view with filters, search and
+   the side-by-side review drawer; **Discrepancy Center** for issues grouped
+   by type; **SOA Batches** for per-SOA rollups; **Audit Log** for the trail.
+4. **Exports** (Reconciliation Table): full, mismatches, J&T-only, POS-only,
+   and a financial discrepancy report — all `.xlsx`.
 
 ### Troubleshooting
 
-- **"Could not find a recognizable header row"** on POS import — the file's
-  header row isn't within the first 20 rows, or none of the expected column
-  names were recognized. Check the export isn't missing its header row.
-- **A lot of rows land in "Needs Review"** — this means the matching engine
-  could only fuzzy-match them (Level 4: name + phone + amount + date). Check
-  whether the POS export and the SOA are both carrying a tracking number —
-  if one side's tracking number field is blank or malformed, exact matching
-  (Level 1) can't run at all.
-- **Everything shows as "POS Only" or "J&T Only"** — the two sides aren't
-  sharing any usable identifier. Re-check the column mapping on both
-  imports; a tracking number mapped to the wrong column will silently
-  produce zero matches rather than wrong ones (nothing here guesses).
-- **A reconciled batch shows a nonzero Total Difference** — check the
-  Reconciliation Table for that batch: if there are no COD/shipping/status
-  mismatch flags on the rows, the gap is coming from J&T's own fees /
-  adjustments in the net settlement, not from a discrepancy.
+- **Everything lands in "POS Only" / "J&T Only"** — the two sides share no
+  usable identifier. Re-check the column mapping; a tracking number mapped to
+  the wrong column yields zero matches rather than wrong ones.
+- **Lots of "Needs Review"** — only fuzzy matching succeeded. Check that both
+  sides actually carry the AWB/tracking number.
+- **A batch shows a nonzero total difference with no row-level flags** — the
+  gap is J&T's fees and adjustments in net settlement, not a discrepancy.
 
 ## Development
 

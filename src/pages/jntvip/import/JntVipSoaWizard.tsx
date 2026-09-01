@@ -18,7 +18,7 @@ import {
 } from '../../../lib/jntvip/soa'
 import { postJntVipSoa } from '../../../lib/jntvip/post'
 import type { JntVipSoaDraft } from '../../../lib/jntvip/types'
-import { db } from '../../../lib/db'
+import { jntVipDb } from '../../../lib/jntvip/db'
 
 interface Props {
   onBack: () => void
@@ -49,7 +49,7 @@ export default function JntVipSoaWizard({ onBack, onDone }: Props) {
   const [existingBatchCount, setExistingBatchCount] = useState(0)
 
   useEffect(() => {
-    db.jntVipImportBatches.where('kind').equals('soa').count().then(setExistingBatchCount)
+    jntVipDb.importBatches.where('kind').equals('soa').count().then(setExistingBatchCount)
   }, [])
 
   async function handleFile(file: File) {

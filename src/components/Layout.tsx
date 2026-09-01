@@ -23,12 +23,6 @@ import {
   Sun,
   Moon,
   Menu,
-  PackageCheck,
-  UploadCloud,
-  Table2,
-  AlertOctagon,
-  Boxes,
-  History,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTheme } from '../hooks/useTheme'
@@ -83,17 +77,6 @@ const NAV: NavGroup[] = [
       { to: '/pos-reconciliation', label: 'POS Order Reconciliation', icon: ListChecks },
       { to: '/evidence', label: 'Evidence - Not in SOA', icon: FileWarning },
       { to: '/follow-up', label: 'NPMCM Follow-Up List', icon: Send },
-    ],
-  },
-  {
-    title: 'J&T VIP Reconciliation',
-    items: [
-      { to: '/jnt-vip', label: 'Dashboard', icon: PackageCheck },
-      { to: '/jnt-vip/import', label: 'Import', icon: UploadCloud },
-      { to: '/jnt-vip/reconciliation', label: 'Reconciliation Table', icon: Table2 },
-      { to: '/jnt-vip/discrepancy-center', label: 'Discrepancy Center', icon: AlertOctagon },
-      { to: '/jnt-vip/batches', label: 'SOA Batches', icon: Boxes },
-      { to: '/jnt-vip/audit-log', label: 'Audit Log', icon: History },
     ],
   },
   {

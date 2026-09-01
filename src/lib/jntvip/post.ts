@@ -1,6 +1,6 @@
 // J&T VIP — committing import drafts to the database, and undo.
 
-import { db } from '../db'
+import { jntVipDb } from './db'
 import { runJntVipReconciliation } from './reconcile'
 import type { JntVipImportBatchRow, JntVipPosDraft, JntVipPostSummary, JntVipSoaDraft } from './types'
 
@@ -26,9 +26,9 @@ export async function postJntVipPos(drafts: JntVipPosDraft[], fileName: string):
     status: included.length === 0 ? 'failed' : skipped > 0 ? 'partial' : 'success',
     summary: `Imported ${included.length} POS order(s)${skipped > 0 ? `, skipped ${skipped} (duplicate or missing both Order ID and Tracking Number)` : ''}.`,
   }
-  const batchId = await db.jntVipImportBatches.add(batch)
+  const batchId = await jntVipDb.importBatches.add(batch)
 
-  await db.jntVipPosOrders.bulkAdd(
+  await jntVipDb.posOrders.bulkAdd(
     included.map((d) => ({
       batchId,
       orderId: d.orderId,
@@ -82,9 +82,9 @@ export async function postJntVipSoa(
     status: included.length === 0 ? 'failed' : skipped > 0 ? 'partial' : 'success',
     summary: `Imported ${included.length} shipment record(s)${skipped > 0 ? `, skipped ${skipped} (duplicate or missing both Waybill and Order Reference)` : ''}.`,
   }
-  const batchId = await db.jntVipImportBatches.add(batch)
+  const batchId = await jntVipDb.importBatches.add(batch)
 
-  await db.jntVipShipments.bulkAdd(
+  await jntVipDb.shipments.bulkAdd(
     included.map((d) => ({
       batchId,
       trackingNumber: d.trackingNumber,
@@ -118,17 +118,17 @@ export async function postJntVipSoa(
 }
 
 export async function undoJntVipBatch(batchId: number): Promise<void> {
-  const batch = await db.jntVipImportBatches.get(batchId)
+  const batch = await jntVipDb.importBatches.get(batchId)
   if (!batch) return
 
   if (batch.kind === 'pos') {
-    const ids = await db.jntVipPosOrders.where('batchId').equals(batchId).primaryKeys()
-    await db.jntVipPosOrders.bulkDelete(ids)
+    const ids = await jntVipDb.posOrders.where('batchId').equals(batchId).primaryKeys()
+    await jntVipDb.posOrders.bulkDelete(ids)
   } else {
-    const ids = await db.jntVipShipments.where('batchId').equals(batchId).primaryKeys()
-    await db.jntVipShipments.bulkDelete(ids)
+    const ids = await jntVipDb.shipments.where('batchId').equals(batchId).primaryKeys()
+    await jntVipDb.shipments.bulkDelete(ids)
   }
 
-  await db.jntVipImportBatches.update(batchId, { status: 'reversed', reversedAt: new Date().toISOString() })
+  await jntVipDb.importBatches.update(batchId, { status: 'reversed', reversedAt: new Date().toISOString() })
   await runJntVipReconciliation()
 }

@@ -7,7 +7,7 @@
 // hands it — Pancake or otherwise — goes through the same confirm-the-mapping
 // flow as the SOA importer rather than being silently assumed.
 
-import { db } from '../db'
+import { jntVipDb } from './db'
 import { findColumn, findHeaderRow, gridToRecords, toDateString, toNumber, type RawSheet } from '../import/parseFile'
 import { guessHeaderRow } from './columnMap'
 import type { JntVipPosDraft } from './types'
@@ -85,7 +85,7 @@ export function presetPosColumnMap(headers: string[]): Record<PosFieldKey, strin
 
 /** Every tracking number / order ID already imported into J&T VIP POS orders, for duplicate-vs-database detection. */
 export async function existingJntVipPosKeys(): Promise<{ tracking: Set<string>; orderIds: Set<string> }> {
-  const rows = await db.jntVipPosOrders.toArray()
+  const rows = await jntVipDb.posOrders.toArray()
   const tracking = new Set<string>()
   const orderIds = new Set<string>()
   for (const r of rows) {

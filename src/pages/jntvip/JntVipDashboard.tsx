@@ -34,7 +34,7 @@ export default function JntVipDashboard() {
               NPMCM data.
             </p>
             <Link
-              to="/jnt-vip/import"
+              to="/import"
               className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
               style={{ background: 'var(--series-blue)' }}
             >
@@ -57,7 +57,7 @@ export default function JntVipDashboard() {
         }
         actions={
           <Link
-            to="/jnt-vip/import"
+            to="/import"
             className="rounded-lg border px-3 py-1.5 text-xs font-medium"
             style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-secondary)' }}
           >
@@ -90,7 +90,7 @@ export default function JntVipDashboard() {
           title="Top Discrepancies"
           description="Grouped by type, ranked by financial impact. Open items only need a fix — a reviewed item stays visible but no longer counts as open."
           actions={
-            <Link to="/jnt-vip/discrepancy-center" className="text-xs font-medium" style={{ color: 'var(--series-blue)' }}>
+            <Link to="/discrepancy-center" className="text-xs font-medium" style={{ color: 'var(--series-blue)' }}>
               View All Issues →
             </Link>
           }
@@ -124,7 +124,7 @@ export default function JntVipDashboard() {
           title="SOA Batches"
           description="Each imported SOA becomes its own reconciliation batch."
           actions={
-            <Link to="/jnt-vip/batches" className="text-xs font-medium" style={{ color: 'var(--series-blue)' }}>
+            <Link to="/batches" className="text-xs font-medium" style={{ color: 'var(--series-blue)' }}>
               View All Batches →
             </Link>
           }

@@ -11,7 +11,7 @@
 // Call runJntVipReconciliation() after every POS or SOA import commit, and
 // expose it as a manual "Re-run reconciliation" action too.
 
-import { db } from '../db'
+import { jntVipDb } from './db'
 import { computeMatches } from './matching'
 import type { JntVipMatchRow, JntVipPosOrderRow, JntVipShipmentRow, JntVipDiscrepancyType } from './types'
 import type { JntVipPairing } from './matching'
@@ -157,9 +157,9 @@ function applyManualOverride(row: JntVipMatchRow): void {
 
 export async function runJntVipReconciliation(): Promise<void> {
   const [posOrders, shipments, existingMatches] = await Promise.all([
-    db.jntVipPosOrders.toArray(),
-    db.jntVipShipments.toArray(),
-    db.jntVipMatches.toArray(),
+    jntVipDb.posOrders.toArray(),
+    jntVipDb.shipments.toArray(),
+    jntVipDb.matches.toArray(),
   ])
 
   const posById = new Map(posOrders.filter((p) => p.id != null).map((p) => [p.id!, p]))
@@ -212,10 +212,10 @@ export async function runJntVipReconciliation(): Promise<void> {
     .filter((m) => m.id != null && !nextKeys.has(matchKey(m.posOrderId, m.shipmentId)))
     .map((m) => m.id!)
 
-  await db.transaction('rw', db.jntVipMatches, async () => {
-    if (staleIds.length > 0) await db.jntVipMatches.bulkDelete(staleIds)
+  await jntVipDb.transaction('rw', jntVipDb.matches, async () => {
+    if (staleIds.length > 0) await jntVipDb.matches.bulkDelete(staleIds)
     for (const row of toPut) {
-      await db.jntVipMatches.put(row)
+      await jntVipDb.matches.put(row)
     }
   })
 }

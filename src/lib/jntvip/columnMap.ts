@@ -2,11 +2,11 @@
 //
 // Both the POS importer and the SOA importer let the user confirm/adjust
 // which file column feeds which internal field, and remember that mapping
-// in db.meta for next time. We never silently invent a mapping for a field
+// in jntVipDb.meta for next time. We never silently invent a mapping for a field
 // the file doesn't clearly have — an unresolved field is left "— none —"
 // and the user must either map it or accept it's absent.
 
-import { db } from '../db'
+import { jntVipDb } from './db'
 import { findColumn, type HeaderMatch } from '../import/parseFile'
 
 export function guessHeaderRow(grid: unknown[][]): HeaderMatch {
@@ -32,10 +32,10 @@ export function guessColumnMap<K extends string>(
 }
 
 export async function loadSavedMapping(metaKey: string): Promise<Record<string, string | null> | null> {
-  const row = await db.meta.get(metaKey)
+  const row = await jntVipDb.meta.get(metaKey)
   return (row?.value as Record<string, string | null> | undefined) ?? null
 }
 
 export async function saveMapping(metaKey: string, mapping: Record<string, string | null>): Promise<void> {
-  await db.meta.put({ key: metaKey, value: mapping })
+  await jntVipDb.meta.put({ key: metaKey, value: mapping })
 }

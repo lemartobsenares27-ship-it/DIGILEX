@@ -19,13 +19,6 @@ import type {
   AdPerformanceRow,
 } from './types'
 import { DEFAULT_CATEGORIZATION_RULES } from './import/defaultRules'
-import type {
-  JntVipImportBatchRow,
-  JntVipPosOrderRow,
-  JntVipShipmentRow,
-  JntVipMatchRow,
-  JntVipAuditLogRow,
-} from './jntvip/types'
 
 export interface KeyValueRow {
   key: string
@@ -127,16 +120,6 @@ class DigilexDB extends Dexie {
   productNameMappings!: Table<ProductNameMappingRow, number>
   adPerformance!: Table<AdPerformanceRow, number>
 
-  // J&T VIP Fulfillment Reconciliation — a fully independent module for the
-  // new J&T VIP fulfillment partner. Deliberately separate from every table
-  // above (which belong to the existing NPMCM reconciliation system) so this
-  // can be built, changed, or removed without touching that system at all.
-  jntVipImportBatches!: Table<JntVipImportBatchRow, number>
-  jntVipPosOrders!: Table<JntVipPosOrderRow, number>
-  jntVipShipments!: Table<JntVipShipmentRow, number>
-  jntVipMatches!: Table<JntVipMatchRow, number>
-  jntVipAuditLog!: Table<JntVipAuditLogRow, number>
-
   constructor() {
     super('digilex-financial-control-center')
     this.version(1).stores({
@@ -173,12 +156,24 @@ class DigilexDB extends Dexie {
     this.version(4).stores({
       adPerformance: '++id',
     })
+    // J&T VIP reconciliation briefly lived in this database before moving to
+    // its own ('jnt-vip-reconciliation', see lib/jntvip/db.ts). This version
+    // is kept, and the stores dropped, so browsers that already upgraded to
+    // v5 migrate forward cleanly — removing the version outright would make
+    // their stored schema newer than the code and refuse to open.
     this.version(5).stores({
       jntVipImportBatches: '++id, kind, importedAt',
       jntVipPosOrders: '++id, batchId, orderId, trackingNumber',
       jntVipShipments: '++id, batchId, trackingNumber, orderReference',
       jntVipMatches: '++id, posOrderId, shipmentId, soaBatchId, status',
       jntVipAuditLog: '++id, matchId, timestamp',
+    })
+    this.version(6).stores({
+      jntVipImportBatches: null,
+      jntVipPosOrders: null,
+      jntVipShipments: null,
+      jntVipMatches: null,
+      jntVipAuditLog: null,
     })
   }
 }
@@ -683,11 +678,6 @@ export async function resetAndReseed(): Promise<void> {
     db.courierColumnMappings.clear(),
     db.productNameMappings.clear(),
     db.adPerformance.clear(),
-    db.jntVipImportBatches.clear(),
-    db.jntVipPosOrders.clear(),
-    db.jntVipShipments.clear(),
-    db.jntVipMatches.clear(),
-    db.jntVipAuditLog.clear(),
   ])
   await db.meta.delete('seeded')
   await db.meta.delete('dataVersion')
