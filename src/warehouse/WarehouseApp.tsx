@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import WarehouseLayout from './WarehouseLayout'
 import { ensureWarehouseSeeded } from '../lib/warehouse/db'
+import { ensureCatalogueLoaded } from '../lib/warehouse/starterData'
 
 const WarehouseDashboard = lazy(() => import('../pages/warehouse/WarehouseDashboard'))
 const Inventory = lazy(() => import('../pages/warehouse/Inventory'))
@@ -25,8 +26,10 @@ function Loading({ label = 'Loading Warehouse Control Center…' }: { label?: st
 }
 
 /**
- * Seeding here only creates default locations — never stock — so there is no
- * large data load to wait on and nothing that could invent inventory.
+ * Seeding creates the default locations, then loads the real catalogue — but
+ * only into a database that is completely empty. An in-use warehouse is left
+ * exactly as it is; see ensureCatalogueLoaded. A failure to load the catalogue
+ * is not fatal: the app opens anyway with the manual loader in its empty state.
  */
 export default function WarehouseApp() {
   const [ready, setReady] = useState(false)
@@ -34,6 +37,7 @@ export default function WarehouseApp() {
 
   useEffect(() => {
     ensureWarehouseSeeded()
+      .then(() => ensureCatalogueLoaded().catch((e: unknown) => console.warn('Catalogue auto-load skipped:', e)))
       .then(() => setReady(true))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
   }, [])

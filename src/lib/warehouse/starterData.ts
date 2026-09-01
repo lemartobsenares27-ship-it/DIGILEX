@@ -8,7 +8,7 @@
 // Loading is idempotent per SKU/PO number: anything already present is skipped,
 // so pressing the button twice cannot double-count stock.
 
-import { warehouseDb } from './db'
+import { warehouseDb, getWarehouseUser } from './db'
 import { postMovements, logWarehouseAudit } from './inventory'
 import type { ProductRow, PurchaseOrderRow } from './types'
 
@@ -383,4 +383,36 @@ async function removeMisreadBellevineOrder(user: string): Promise<void> {
       })
     }
   }
+}
+
+/**
+ * First run only: a brand-new warehouse database loads the real catalogue by
+ * itself, the same way the financial dashboard seeds from its JSON, so the
+ * pages show your own numbers instead of an empty table.
+ *
+ * It refuses to run if the database holds anything at all — a product, a
+ * movement or a purchase order — so it can never inject stock into a warehouse
+ * that is already in use. It records that it ran either way, so deleting
+ * products later does not bring them back on the next reload. The manual
+ * "Load my real catalogue" button stays for that case.
+ */
+export async function ensureCatalogueLoaded(): Promise<void> {
+  const flag = await warehouseDb.meta.get('catalogueSeeded')
+  if (flag?.value) return
+
+  const [products, movements, pos] = await Promise.all([
+    warehouseDb.products.count(),
+    warehouseDb.movements.count(),
+    warehouseDb.purchaseOrders.count(),
+  ])
+  if (products > 0 || movements > 0 || pos > 0) {
+    await warehouseDb.meta.put({ key: 'catalogueSeeded', value: 'skipped-existing-data' })
+    return
+  }
+
+  const warehouse = await warehouseDb.locations.where('kind').equals('warehouse').first()
+  if (warehouse?.id == null) return // locations not seeded yet — retry on the next load
+
+  await loadStarterData(warehouse.id, (await getWarehouseUser()) || 'Lemart')
+  await warehouseDb.meta.put({ key: 'catalogueSeeded', value: true })
 }

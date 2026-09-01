@@ -208,8 +208,13 @@ Products also carry `unitsPerPack`, because suppliers sell packs (20 bottles,
 
 ### Reading the Inventory and Purchases pages
 
-Both pages open with the catalogue loader when they are empty, so a fresh
-browser is one button away from real data rather than a dead end.
+A brand-new warehouse database loads the real catalogue on first open, the same
+way the financial dashboard seeds from its JSON, so the pages open onto your own
+numbers. That auto-load refuses to run if the database holds anything at all —
+a product, a movement or a purchase order — so it can never inject stock into a
+warehouse already in use, and it records that it ran, so deleting products later
+does not bring them back. The manual "Load my real catalogue" button remains in
+every empty state for that case.
 
 **Inventory** groups SKUs by kind (finished goods, simple, components,
 consumables) with a per-group subtotal, and leads with a bar showing sellable
