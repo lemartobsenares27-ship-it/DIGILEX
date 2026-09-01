@@ -185,6 +185,36 @@ class DigilexDB extends Dexie {
 
 export const db = new DigilexDB()
 
+/**
+ * What startup is currently doing. The loading screen reads this so a slow
+ * first-time seed (normal, self-resolving) never gets misreported as a
+ * blocked upgrade (needs the user to close a tab) — the two look identical
+ * from the outside but call for completely different action.
+ */
+export type SeedPhase = 'starting' | 'downloading' | 'writing' | 'blocked' | 'ready'
+
+let seedPhase: SeedPhase = 'starting'
+const seedPhaseListeners = new Set<(phase: SeedPhase) => void>()
+
+function setSeedPhase(phase: SeedPhase): void {
+  // A real block outranks routine progress, but any later progress means the
+  // block cleared (the other tab closed) — so let non-'blocked' phases through.
+  seedPhase = phase
+  for (const listener of seedPhaseListeners) listener(phase)
+}
+
+export function getSeedPhase(): SeedPhase {
+  return seedPhase
+}
+
+export function onSeedPhase(listener: (phase: SeedPhase) => void): () => void {
+  seedPhaseListeners.add(listener)
+  listener(seedPhase)
+  return () => {
+    seedPhaseListeners.delete(listener)
+  }
+}
+
 // If another tab has an older schema version open, IndexedDB blocks this
 // tab's upgrade indefinitely until that connection closes. Ask the older
 // tab to close itself, and surface the (otherwise silent) block here.
@@ -194,6 +224,7 @@ db.on('versionchange', () => {
 })
 db.on('blocked', () => {
   console.warn('Digilex database upgrade is blocked by another open tab of this app.')
+  setSeedPhase('blocked')
 })
 
 async function loadJson<T>(name: string): Promise<T> {
@@ -224,6 +255,11 @@ async function ensureDerivedDataFresh(): Promise<void> {
   const stored = await db.meta.get('dataVersion')
   if (stored?.value === DATA_VERSION) return
 
+  // Refreshing pulls several megabytes of JSON and rewrites thousands of rows,
+  // so this is the other path (besides a first-ever seed) that can legitimately
+  // run well past the loading screen's patience threshold.
+  setSeedPhase('downloading')
+
   const [
     ordersDatabase,
     fulfillmentSOAReconciliation,
@@ -243,6 +279,8 @@ async function ensureDerivedDataFresh(): Promise<void> {
     loadJson<{ rows: FollowUpRow[] }>('followUpList'),
     loadJson<{ rows: IncomeRow[] }>('incomeTracker'),
   ])
+
+  setSeedPhase('writing')
 
   await db.transaction(
     'rw',
@@ -303,8 +341,14 @@ async function ensureSeededOnce(): Promise<void> {
     await ensureMonthlyPLJuneCorrection()
     await ensureAprilAdSpendBackfill()
     await ensureDerivedDataFresh()
+    setSeedPhase('ready')
     return
   }
+
+  // First run in this browser: every JSON file below is fetched and then
+  // written row by row into IndexedDB. On a slow connection or a low-powered
+  // phone this genuinely takes a while — it is not a hang.
+  setSeedPhase('downloading')
 
   const [
     incomeTracker,
@@ -363,6 +407,8 @@ async function ensureSeededOnce(): Promise<void> {
     ...m.expenses.map((e) => ({ ...e, month: m.month, section: 'EXPENSES' as const })),
   ])
 
+  setSeedPhase('writing')
+
   await db.transaction(
     'rw',
     [
@@ -416,6 +462,7 @@ async function ensureSeededOnce(): Promise<void> {
     },
   )
   await ensureDefaultCategorizationRules()
+  setSeedPhase('ready')
 }
 
 export async function ensureDefaultCategorizationRules(): Promise<void> {

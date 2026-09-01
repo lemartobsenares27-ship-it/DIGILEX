@@ -1,7 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
-import { ensureSeeded } from './lib/db'
+import { ensureSeeded, onSeedPhase, type SeedPhase } from './lib/db'
 
 const Overview = lazy(() => import('./pages/Overview'))
 const KPIScorecard = lazy(() => import('./pages/KPIScorecard'))
@@ -31,7 +31,15 @@ const JntVipDiscrepancyCenter = lazy(() => import('./pages/jntvip/JntVipDiscrepa
 const JntVipBatches = lazy(() => import('./pages/jntvip/JntVipBatches'))
 const JntVipAuditLog = lazy(() => import('./pages/jntvip/JntVipAuditLog'))
 
-function LoadingScreen({ label, error }: { label: string; error?: string | null }) {
+function LoadingScreen({
+  label,
+  error,
+  showReload = true,
+}: {
+  label: string
+  error?: string | null
+  showReload?: boolean
+}) {
   return (
     <div className="flex h-screen flex-col items-center justify-center gap-3 px-6 text-center" style={{ background: 'var(--surface-page)' }}>
       <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
@@ -39,34 +47,47 @@ function LoadingScreen({ label, error }: { label: string; error?: string | null 
       </div>
       {error && (
         <>
-          <p className="max-w-md text-sm" style={{ color: 'var(--status-critical)' }}>
+          <p className="max-w-md text-sm" style={{ color: 'var(--text-secondary)' }}>
             {error}
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
-            style={{ background: 'var(--series-blue)' }}
-          >
-            Reload
-          </button>
+          {showReload && (
+            <button
+              onClick={() => window.location.reload()}
+              className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
+              style={{ background: 'var(--series-blue)' }}
+            >
+              Reload
+            </button>
+          )}
         </>
       )}
     </div>
   )
 }
 
+const PHASE_LABEL: Record<SeedPhase, string> = {
+  starting: 'Loading Digilex Financial Control Center…',
+  downloading: 'Downloading your order and financial history…',
+  writing: 'Setting up your local database — this only happens once…',
+  blocked: 'Waiting on another browser tab…',
+  ready: 'Loading Digilex Financial Control Center…',
+}
+
 export default function App() {
   const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [slow, setSlow] = useState(false)
+  const [phase, setPhase] = useState<SeedPhase>('starting')
+
+  useEffect(() => onSeedPhase(setPhase), [])
 
   useEffect(() => {
     let settled = false
+    // Note this only flips a "still working" flag. Seeding keeps running, and
+    // the .then below still reveals the app whenever it finishes — a slow load
+    // recovers on its own without the user touching anything.
     const timeout = setTimeout(() => {
-      if (!settled) {
-        setError(
-          'This is taking longer than expected. If this app is open in another browser tab, close that tab and reload. Otherwise, try reloading this page.',
-        )
-      }
+      if (!settled) setSlow(true)
     }, 12000)
 
     ensureSeeded()
@@ -85,7 +106,18 @@ export default function App() {
   }, [])
 
   if (!ready) {
-    return <LoadingScreen label="Loading Digilex Financial Control Center…" error={error} />
+    // A blocked upgrade is the one case that genuinely needs the user to act,
+    // and Dexie tells us precisely when that's happening — so only then do we
+    // mention other tabs. Everything else is just slow, and says so honestly.
+    const notice =
+      error ??
+      (phase === 'blocked'
+        ? 'Another tab has this app open on an older version, which is holding the database. Close that tab — this page will continue on its own, no reload needed.'
+        : slow
+          ? 'Still working. The first load on a new browser downloads your full order history and writes it into local storage, which can take a minute on a slow connection. This finishes on its own — you can leave this page open.'
+          : null)
+
+    return <LoadingScreen label={PHASE_LABEL[phase]} error={notice} showReload={!!error || (slow && phase !== 'blocked')} />
   }
 
   return (
