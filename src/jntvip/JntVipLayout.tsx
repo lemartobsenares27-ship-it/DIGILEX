@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { PackageCheck, UploadCloud, Table2, AlertOctagon, Boxes, History, Sun, Moon, Menu, ExternalLink } from 'lucide-react'
+import { PackageCheck, UploadCloud, Table2, AlertOctagon, Boxes, History, Sun, Moon, Menu } from 'lucide-react'
 import { useTheme } from '../hooks/useTheme'
+import AppSwitcher from '../components/AppSwitcher'
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: PackageCheck },
@@ -43,6 +44,8 @@ export default function JntVipLayout() {
           </div>
         </div>
 
+        <AppSwitcher current="jntvip" />
+
         <nav className="flex-1 px-3 pb-4">
           <div className="flex flex-col gap-0.5">
             {NAV.map(({ to, label, icon: Icon }) => (
@@ -65,17 +68,6 @@ export default function JntVipLayout() {
             ))}
           </div>
         </nav>
-
-        <div className="border-t px-3 py-3" style={{ borderColor: 'var(--border-hairline)' }}>
-          <a
-            href="../"
-            className="flex items-center gap-2 rounded-lg px-2.5 py-2 text-xs transition-colors"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            <ExternalLink size={14} />
-            Digilex Financial Dashboard
-          </a>
-        </div>
       </aside>
 
       {mobileOpen && (

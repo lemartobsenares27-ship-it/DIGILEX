@@ -44,12 +44,14 @@ in-browser edits and reseeds from the regenerated JSON).
 ## J&T VIP Reconciliation (separate application)
 
 J&T VIP is a different fulfillment partner, so it gets a **separate app**,
-not a section of this one. This repo builds two independent front-ends:
+not a section of this one. This repo builds three independent front-ends,
+with tabs in each sidebar to switch between them:
 
 | App | Entry | URL | Database |
 | --- | --- | --- | --- |
 | Digilex Financial Control Center | `index.html` | `/` | `digilex-financial-control-center` |
 | J&T VIP Reconciliation | `jnt-vip/index.html` | `/jnt-vip/` | `jnt-vip-reconciliation` |
+| Warehouse & Inventory Control | `warehouse/index.html` | `/warehouse/` | `warehouse-inventory-control` |
 
 They share React components and parsing utilities at build time and **nothing
 at runtime** — separate IndexedDB databases, separate schema versions,
@@ -124,6 +126,71 @@ Confirmed against an actual SOA (`MNL-V7973`, SOA `VIP-979278`, Mar 4–7 2023):
   sides actually carry the AWB/tracking number.
 - **A batch shows a nonzero total difference with no row-level flags** — the
   gap is J&T's fees and adjustments in net settlement, not a discrepancy.
+
+## Warehouse & Inventory Control (separate application)
+
+The third independent system. Same pattern as J&T VIP: its own entry point,
+its own database (`warehouse-inventory-control`), its own nav. Vigilex, the
+J&T VIP reconciliation and the POS import are untouched by it.
+
+### The core rule: balances are never stored
+
+There is no `quantity` column anywhere. Every number — available, reserved,
+with fulfillment, damaged, missing — is derived by summing an append-only
+movement ledger, where each movement records
+`from (location, state) → to (location, state)`.
+
+That is what lets the system answer *why* you have 823 units instead of just
+asserting 823. Open any SKU and its movement history is the derivation.
+(Vigilex has a `products.quantityOnHand` field that the POS and purchase-order
+imports increment and decrement — that is the single-number approach this
+system deliberately does not use, and it is left alone.)
+
+### Inventory states
+
+`AVAILABLE`, `RESERVED`, `IN_FULFILLMENT`, `IN_TRANSIT`, `RTS`,
+`FOR_INSPECTION`, `DAMAGED`, `DEFECTIVE`, `MISSING`, `LOST`, `QUARANTINE`,
+`EXPIRED`, `DISPOSED`.
+
+A unit is in exactly one state at one location. Changing state is a movement,
+so "this RTS turned out to be damaged" is an auditable event, not a silent edit.
+
+- **Sellable** = available − reserved. Reserved units are physically present
+  but already promised, so they are never offered twice.
+- **Physical** = everything you own, wherever it sits (excludes write-offs).
+- **Incoming** = outstanding quantity on open POs — explicitly *not* stock.
+
+### Operations, each atomic
+
+| Operation | Ledger effect |
+| --- | --- |
+| Receive | → AVAILABLE, with damaged units split off to DAMAGED and any shortfall against expected flagged |
+| Send to fulfillment | warehouse AVAILABLE → partner IN_FULFILLMENT |
+| RTS received | partner IN_FULFILLMENT → warehouse FOR_INSPECTION (never straight to sellable) |
+| Inspection | FOR_INSPECTION → AVAILABLE / DAMAGED / DEFECTIVE / QUARANTINE / DISPOSED |
+| Transfer sent | source AVAILABLE → destination IN_TRANSIT |
+| Transfer received | IN_TRANSIT → AVAILABLE, shortfall → MISSING |
+| Stock count | difference posted as an ADJUSTMENT with a reason; short counts land in MISSING |
+
+Outbound movements are refused if they would drive a bucket negative, and a
+multi-leg operation is checked as a whole before any leg is written — so a
+transfer can never deduct from one place without arriving at the other.
+
+### Verified end to end
+
+A browser test drives the full lifecycle and asserts the derived balances:
+receive 98-of-100 with 1 damaged (→ 97 available, 1 damaged, −2 discrepancy
+flagged); oversend blocked; 40 to fulfillment; 10 RTS (available unchanged,
+inspection 10, fulfillment 30); inspected damaged (→ damaged 11, available
+still 57); counted 50 vs ledger 57 (→ adjusted, 7 missing); PO for 500
+(→ incoming 500, available still 50).
+
+### Not built yet
+
+Barcode scanning, FEFO/FIFO allocation, expiry alerting, order reservation
+from POS, bulk import, and PDF reports are designed for but not implemented —
+the schema carries `batchNo`, `expiryDate` and the `RESERVED` state so they
+can be added without reshaping the ledger.
 
 ## Development
 

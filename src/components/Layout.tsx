@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTheme } from '../hooks/useTheme'
+import AppSwitcher from './AppSwitcher'
 import { useLiveTable } from '../hooks/useLiveTable'
 import { db, DATA_VERSION_LABEL } from '../lib/db'
 
@@ -131,6 +132,8 @@ export default function Layout() {
             </div>
           </div>
         </div>
+        <AppSwitcher current="digilex" />
+
         <nav className="px-3 pb-8">
           {nav.map((group) => (
             <div key={group.title} className="mb-5">
