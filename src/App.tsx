@@ -24,6 +24,12 @@ const FollowUpList = lazy(() => import('./pages/FollowUpList'))
 const ParcelsMonitoring = lazy(() => import('./pages/ParcelsMonitoring'))
 const ImportCenter = lazy(() => import('./pages/ImportCenter'))
 const SettingsPage = lazy(() => import('./pages/Settings'))
+const JntVipDashboard = lazy(() => import('./pages/jntvip/JntVipDashboard'))
+const JntVipImport = lazy(() => import('./pages/jntvip/JntVipImport'))
+const JntVipReconciliation = lazy(() => import('./pages/jntvip/JntVipReconciliation'))
+const JntVipDiscrepancyCenter = lazy(() => import('./pages/jntvip/JntVipDiscrepancyCenter'))
+const JntVipBatches = lazy(() => import('./pages/jntvip/JntVipBatches'))
+const JntVipAuditLog = lazy(() => import('./pages/jntvip/JntVipAuditLog'))
 
 function LoadingScreen({ label, error }: { label: string; error?: string | null }) {
   return (
@@ -106,6 +112,12 @@ export default function App() {
           <Route path="/follow-up" element={<FollowUpList />} />
           <Route path="/parcels-monitoring" element={<ParcelsMonitoring />} />
           <Route path="/import-center" element={<ImportCenter />} />
+          <Route path="/jnt-vip" element={<JntVipDashboard />} />
+          <Route path="/jnt-vip/import" element={<JntVipImport />} />
+          <Route path="/jnt-vip/reconciliation" element={<JntVipReconciliation />} />
+          <Route path="/jnt-vip/discrepancy-center" element={<JntVipDiscrepancyCenter />} />
+          <Route path="/jnt-vip/batches" element={<JntVipBatches />} />
+          <Route path="/jnt-vip/audit-log" element={<JntVipAuditLog />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>
