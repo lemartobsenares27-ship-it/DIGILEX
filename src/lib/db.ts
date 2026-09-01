@@ -191,7 +191,7 @@ export const db = new DigilexDB()
  * blocked upgrade (needs the user to close a tab) — the two look identical
  * from the outside but call for completely different action.
  */
-export type SeedPhase = 'starting' | 'downloading' | 'writing' | 'blocked' | 'ready'
+export type SeedPhase = 'starting' | 'opening' | 'stuck' | 'downloading' | 'writing' | 'blocked' | 'ready'
 
 let seedPhase: SeedPhase = 'starting'
 const seedPhaseListeners = new Set<(phase: SeedPhase) => void>()
@@ -332,7 +332,41 @@ export function ensureSeeded(): Promise<void> {
   return seedingPromise
 }
 
+/**
+ * Opening the database is the one step that can hang with no error and no
+ * 'blocked' event — a half-finished schema upgrade or a browser holding a
+ * stale connection both look like silence. Open it explicitly so a stall is
+ * detectable, and flag it so the UI can offer a way out instead of spinning
+ * forever. The open is still awaited: if it eventually succeeds, startup
+ * simply carries on.
+ */
+async function openDatabase(): Promise<void> {
+  setSeedPhase('opening')
+  const watchdog = setTimeout(() => setSeedPhase('stuck'), 8000)
+  try {
+    await db.open()
+  } finally {
+    clearTimeout(watchdog)
+  }
+}
+
+/**
+ * Last-resort recovery for a database that will not open. Deletes the local
+ * copy so the next load reseeds from the shipped JSON. This discards anything
+ * only stored locally (hand edits, imported batches), so it is only ever
+ * offered explicitly, never triggered automatically.
+ */
+export async function resetLocalDatabase(): Promise<void> {
+  try {
+    db.close()
+  } catch {
+    // closing a database that never opened is fine — deletion is what matters
+  }
+  await db.delete()
+}
+
 async function ensureSeededOnce(): Promise<void> {
+  await openDatabase()
   const seeded = await db.meta.get('seeded')
   if (seeded?.value) {
     await ensureDefaultCategorizationRules()
