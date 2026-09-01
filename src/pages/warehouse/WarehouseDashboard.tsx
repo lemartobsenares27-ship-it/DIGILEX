@@ -6,7 +6,7 @@ import StatTile from '../../components/StatTile'
 import Card from '../../components/Card'
 import { formatCurrency, formatNumber } from '../../lib/format'
 import { useInventory } from './hooks'
-import { EmptyState } from './FormBits'
+import { CatalogueEmptyState } from './CatalogueLoader'
 
 export default function WarehouseDashboard() {
   const { rows, rtsReturns, purchaseOrders, movements, locations } = useInventory()
@@ -70,14 +70,17 @@ export default function WarehouseDashboard() {
           description="Complete visibility over physical inventory — what you have, where it is, what moved, and what needs attention."
         />
         <Card>
-          <EmptyState
-            message="No products yet. Add your SKUs first, then receive stock against them — every unit in this system belongs to a product and carries a full movement history."
-            action={
-              <Link to="/products" className="rounded-lg px-4 py-2 text-sm font-semibold text-white" style={{ background: 'var(--series-aqua)' }}>
-                Add your first product
-              </Link>
-            }
+          <CatalogueEmptyState
+            heading="Nothing in the warehouse yet"
+            message="Every unit in this system belongs to a product and carries a full movement history, and there are no products yet. Load the catalogue transcribed from your real supplier orders to see the whole thing working with your own numbers."
           />
+          <p className="pb-2 text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+            Prefer to start clean?{' '}
+            <Link to="/products" style={{ color: 'var(--series-aqua)' }}>
+              Add your first product by hand
+            </Link>
+            .
+          </p>
         </Card>
       </div>
     )

@@ -8,6 +8,7 @@ import { useInventory } from './hooks'
 import { Field, TextInput, TextArea, Select, SubmitButton, ErrorNote, SuccessNote, locationOptions } from './FormBits'
 import type { ProductRow } from '../../lib/warehouse/types'
 import { loadStarterData } from '../../lib/warehouse/starterData'
+import { LoadCatalogueButton } from './CatalogueLoader'
 import { getWarehouseUser } from '../../lib/warehouse/db'
 import { useEffect } from 'react'
 
@@ -166,15 +167,7 @@ export default function Products() {
         title="Products"
         description="The product master. Deactivating a product hides it from pickers but keeps its history intact — nothing is ever deleted out from under the ledger."
         actions={
-          <button
-            onClick={loadReal}
-            disabled={loadingStarter}
-            className="rounded-lg border px-3 py-1.5 text-xs font-medium disabled:opacity-50"
-            style={{ borderColor: 'var(--border-hairline)', color: 'var(--series-aqua)' }}
-            title="Seeds the catalogue transcribed from your real supplier orders. Running it twice is safe."
-          >
-            {loadingStarter ? 'Loading…' : 'Load my real catalogue'}
-          </button>
+          <LoadCatalogueButton load={loadReal} busy={loadingStarter} ready variant="quiet" />
         }
       />
 

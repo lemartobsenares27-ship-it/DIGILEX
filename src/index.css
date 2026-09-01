@@ -23,6 +23,13 @@
   --status-serious: #ec835a;
   --status-critical: #d03b3b;
 
+  /* Readable-on-surface variants of the status hues, for status text, pills and
+     small marks. #fab219 is only 1.79:1 on the light surface — fine as a large
+     fill, unreadable as a label. Added rather than substituted so nothing that
+     already uses --status-* changes appearance. */
+  --status-good-ink: #0a8a0a;
+  --status-warning-ink: #a86e00;
+
   color-scheme: light;
 }
 
@@ -44,6 +51,9 @@
   --series-magenta: #d55181;
   --series-orange: #d95926;
 
+  --status-good-ink: #0ca30c;
+  --status-warning-ink: #fab219;
+
   color-scheme: dark;
 }
 
@@ -56,6 +66,8 @@
     --text-muted: #898781;
     --border-hairline: #2c2c2a;
     --border-strong: #383835;
+    --status-good-ink: #0ca30c;
+    --status-warning-ink: #fab219;
     color-scheme: dark;
   }
 }

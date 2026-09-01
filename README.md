@@ -206,6 +206,32 @@ half-consume a recipe.
 Products also carry `unitsPerPack`, because suppliers sell packs (20 bottles,
 50 foam seals) while the ledger counts pieces.
 
+### Reading the Inventory and Purchases pages
+
+Both pages open with the catalogue loader when they are empty, so a fresh
+browser is one button away from real data rather than a dead end.
+
+**Inventory** groups SKUs by kind (finished goods, simple, components,
+consumables) with a per-group subtotal, and leads with a bar showing sellable
+against that product's target, ticked at its reorder point — the bar is why the
+row is flagged, not decoration. Status wears the reserved status palette and
+always ships with an icon and a word, so colour alone never carries the meaning.
+Columns are grouped Stock level / Where it sits / Issues / Planning / Value, and
+zero renders as an em dash so real numbers stand out.
+
+**Purchases** separates the reorder center (what to buy, with estimated spend
+and a "Draft PO line" button that pre-fills the form) from the purchase orders
+themselves. A PO is a multi-line draft you build up before creating, each row
+carries a received-against-ordered bar, and expanding one shows its line items
+with remaining quantity, line value and current stock. Closed and cancelled POs
+are hidden until you ask for them; cancelling keeps the record and only stops
+its units counting as incoming.
+
+`--status-good-ink` / `--status-warning-ink` were added to the theme for status
+*text*: `--status-warning` is 1.79:1 on the light surface, fine as a large fill
+and unreadable as a label. They are additions, not substitutions, so nothing
+that already used `--status-*` changed appearance.
+
 ### Not built yet
 
 Barcode scanning, FEFO/FIFO allocation, expiry alerting, order reservation
