@@ -7,6 +7,9 @@ import { logWarehouseAudit } from '../../lib/warehouse/inventory'
 import { useInventory } from './hooks'
 import { Field, TextInput, TextArea, Select, SubmitButton, ErrorNote, SuccessNote, locationOptions } from './FormBits'
 import type { ProductRow } from '../../lib/warehouse/types'
+import { loadStarterData } from '../../lib/warehouse/starterData'
+import { getWarehouseUser } from '../../lib/warehouse/db'
+import { useEffect } from 'react'
 
 const KINDS = [
   { value: 'COMPONENT', label: 'Component — consumed to build something' },
@@ -43,8 +46,36 @@ export default function Products() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<string | null>(null)
+  const [loadingStarter, setLoadingStarter] = useState(false)
+  const [user, setUser] = useState('')
+
+  useEffect(() => {
+    getWarehouseUser().then(setUser)
+  }, [])
 
   const set = (k: keyof typeof EMPTY) => (v: string) => setForm((f) => ({ ...f, [k]: v }))
+
+  // Seeds the catalogue transcribed from the real supplier orders. Idempotent:
+  // known SKUs, PO numbers and delivery references are skipped, so a second
+  // press cannot double-count stock.
+  async function loadReal() {
+    setError(null)
+    setResult(null)
+    const warehouse = locations.find((l) => l.kind === 'warehouse')
+    if (!warehouse?.id) return setError('No warehouse location found to receive stock into.')
+    setLoadingStarter(true)
+    try {
+      const r = await loadStarterData(warehouse.id, user.trim() || 'Lemart')
+      setResult(
+        `Loaded ${r.productsAdded} product(s), ${r.bomLinesAdded} recipe line(s), ${r.receiptsPosted} delivery receipt(s) and ${r.posCreated} open purchase order(s).` +
+          (r.skipped.length ? ` Skipped ${r.skipped.length} item(s) already present.` : ''),
+      )
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setLoadingStarter(false)
+    }
+  }
 
   function startEdit(id: number) {
     const row = rows.find((r) => r.product.id === id)
@@ -134,6 +165,17 @@ export default function Products() {
       <PageHeader
         title="Products"
         description="The product master. Deactivating a product hides it from pickers but keeps its history intact — nothing is ever deleted out from under the ledger."
+        actions={
+          <button
+            onClick={loadReal}
+            disabled={loadingStarter}
+            className="rounded-lg border px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+            style={{ borderColor: 'var(--border-hairline)', color: 'var(--series-aqua)' }}
+            title="Seeds the catalogue transcribed from your real supplier orders. Running it twice is safe."
+          >
+            {loadingStarter ? 'Loading…' : 'Load my real catalogue'}
+          </button>
+        }
       />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
