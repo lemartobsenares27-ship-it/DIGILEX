@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { PackageCheck, UploadCloud, Table2, AlertOctagon, Boxes, History, ShieldCheck, Wallet, Sun, Moon, Menu } from 'lucide-react'
+import { PackageCheck, UploadCloud, Table2, AlertOctagon, Boxes, History, ShieldCheck, Wallet, BookOpen, Sun, Moon, Menu } from 'lucide-react'
 import { useTheme } from '../hooks/useTheme'
 import AppSwitcher from '../components/AppSwitcher'
 
@@ -9,6 +9,7 @@ const NAV = [
   { to: '/import', label: 'Import', icon: UploadCloud },
   { to: '/soa-check', label: 'SOA Check', icon: ShieldCheck },
   { to: '/finance', label: 'Finance', icon: Wallet },
+  { to: '/bookkeeping', label: 'Monthly Bookkeeping', icon: BookOpen },
   { to: '/reconciliation', label: 'Reconciliation Table', icon: Table2 },
   { to: '/discrepancy-center', label: 'Discrepancy Center', icon: AlertOctagon },
   { to: '/batches', label: 'SOA Batches', icon: Boxes },
