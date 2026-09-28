@@ -116,6 +116,13 @@ account: J&T bills the account, not the brand.
 Two rules the engine encodes, both confirmed to the centavo against real
 statements (`SOA202608280830MNL-V11913` and `SOA202608310831MNL-V11913`):
 
+- **RTS is 50% of the returned parcel's own base freight**, not a flat fee. It
+  looked flat at ₱30 across the first two statements because those parcels
+  happened to share a ₱60 freight; a month of statements disproved it. Verified
+  to the centavo on twelve independent windows, including two single-return
+  windows where there is no ambiguity (₱60 freight → ₱30 RTS, ₱90 → ₱45). Note
+  it is half of *Receivable Freight*, not *Total Shipping Cost* — the ₱5–8
+  per-parcel surcharge is outside the RTS basis.
 - **Commission is 2.75% per parcel, floored to the centavo, then summed** — not
   2.75% of the grand total. A flat rate on the total is off by a few centavos
   and looks like an error when it is not. Flooring per parcel lands slightly in
@@ -127,6 +134,19 @@ statements (`SOA202608280830MNL-V11913` and `SOA202608310831MNL-V11913`):
 
 All arithmetic runs in integer centavos, because money in floating point is how
 reconciliations acquire phantom one-centavo differences.
+
+Statement PDFs import **in bulk** — a month is twenty-odd files, and typing
+eleven figures each is how mistakes get in. Each PDF's text layer is read
+directly (no OCR), its own arithmetic re-derived, and the statement filed in the
+Finance ledger. A statement already present with identical figures is **skipped**
+so it is not counted twice; the same SOA number with *different* figures means
+J&T reissued the period and is flagged **REISSUED** rather than quietly
+overwritten. Neither path touches a recorded payment.
+
+The commonest false discrepancy has a named warning: a parcel dispatched before
+your export's start date but delivered inside the period is in no export, so COD
+and RTS both read short. That is a truncated export, not an overcharge, and the
+check says so rather than letting you chase J&T for it.
 
 Parcels are **upserted by waybill number**, never appended: a parcel's status
 matures over days (In Transit → Delivering → Delivered or Returned), so a later

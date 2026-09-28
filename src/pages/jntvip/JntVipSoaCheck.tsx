@@ -12,6 +12,7 @@ import {
   MinusCircle,
   AlertTriangle,
   FileSpreadsheet,
+  FileText,
   Trash2,
   Download,
 } from 'lucide-react'
@@ -24,6 +25,7 @@ import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
 import { parseWaybillFile, importParcels, PARCEL_STATUS_LABEL, type WaybillImportResult } from '../../lib/jntvip/waybill'
 import { checkSoa, rtsByWeek, rtsSummary, DEFAULT_TERMS, type SoaStated, type CheckedLine } from '../../lib/jntvip/soaCheck'
+import { importSoaPdfBatch, type BatchResult, type BatchOutcome } from '../../lib/jntvip/soaBulk'
 import type { JntVipParcelRow } from '../../lib/jntvip/types'
 
 /** Centavos in, pesos out — the engine works in integers throughout. */
@@ -90,11 +92,14 @@ export default function JntVipSoaCheck() {
   const [importResult, setImportResult] = useState<WaybillImportResult | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
   const [soa, setSoa] = useState<SoaStated>({ ...EMPTY_SOA })
-  const [rtsFeeRate, setRtsFeeRate] = useState(String(DEFAULT_TERMS.rtsFeePerParcel))
+  const [rtsFeeRate, setRtsFeeRate] = useState(String(DEFAULT_TERMS.rtsShareOfFreight * 100))
   const [saved, setSaved] = useState<string | null>(null)
+  const pdfRef = useRef<HTMLInputElement>(null)
+  const [pdfBusy, setPdfBusy] = useState<{ done: number; total: number } | null>(null)
+  const [batch, setBatch] = useState<BatchResult | null>(null)
 
   const terms = useMemo(
-    () => ({ ...DEFAULT_TERMS, rtsFeePerParcel: Number(rtsFeeRate) || DEFAULT_TERMS.rtsFeePerParcel }),
+    () => ({ ...DEFAULT_TERMS, rtsShareOfFreight: (Number(rtsFeeRate) || 50) / 100 }),
     [rtsFeeRate],
   )
 
@@ -125,6 +130,20 @@ export default function JntVipSoaCheck() {
     } finally {
       setImporting(false)
       if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  // Statement PDFs, many at a time — a month of daily SOAs is twenty files,
+  // and typing eleven figures each is how mistakes get in.
+  async function onPdfs(files: File[]) {
+    setBatch(null)
+    setPdfBusy({ done: 0, total: files.length })
+    try {
+      const result = await importSoaPdfBatch(files, parcels, terms)
+      setBatch(result)
+    } finally {
+      setPdfBusy(null)
+      if (pdfRef.current) pdfRef.current.value = ''
     }
   }
 
@@ -240,6 +259,84 @@ export default function JntVipSoaCheck() {
           )
         }
       />
+
+      {/* 0 — statement PDFs, the fast path */}
+      <Card
+        title="Import statement PDFs"
+        description="Drop in as many J&T SOA PDFs as you like. Each one is read, its own arithmetic checked, and filed in the Finance ledger as unpaid. Duplicates are skipped; a reissued period is flagged."
+        className="mb-4"
+      >
+        <input
+          ref={pdfRef}
+          type="file"
+          accept=".pdf"
+          multiple
+          className="hidden"
+          onChange={(e) => e.target.files?.length && onPdfs(Array.from(e.target.files))}
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={() => pdfRef.current?.click()}
+            disabled={pdfBusy != null}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+            style={{ background: 'var(--series-aqua)' }}
+          >
+            <FileText size={13} /> {pdfBusy ? `Reading ${pdfBusy.total} file(s)…` : 'Choose SOA PDFs'}
+          </button>
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            Import the parcel export below first and each statement is also checked against your parcels.
+          </span>
+        </div>
+
+        {batch && (
+          <div className="mt-3">
+            <div className="mb-2 text-xs" style={{ color: 'var(--text-primary)' }}>
+              {formatNumber(batch.saved)} saved · {formatNumber(batch.duplicates)} duplicate(s) skipped ·{' '}
+              {formatNumber(batch.reissued)} reissued · {formatNumber(batch.failed)} failed
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-collapse text-xs">
+                <thead>
+                  <tr style={{ background: 'color-mix(in srgb, var(--text-primary) 4%, transparent)' }}>
+                    {['Statement', 'Period', 'COD', 'Net', 'Result', 'Note'].map((h) => (
+                      <th key={h} className="whitespace-nowrap px-2 py-1.5 text-left font-semibold" style={{ color: 'var(--text-secondary)' }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {batch.items.map((it, i) => (
+                    <tr key={i} className="border-t" style={{ borderColor: 'var(--border-hairline)' }}>
+                      <td className="px-2 py-1.5" style={{ color: 'var(--text-primary)' }}>
+                        {it.parsed?.soaNumber ?? it.fileName}
+                      </td>
+                      <td className="whitespace-nowrap px-2 py-1.5" style={{ color: 'var(--text-secondary)' }}>
+                        {it.parsed ? (it.parsed.periodFrom === it.parsed.periodTo ? it.parsed.periodFrom : `${it.parsed.periodFrom} → ${it.parsed.periodTo}`) : '—'}
+                      </td>
+                      <td className="px-2 py-1.5 tabular" style={{ color: 'var(--text-secondary)' }}>
+                        {it.parsed ? '₱' + it.parsed.codCollected.toLocaleString('en-PH', { minimumFractionDigits: 2 }) : '—'}
+                      </td>
+                      <td className="px-2 py-1.5 tabular" style={{ color: (it.parsed?.netRemittance ?? 0) < 0 ? 'var(--status-critical)' : 'var(--text-primary)' }}>
+                        {it.parsed ? '₱' + it.parsed.netRemittance.toLocaleString('en-PH', { minimumFractionDigits: 2 }) : '—'}
+                      </td>
+                      <td className="whitespace-nowrap px-2 py-1.5">
+                        <OutcomePill outcome={it.outcome} />
+                      </td>
+                      <td className="px-2 py-1.5" style={{ color: it.outcome === 'FAILED' ? 'var(--status-critical)' : 'var(--text-muted)' }}>
+                        {it.error ?? it.message}
+                        {it.parsed && it.parsed.notes.length > 0 && (
+                          <div style={{ color: 'var(--status-warning-ink)' }}>{it.parsed.notes.join(' · ')}</div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </Card>
 
       {/* 1 — parcels */}
       <Card
@@ -357,7 +454,7 @@ export default function JntVipSoaCheck() {
                 <NumField label="Total adjustment" value={soa.adjustments} onChange={set('adjustments')} hint="Signed: negative reduces the remittance." />
                 <NumField label="Net remittance" value={soa.netRemittance} onChange={set('netRemittance')} />
                 <label className="flex flex-col gap-1 text-xs">
-                  <span style={{ color: 'var(--text-muted)' }}>RTS fee per parcel (₱)</span>
+                  <span style={{ color: 'var(--text-muted)' }}>RTS fee, % of the returned parcel's freight</span>
                   <input
                     type="number"
                     value={rtsFeeRate}
@@ -583,5 +680,25 @@ function LineRow({ line }: { line: CheckedLine }) {
         </tr>
       )}
     </>
+  )
+}
+
+const OUTCOME_STYLE: Record<BatchOutcome, { label: string; color: string }> = {
+  SAVED: { label: 'Saved', color: 'var(--status-good-ink)' },
+  UPDATED: { label: 'Updated', color: 'var(--series-blue)' },
+  DUPLICATE: { label: 'Duplicate', color: 'var(--text-muted)' },
+  REISSUED: { label: 'Reissued', color: 'var(--status-warning-ink)' },
+  FAILED: { label: 'Failed', color: 'var(--status-critical)' },
+}
+
+function OutcomePill({ outcome }: { outcome: BatchOutcome }) {
+  const s = OUTCOME_STYLE[outcome]
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium"
+      style={{ color: s.color, background: `color-mix(in srgb, ${s.color} 14%, transparent)` }}
+    >
+      {s.label}
+    </span>
   )
 }

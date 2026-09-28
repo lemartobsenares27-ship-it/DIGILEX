@@ -27,8 +27,18 @@ export const DEFAULT_TERMS = {
   commissionRate: 0.0275,
   /** VAT on the commission. */
   vatRate: 0.12,
-  /** Flat fee per returned parcel. */
-  rtsFeePerParcel: 30,
+  /**
+   * RTS is charged as a share of the returned parcel's OWN base freight —
+   * not a flat fee. It looked flat at ₱30 across the first two statements
+   * because those parcels happened to share a ₱60 freight; a month of data
+   * disproved it. Verified to the centavo on twelve independent windows,
+   * including two single-return windows where there is no ambiguity:
+   * ₱60 freight → ₱30 RTS, ₱90 freight → ₱45 RTS.
+   *
+   * Note it is half of Receivable Freight, NOT of Total Shipping Cost —
+   * the ₱5–8 per-parcel surcharge is excluded from the RTS basis.
+   */
+  rtsShareOfFreight: 0.5,
 }
 
 export type Terms = typeof DEFAULT_TERMS
@@ -102,7 +112,9 @@ export function checkSoa(parcels: JntVipParcelRow[], stated: SoaStated, terms: T
   const vat = Math.round(commission * terms.vatRate)
   const codPayable = codCollected - commission - vat
   const shippingFee = dispatched.reduce((s, p) => s + c(p.shippingCost), 0)
-  const rtsFee = returned.length * c(terms.rtsFeePerParcel)
+  // Per returned parcel, from its own freight — so a Mindanao return costs
+  // more to send back than a Metro Manila one, exactly as it cost more to send.
+  const rtsFee = returned.reduce((sum, p) => sum + Math.round(c(p.freight) * terms.rtsShareOfFreight), 0)
   const totalDeduction = shippingFee + rtsFee
   const adjustments = stated.adjustments != null ? c(stated.adjustments) : 0
   const netRemittance = codPayable - totalDeduction + adjustments
@@ -140,8 +152,8 @@ export function checkSoa(parcels: JntVipParcelRow[], stated: SoaStated, terms: T
       'COD collected less commission and VAT.', delivered.length),
     line('shipping', 'Shipping fee', shippingFee, stated.shippingFee,
       `Sum of Total Shipping Cost on parcels DISPATCHED in the window — a different set of parcels from the delivered ones.`, dispatched.length),
-    line('rts', `RTS fee @ ₱${terms.rtsFeePerParcel}`, rtsFee, stated.rtsFee,
-      'Flat fee times the parcels returned in the window.', returned.length),
+    line('rts', `RTS fee @ ${(terms.rtsShareOfFreight * 100).toFixed(0)}% of freight`, rtsFee, stated.rtsFee,
+      'Half of each returned parcel\u2019s own base freight, summed — not a flat fee per parcel.', returned.length),
     line('deduction', 'Total deduction', totalDeduction, stated.totalDeduction,
       'Shipping plus RTS fees.', dispatched.length + returned.length),
     line('net', 'Net remittance', netRemittance, stated.netRemittance,
@@ -166,6 +178,17 @@ export function checkSoa(parcels: JntVipParcelRow[], stated: SoaStated, terms: T
   }
   if (delivered.length === 0 && dispatched.length === 0) {
     warnings.push('No parcel in the imported file falls inside this period. Check the dates, or import the export covering them.')
+  }
+  // The commonest false discrepancy: a parcel dispatched before the export's
+  // start date but delivered inside the period is in no export, so COD and RTS
+  // both read short. That is a truncated export, not a J&T overcharge.
+  const earliestDispatch = parcels.map((p) => p.shipDate).filter((d): d is string => !!d).sort()[0]
+  if (earliestDispatch && from < earliestDispatch) {
+    warnings.push(
+      `This period starts ${from}, but the earliest parcel in your export was dispatched ${earliestDispatch}. ` +
+        `Anything sent before that and delivered in this period is missing, so COD and RTS will read short. ` +
+        `Re-export with an earlier start date before treating a shortfall as a J&T error.`,
+    )
   }
   const settledInWindow = delivered.length + returned.length
   if (settledInWindow > 0 && returned.length / settledInWindow > 0.2) {
@@ -286,7 +309,7 @@ export function rtsSummary(parcels: JntVipParcelRow[], terms: Terms = DEFAULT_TE
   const rejects = parcels.filter((p) => p.status === 'RETURNED' || p.status === 'FOR_RETURN')
   const codLost = rejects.reduce((s, p) => s + c(p.cod), 0)
   const shippingSunk = rejects.reduce((s, p) => s + c(p.shippingCost), 0)
-  const rtsFees = rejects.length * c(terms.rtsFeePerParcel)
+  const rtsFees = rejects.reduce((s, p) => s + Math.round(c(p.freight) * terms.rtsShareOfFreight), 0)
 
   return {
     total,
