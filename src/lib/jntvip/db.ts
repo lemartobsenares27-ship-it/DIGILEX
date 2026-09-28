@@ -53,8 +53,24 @@ class JntVipDB extends Dexie {
     })
     // v3 indexes payment status: the finance ledger's main question is
     // "which statements have not been paid", and that is a filter, not a scan.
+    //
+    // soaNumber is deliberately NOT unique. It was, briefly, and that was a
+    // bug: IndexedDB aborts the entire version-change transaction when an index
+    // it is told to create as unique finds existing duplicates, so a browser
+    // that had ever saved the same SOA twice could no longer open this database
+    // at all — the app simply failed to load. One statement per number is a
+    // rule worth keeping, but it belongs in code that can report a duplicate,
+    // not in a schema constraint that can brick an upgrade. importSoaPdfBatch
+    // already looks up by soaNumber before writing and reports duplicates and
+    // reissues explicitly.
     this.version(3).stores({
-      soaChecks: '++id, &soaNumber, periodFrom, checkedAt, paymentStatus',
+      soaChecks: '++id, soaNumber, periodFrom, checkedAt, paymentStatus',
+    })
+    // v4 exists only to relax that index for any browser that did apply v3's
+    // unique version successfully. Redeclaring the store rebuilds its indexes
+    // without touching the rows.
+    this.version(4).stores({
+      soaChecks: '++id, soaNumber, periodFrom, checkedAt, paymentStatus',
     })
   }
 }
