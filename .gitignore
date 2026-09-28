@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated reconciliation reports. One-off snapshots built from whatever
+# statements and waybill exports were to hand, sent straight to the user —
+# they go stale the moment a new statement arrives, and the app regenerates
+# them on demand, so they are outputs rather than source.
+JNT_Reconciliation_Report.html
+JNT_Reconciliation_Data.xlsx
