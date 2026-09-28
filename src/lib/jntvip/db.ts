@@ -14,6 +14,8 @@ import type {
   JntVipShipmentRow,
   JntVipMatchRow,
   JntVipAuditLogRow,
+  JntVipParcelRow,
+  JntVipSoaCheckRow,
 } from './types'
 
 export interface JntVipMetaRow {
@@ -28,6 +30,8 @@ class JntVipDB extends Dexie {
   matches!: Table<JntVipMatchRow, number>
   auditLog!: Table<JntVipAuditLogRow, number>
   meta!: Table<JntVipMetaRow, string>
+  parcels!: Table<JntVipParcelRow, number>
+  soaChecks!: Table<JntVipSoaCheckRow, number>
 
   constructor() {
     super('jnt-vip-reconciliation')
@@ -38,6 +42,14 @@ class JntVipDB extends Dexie {
       matches: '++id, posOrderId, shipmentId, soaBatchId, status',
       auditLog: '++id, matchId, timestamp',
       meta: 'key',
+    })
+    // v2 adds the parcel-level waybill export and saved SOA verifications.
+    // The SOA itself is only a summary, so checking one needs the parcels.
+    // awb is unique: a re-import updates a parcel's status rather than
+    // appending a second copy of the same shipment.
+    this.version(2).stores({
+      parcels: '++id, &awb, status, podDate, shipDate',
+      soaChecks: '++id, soaNumber, periodFrom, checkedAt',
     })
   }
 }

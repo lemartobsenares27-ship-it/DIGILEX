@@ -112,10 +112,15 @@ function Qty({ value, tone = 'muted', alert }: { value: number; tone?: 'primary'
 }
 
 export default function Inventory() {
-  const { rows, locations, movements, balances } = useInventory()
+  // Scope first: every balance below is re-derived for the chosen location, so
+  // "what can I ship from here" and "what do I own everywhere" never get mixed.
+  const [locationFilter, setLocationFilter] = useState('ALL')
+  const scopedLocationId = locationFilter === 'ALL' ? null : Number(locationFilter)
+  const { rows, locations, movements, balances } = useInventory(scopedLocationId)
   const [query, setQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [kindFilter, setKindFilter] = useState('ALL')
+  const [brandFilter, setBrandFilter] = useState('ALL')
   const [selected, setSelected] = useState<ProductRowWithStock | null>(null)
 
   const filtered = useMemo(() => {
@@ -123,12 +128,19 @@ export default function Inventory() {
     return rows.filter((r) => {
       if (statusFilter !== 'ALL' && r.status !== statusFilter) return false
       if (kindFilter !== 'ALL' && (r.product.kind ?? 'COMPONENT') !== kindFilter) return false
+      if (brandFilter !== 'ALL' && (r.product.brand ?? '') !== brandFilter) return false
       if (!q) return true
-      return [r.product.sku, r.product.name, r.product.variant, r.product.category, r.product.supplier].some(
+      return [r.product.sku, r.product.name, r.product.variant, r.product.category, r.product.brand, r.product.supplier].some(
         (v) => v && v.toLowerCase().includes(q),
       )
     })
-  }, [rows, query, statusFilter, kindFilter])
+  }, [rows, query, statusFilter, kindFilter, brandFilter])
+
+  /** Brands actually in use — a shared component carries no brand and stays under "Shared". */
+  const brands = useMemo(
+    () => [...new Set(rows.map((r) => r.product.brand).filter((b): b is string => !!b))].sort(),
+    [rows],
+  )
 
   const groups = useMemo(() => {
     return KIND_ORDER.map((kind) => ({
@@ -157,6 +169,8 @@ export default function Inventory() {
       SKU: r.product.sku,
       Product: r.product.name,
       Type: KIND_LABEL[(r.product.kind ?? 'COMPONENT') as ProductKind],
+      Brand: r.product.brand ?? '',
+      Location: scopedLocationId == null ? 'All locations' : locations.find((l) => l.id === scopedLocationId)?.name ?? '',
       Variant: r.product.variant ?? '',
       Category: r.product.category ?? '',
       Sellable: r.stock.sellable,
@@ -261,6 +275,37 @@ export default function Inventory() {
             />
           </div>
           <select
+            value={locationFilter}
+            onChange={(e) => setLocationFilter(e.target.value)}
+            className="rounded-lg border px-2.5 py-1.5 text-xs"
+            style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)', background: 'var(--surface-page)' }}
+          >
+            <option value="ALL">All locations</option>
+            {locations
+              .filter((l) => l.id != null && l.active)
+              .map((l) => (
+                <option key={l.id} value={String(l.id)}>
+                  {l.name}
+                </option>
+              ))}
+          </select>
+          {brands.length > 0 && (
+            <select
+              value={brandFilter}
+              onChange={(e) => setBrandFilter(e.target.value)}
+              className="rounded-lg border px-2.5 py-1.5 text-xs"
+              style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-primary)', background: 'var(--surface-page)' }}
+            >
+              <option value="ALL">All brands</option>
+              {brands.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+              <option value="">Shared / no brand</option>
+            </select>
+          )}
+          <select
             value={kindFilter}
             onChange={(e) => setKindFilter(e.target.value)}
             className="rounded-lg border px-2.5 py-1.5 text-xs"
@@ -290,6 +335,21 @@ export default function Inventory() {
           </span>
         </div>
       </Card>
+
+      {scopedLocationId != null && (
+        <div
+          className="mb-4 flex items-center gap-2 rounded-xl border p-3 text-xs"
+          style={{
+            borderColor: 'color-mix(in srgb, var(--series-blue) 35%, var(--border-hairline))',
+            background: 'color-mix(in srgb, var(--series-blue) 7%, transparent)',
+            color: 'var(--text-primary)',
+          }}
+        >
+          <Boxes size={14} style={{ color: 'var(--series-blue)' }} />
+          Showing <strong>{locations.find((l) => l.id === scopedLocationId)?.name}</strong> only. Every balance here is what sits at
+          that location — stock you own elsewhere is excluded. Incoming stays unscoped: a purchase order has not arrived anywhere yet.
+        </div>
+      )}
 
       <div
         className="overflow-hidden rounded-xl border"
@@ -382,9 +442,9 @@ export default function Inventory() {
                         <td className="min-w-[190px] px-3 py-2 text-xs" style={{ color: 'var(--text-primary)' }}>
                           {r.product.name}
                           {r.product.variant ? <span style={{ color: 'var(--text-muted)' }}> · {r.product.variant}</span> : null}
-                          {r.product.supplier ? (
+                          {r.product.brand || r.product.supplier ? (
                             <div className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                              {r.product.supplier}
+                              {[r.product.brand, r.product.supplier].filter(Boolean).join(' · ')}
                             </div>
                           ) : null}
                         </td>

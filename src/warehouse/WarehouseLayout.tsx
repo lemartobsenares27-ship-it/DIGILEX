@@ -12,6 +12,7 @@ import {
   ShoppingCart,
   AlertTriangle,
   Tags,
+  Warehouse,
   ScrollText,
   Sun,
   Moon,
@@ -53,6 +54,7 @@ const NAV: { title: string; items: { to: string; label: string; icon: typeof Lay
     title: 'Master data',
     items: [
       { to: '/products', label: 'Products', icon: Tags },
+      { to: '/locations', label: 'Locations', icon: Warehouse },
       { to: '/activity', label: 'Activity', icon: ScrollText },
     ],
   },

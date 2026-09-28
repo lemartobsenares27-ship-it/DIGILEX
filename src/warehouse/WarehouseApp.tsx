@@ -15,6 +15,7 @@ const Production = lazy(() => import('../pages/warehouse/Production'))
 const Purchases = lazy(() => import('../pages/warehouse/Purchases'))
 const Discrepancies = lazy(() => import('../pages/warehouse/Discrepancies'))
 const Products = lazy(() => import('../pages/warehouse/Products'))
+const Locations = lazy(() => import('../pages/warehouse/Locations'))
 const Activity = lazy(() => import('../pages/warehouse/Activity'))
 
 function Loading({ label = 'Loading Warehouse Control Center…' }: { label?: string }) {
@@ -69,6 +70,7 @@ export default function WarehouseApp() {
           <Route path="/purchases" element={<Purchases />} />
           <Route path="/discrepancies" element={<Discrepancies />} />
           <Route path="/products" element={<Products />} />
+          <Route path="/locations" element={<Locations />} />
           <Route path="/activity" element={<Activity />} />
         </Route>
       </Routes>

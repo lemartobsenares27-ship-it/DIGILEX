@@ -348,3 +348,34 @@ export function computeBuildability(
     unitComponentCost: Number(unitComponentCost.toFixed(2)),
   }
 }
+
+/**
+ * The same balances, scoped to one location.
+ *
+ * Needed once stock lives in more than one warehouse: the all-locations total
+ * answers "how many do I own", but "what can I ship from Bagumbayan today"
+ * is a different question, and shipping against the wrong one oversells.
+ */
+export function productStockAt(index: BalanceIndex, productId: number, locationId: number, incoming = 0): ProductStock {
+  const at = (state: InventoryState) => balanceAt(index, productId, locationId, state)
+  const sumAt = (states: InventoryState[]) => states.reduce((s, st) => s + at(st), 0)
+  const available = at('AVAILABLE')
+  const reserved = at('RESERVED')
+  return {
+    productId,
+    available,
+    reserved,
+    inFulfillment: at('IN_FULFILLMENT'),
+    inTransit: at('IN_TRANSIT'),
+    forInspection: at('FOR_INSPECTION'),
+    damaged: at('DAMAGED'),
+    defective: at('DEFECTIVE'),
+    quarantine: at('QUARANTINE'),
+    missing: at('MISSING'),
+    lost: at('LOST'),
+    physical: sumAt(PHYSICAL_STATES),
+    sellable: sumAt(SELLABLE_STATES) - reserved,
+    unsellable: sumAt(UNSELLABLE_STATES),
+    incoming,
+  }
+}

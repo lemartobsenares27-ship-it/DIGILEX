@@ -183,3 +183,48 @@ export interface JntVipPostSummary {
   recordsSkipped: number
   messages: string[]
 }
+
+/**
+ * One parcel from the J&T "My Waybill" export. Keyed on the waybill number,
+ * which is the only identifier the SOA and the POS both carry.
+ *
+ * `raw` keeps the original parsed row verbatim so nothing imported is ever
+ * lost to a mapping decision made later.
+ */
+export interface JntVipParcelRow {
+  id?: number
+  awb: string
+  status: 'DELIVERED' | 'RETURNED' | 'FOR_RETURN' | 'DELIVERING' | 'IN_TRANSIT' | 'OTHER'
+  /** Exactly what J&T called it, kept because their vocabulary can change. */
+  rawStatus: string
+  podAt: string | null
+  podDate: string | null
+  shipAt: string | null
+  shipDate: string | null
+  cod: number
+  shippingCost: number
+  freight: number
+  weight: number
+  province: string | null
+  city: string | null
+  receiver: string | null
+  rtsReason: string | null
+  remarks: string | null
+  creatorCode: string | null
+  updatedAt: string
+  raw: unknown
+}
+
+/** A saved SOA verification, so a check can be revisited and compared later. */
+export interface JntVipSoaCheckRow {
+  id?: number
+  soaNumber: string
+  periodFrom: string
+  periodTo: string
+  checkedAt: string
+  verdict: 'CLEAN' | 'DISCREPANCY' | 'INCOMPLETE'
+  differenceTotal: number
+  stated: unknown
+  computed: unknown
+  notes: string | null
+}

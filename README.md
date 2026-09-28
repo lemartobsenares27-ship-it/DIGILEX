@@ -105,6 +105,40 @@ Confirmed against an actual SOA (`MNL-V7973`, SOA `VIP-979278`, Mar 4–7 2023):
   no per-row fee; fees exist only as summary totals. A POS order absent from
   the SOA is therefore un-remitted, RTS, or still in transit.
 
+### SOA Check — verifying a statement
+
+A J&T SOA is a **one-page summary** with no parcel list, so it cannot be
+verified from itself. The SOA Check page rebuilds every line from the **My
+Waybill parcel export** (vip.jtexpress.ph → Management → My Waybill → Export)
+and compares it to what the statement claims. It covers every product on the
+account: J&T bills the account, not the brand.
+
+Two rules the engine encodes, both confirmed to the centavo against real
+statements (`SOA202608280830MNL-V11913` and `SOA202608310831MNL-V11913`):
+
+- **Commission is 2.75% per parcel, floored to the centavo, then summed** — not
+  2.75% of the grand total. A flat rate on the total is off by a few centavos
+  and looks like an error when it is not. Flooring per parcel lands slightly in
+  the merchant's favour.
+- **Shipping is billed on dispatch, COD is credited on delivery.** The two cover
+  different parcel populations in the same window. Comparing shipping against
+  the delivered parcels is the easiest way to convince yourself of a discrepancy
+  that is not there.
+
+All arithmetic runs in integer centavos, because money in floating point is how
+reconciliations acquire phantom one-centavo differences.
+
+Parcels are **upserted by waybill number**, never appended: a parcel's status
+matures over days (In Transit → Delivering → Delivered or Returned), so a later
+export of the same AWB is a newer truth about the same parcel. Re-importing
+corrects statuses and reports what changed rather than double-counting.
+
+The page also reports **RTS by dispatch week**, cohorted on the week a parcel
+shipped. A week is flagged "too fresh to trust" until its parcels have settled,
+because rejections surface late — reading a fresh week's low rate as an
+improvement is the mistake that flag exists to prevent. The same reason the
+honest headline is returns over *settled* parcels, not over the whole batch.
+
 ### Using it
 
 1. **Import → Import POS Orders**: your Pancake POS export. Confirm the
@@ -236,6 +270,31 @@ its units counting as incoming.
 *text*: `--status-warning` is 1.79:1 on the light surface, fine as a large fill
 and unreadable as a label. They are additions, not substitutions, so nothing
 that already used `--status-*` changed appearance.
+
+### Locations and a second warehouse
+
+A second warehouse is a **location**, not a second system and not a duplicated
+product list. Balances are held per `(product, location, state)`, so the same
+SKU can sit in two warehouses and the ledger knows how many are in each. Stock
+moves between them with **Transfers** (source AVAILABLE → destination
+IN_TRANSIT → AVAILABLE), which keeps the whole movement history attached to the
+units. Re-entering a SKU at the new warehouse would create a second product
+with no history and split the ledger in two, so the Locations page says so.
+
+Locations are deactivated, never deleted — every movement points at a location
+id — and deactivation is refused while the location still holds stock.
+
+Inventory can be **scoped to one location**, which re-derives every balance for
+that place. Incoming is deliberately never scoped: a purchase order has not
+arrived anywhere yet, so splitting it across warehouses would invent a fact the
+data does not carry.
+
+**Shared components stay one SKU.** If two brands use the same 100ml bottles,
+there is one `BOTTLE-100ML`, not one per brand. Buildability is capped by the
+scarcest component, so duplicating a shared component per brand would tell you
+both brands can build the full quantity and you would over-promise. Only
+brand-specific items carry the brand in the SKU (`LABEL-EYECARE`,
+`CAPSULE-EYECARE`), and the `brand` field drives the Inventory brand filter.
 
 ### Not built yet
 

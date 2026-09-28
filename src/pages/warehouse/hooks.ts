@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useLiveTable } from '../../hooks/useLiveTable'
 import { warehouseDb } from '../../lib/warehouse/db'
-import { computeBalances, incomingByProduct, productStock, recommendedPurchase, stockStatus, type ProductStock, type StockStatus } from '../../lib/warehouse/inventory'
+import { computeBalances, incomingByProduct, productStock, productStockAt, recommendedPurchase, stockStatus, type ProductStock, type StockStatus } from '../../lib/warehouse/inventory'
 import { OPEN_PO_STATUSES } from '../../lib/warehouse/operations'
 import type { ProductRow } from '../../lib/warehouse/types'
 
@@ -30,8 +30,14 @@ export interface ProductRowWithStock {
   unsellableValue: number
 }
 
-/** Joins every product to its ledger-derived balances, status and reorder maths. */
-export function useInventory() {
+/**
+ * Joins every product to its ledger-derived balances, status and reorder maths.
+ *
+ * `locationId` scopes the balances to one place. Incoming is never scoped —
+ * a purchase order is not yet anywhere, so splitting it across warehouses
+ * would invent a fact the data does not carry.
+ */
+export function useInventory(locationId?: number | null) {
   const tables = useWarehouseTables()
   const { products, movements, purchaseOrders, purchaseOrderItems } = tables
 
@@ -47,7 +53,11 @@ export function useInventory() {
       products
         .filter((p) => p.id != null)
         .map((product) => {
-          const stock = productStock(balances, product.id!, incoming.get(product.id!) ?? 0)
+          const inc = incoming.get(product.id!) ?? 0
+          const stock =
+            locationId == null
+              ? productStock(balances, product.id!, inc)
+              : productStockAt(balances, product.id!, locationId, inc)
           const cost = product.unitCost ?? 0
           return {
             product,
@@ -59,7 +69,7 @@ export function useInventory() {
             unsellableValue: stock.unsellable * cost,
           }
         }),
-    [products, balances, incoming],
+    [products, balances, incoming, locationId],
   )
 
   return { ...tables, balances, rows }
