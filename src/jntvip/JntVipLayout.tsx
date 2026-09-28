@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { PackageCheck, UploadCloud, Table2, AlertOctagon, Boxes, History, ShieldCheck, Wallet, BookOpen, Sun, Moon, Menu } from 'lucide-react'
+import { PackageCheck, UploadCloud, Table2, AlertOctagon, Boxes, History, ShieldCheck, Wallet, BookOpen, Target, Sun, Moon, Menu } from 'lucide-react'
 import { useTheme } from '../hooks/useTheme'
 import AppSwitcher from '../components/AppSwitcher'
 
 const NAV = [
+  { to: '/executive', label: 'Executive Dashboard', icon: Target },
   { to: '/', label: 'Dashboard', icon: PackageCheck },
   { to: '/import', label: 'Import', icon: UploadCloud },
   { to: '/soa-check', label: 'SOA Check', icon: ShieldCheck },
