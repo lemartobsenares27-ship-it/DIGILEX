@@ -373,7 +373,14 @@ function LedgerRow({ row, open, onToggle }: { row: StatementRow; open: boolean; 
         <td className="px-3 py-2 text-xs tabular" style={{ color: soa.receivedAmount == null ? 'var(--text-muted)' : 'var(--text-primary)' }}>
           {soa.receivedAmount == null ? '—' : peso(row.received)}
         </td>
-        <td className="px-3 py-2 text-xs tabular" style={{ color: row.variance === 0 ? 'var(--text-muted)' : 'var(--status-critical)' }}>
+        <td
+          className="px-3 py-2 text-xs tabular"
+          style={{
+            // Nothing received yet is not a variance. Colouring the em dash red
+            // implies a discrepancy on every unpaid row, which is most of them.
+            color: soa.receivedAmount == null || row.variance === 0 ? 'var(--text-muted)' : 'var(--status-critical)',
+          }}
+        >
           {soa.receivedAmount == null || row.variance === 0 ? '—' : (row.variance > 0 ? '+' : '') + peso(row.variance)}
         </td>
         <td className="px-3 py-2">
