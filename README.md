@@ -139,6 +139,30 @@ because rejections surface late — reading a fresh week's low rate as an
 improvement is the mistake that flag exists to prevent. The same reason the
 honest headline is returns over *settled* parcels, not over the whole batch.
 
+### Finance — SOA versus money actually received
+
+Verifying a statement and being paid for it are **different facts**, and a
+statement can fail either independently: correct and never paid, or paid to the
+centavo and wrong. The Finance page tracks both on one row per statement, so an
+SOA cannot be quietly forgotten between the two.
+
+Statements arrive from SOA Check ("Save this check") as **unpaid**. When the
+money lands, record what actually hit the bank — not what the SOA promised,
+because the gap between the two is the finding. Payment status is derived from
+the numbers (`UNPAID` / `PARTIAL` / `PAID` / `OVERPAID`), never stored blindly.
+Re-checking an SOA updates it in place and **keeps the payment already recorded
+against it**; a re-check must never wipe the fact that money arrived.
+
+"What to chase" surfaces three failures at once: statements owed more than 14
+days after their period closed, statements paid an amount that differs from what
+they promised, and — the one that is invisible by construction — **gaps between
+consecutive statement periods**. You cannot notice a statement that never
+arrived by looking at the ones that did, so the ledger compares each period's
+start against the previous period's end and names the days nobody billed for.
+That is where un-remitted COD hides.
+
+Amounts are integer centavos end to end.
+
 ### Using it
 
 1. **Import → Import POS Orders**: your Pancake POS export. Confirm the

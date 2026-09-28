@@ -51,6 +51,11 @@ class JntVipDB extends Dexie {
       parcels: '++id, &awb, status, podDate, shipDate',
       soaChecks: '++id, soaNumber, periodFrom, checkedAt',
     })
+    // v3 indexes payment status: the finance ledger's main question is
+    // "which statements have not been paid", and that is a filter, not a scan.
+    this.version(3).stores({
+      soaChecks: '++id, &soaNumber, periodFrom, checkedAt, paymentStatus',
+    })
   }
 }
 

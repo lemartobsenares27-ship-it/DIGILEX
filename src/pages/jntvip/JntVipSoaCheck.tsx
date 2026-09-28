@@ -130,19 +130,54 @@ export default function JntVipSoaCheck() {
 
   async function saveCheck() {
     if (!result) return
-    await jntVipDb.soaChecks.add({
-      soaNumber: soa.soaNumber.trim() || `${soa.periodFrom}..${soa.periodTo}`,
+    const soaNumber = soa.soaNumber.trim() || `${soa.periodFrom}..${soa.periodTo}`
+    const find = (k: string) => result.lines.find((l) => l.key === k)?.computed ?? 0
+    const pesos = (v: number | null) => (v == null ? null : Math.round(v * 100))
+
+    const row = {
+      soaNumber,
       periodFrom: soa.periodFrom,
       periodTo: soa.periodTo,
       checkedAt: new Date().toISOString(),
       verdict: result.verdict,
       differenceTotal: result.differenceTotal,
-      stated: soa,
-      computed: result.lines.map((l) => ({ key: l.key, computed: l.computed, stated: l.stated })),
+      statedCod: pesos(soa.codCollected),
+      statedCommission: pesos(soa.commission),
+      statedVat: pesos(soa.vat),
+      statedShipping: pesos(soa.shippingFee),
+      statedRtsFee: pesos(soa.rtsFee),
+      statedAdjustments: pesos(soa.adjustments),
+      statedNet: pesos(soa.netRemittance),
+      computedCod: find('cod'),
+      computedCommission: find('commission'),
+      computedVat: find('vat'),
+      computedShipping: find('shipping'),
+      computedRtsFee: find('rts'),
+      computedNet: find('net'),
+      deliveredParcels: result.delivered.length,
+      dispatchedParcels: result.dispatched.length,
+      returnedParcels: result.returned.length,
       notes: null,
-    })
-    setSaved(`Saved. ${result.verdict === 'CLEAN' ? 'Verified clean.' : 'Recorded with its differences.'}`)
-    setTimeout(() => setSaved(null), 6000)
+    }
+
+    // Re-saving the same SOA number updates it in place and KEEPS the payment
+    // already recorded against it — a re-check must never wipe the fact that
+    // money landed.
+    const existing = await jntVipDb.soaChecks.where('soaNumber').equals(soaNumber).first()
+    if (existing) {
+      await jntVipDb.soaChecks.update(existing.id!, row)
+      setSaved(`Updated ${soaNumber}. The payment recorded against it is untouched. Open Finance to see it in the ledger.`)
+    } else {
+      await jntVipDb.soaChecks.add({
+        ...row,
+        receivedAmount: null,
+        receivedDate: null,
+        receivedReference: null,
+        paymentStatus: 'UNPAID',
+      })
+      setSaved(`Saved ${soaNumber} to the Finance ledger as unpaid. Record the remittance there when it lands.`)
+    }
+    setTimeout(() => setSaved(null), 8000)
   }
 
   function exportCheck() {

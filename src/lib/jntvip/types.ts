@@ -215,7 +215,17 @@ export interface JntVipParcelRow {
   raw: unknown
 }
 
-/** A saved SOA verification, so a check can be revisited and compared later. */
+/**
+ * One J&T statement, from verification through to the money landing.
+ *
+ * Verifying an SOA answers "is this correct". It does not answer "did they
+ * pay me", which is a separate fact that arrives days later in a bank
+ * account. Both live on this row so an SOA can never be quietly forgotten
+ * between the two.
+ *
+ * Every amount is in CENTAVOS, integers throughout — money in floating point
+ * is how a ledger acquires phantom one-centavo differences.
+ */
 export interface JntVipSoaCheckRow {
   id?: number
   soaNumber: string
@@ -224,7 +234,32 @@ export interface JntVipSoaCheckRow {
   checkedAt: string
   verdict: 'CLEAN' | 'DISCREPANCY' | 'INCOMPLETE'
   differenceTotal: number
-  stated: unknown
-  computed: unknown
+
+  /** What the statement claims, as entered. */
+  statedCod: number | null
+  statedCommission: number | null
+  statedVat: number | null
+  statedShipping: number | null
+  statedRtsFee: number | null
+  statedAdjustments: number | null
+  statedNet: number | null
+
+  /** What the parcel ledger says it should have been. */
+  computedCod: number
+  computedCommission: number
+  computedVat: number
+  computedShipping: number
+  computedRtsFee: number
+  computedNet: number
+  deliveredParcels: number
+  dispatchedParcels: number
+  returnedParcels: number
+
+  /** The money. Null received means nothing has landed yet. */
+  receivedAmount: number | null
+  receivedDate: string | null
+  receivedReference: string | null
+  paymentStatus: 'UNPAID' | 'PARTIAL' | 'PAID' | 'OVERPAID'
+
   notes: string | null
 }
