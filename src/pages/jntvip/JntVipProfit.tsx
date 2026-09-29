@@ -7,13 +7,14 @@
 // the break-even it implies, so a bad month is visible before it finishes.
 
 import { useMemo } from 'react'
-import { TrendingUp, TrendingDown, Target, AlertTriangle, Undo2, Info } from 'lucide-react'
+import { TrendingUp, TrendingDown, Target, AlertTriangle, Undo2, Info, FlaskConical } from 'lucide-react'
 import PageHeader from '../../components/PageHeader'
 import Card from '../../components/Card'
 import { formatNumber, formatPercent } from '../../lib/format'
 import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
 import { profitAndLoss, costStack } from '../../lib/jntvip/profit'
+import { BOTTLE_COSTS } from '../../lib/jntvip/bottleCost'
 import { AD_FAILED_TOTAL, AD_FAILED_COUNT, adChargesBetween } from '../../lib/jntvip/adSpend'
 import type { JntVipSoaCheckRow, JntVipParcelRow } from '../../lib/jntvip/types'
 
@@ -278,6 +279,122 @@ export default function JntVipProfit() {
         </Card>
         )}
       </div>
+
+      {/* What a bottle costs to make. The only P&L input that comes from purchase
+          prices rather than a statement, so it is shown itemised rather than as a
+          single number the reader has to trust. */}
+      <Card
+        title="What one bottle costs to make"
+        description="Built from your purchase prices. Capsules are bought in bulk, so the cost in a bottle is the bulk price scaled to the capsules that actually go in it."
+        className="mt-4"
+      >
+        <div className="grid gap-6 md:grid-cols-2">
+          {BOTTLE_COSTS.map((b) => (
+            <div key={b.sku}>
+              <div className="flex items-baseline justify-between gap-3 border-b pb-2" style={{ borderColor: 'var(--border-hairline)' }}>
+                <span className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  <FlaskConical size={14} style={{ color: 'var(--text-muted)' }} />
+                  {b.sku}
+                </span>
+                <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {b.capsuleSource}
+                </span>
+              </div>
+
+              <div className="mt-1">
+                {b.lines.map((l) => (
+                  <div key={l.label} className="flex items-baseline justify-between gap-4 py-1">
+                    <div className="min-w-0">
+                      <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        {l.label}
+                      </div>
+                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                        {l.detail}
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-sm tabular" style={{ color: 'var(--text-secondary)' }}>
+                      {peso(l.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-1 border-t pt-2" style={{ borderColor: 'var(--border-hairline)' }}>
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    Cost to make one bottle
+                  </span>
+                  <span className="text-base font-semibold tabular" style={{ color: 'var(--text-primary)' }}>
+                    {peso(b.total)}
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between gap-4 pt-1">
+                  <span className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                    Sells for {peso(b.price)} COD
+                  </span>
+                  <span className="text-sm font-medium tabular" style={{ color: 'var(--status-good-ink)' }}>
+                    {peso(b.grossProfit)} gross · {formatPercent(b.grossMargin)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-4 flex items-start gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <Info size={13} className="mt-0.5 shrink-0" />
+          <span>
+            A gross margin above 90% is not the same as profit. It only says the
+            product is cheap to make — shipping, the COD service fee and the
+            advertising that found the buyer all come out of what is left, and
+            together they are far larger than the bottle. The next card follows one
+            bottle all the way down.
+          </span>
+        </p>
+      </Card>
+
+      {/* The same money, followed from the customer's payment to what you keep.
+          This is the cost stack expressed per bottle, which is the unit the
+          business is actually run in. */}
+      <Card
+        title="Where one bottle&rsquo;s money actually goes"
+        description={`Averaged across the ${formatNumber(p.units)} bottles this period billed for.`}
+        className="mt-4"
+      >
+        <div className="divide-y" style={{ borderColor: 'var(--border-hairline)' }}>
+          <div className="pb-1">
+            <Row label="What the customer paid" amount={p.perBottle.revenue} bold />
+          </div>
+          <div className="py-1">
+            <Row label="Making the bottle" amount={p.perBottle.product} note="capsules, bottle, seal, wrap, label" negative />
+            <Row label="Shipping it" amount={p.perBottle.shipping} note="paid whether or not it lands" negative />
+            <Row label="COD service fee" amount={p.perBottle.codService} note="commission, VAT and RTS fees" negative />
+            <Row label="Advertising to find the buyer" amount={p.perBottle.ads} note="the largest single cost" negative />
+          </div>
+          <div className="pt-2">
+            <Row label="You keep" amount={p.perBottle.profit} bold />
+          </div>
+        </div>
+        <p className="mt-3 flex items-start gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <Info size={13} className="mt-0.5 shrink-0" />
+          <span>
+            {p.hasParcels ? (
+              <>
+                Revenue per bottle sits under the {peso(BOTTLE_COSTS[0].price)} sticker price because
+                multi-bottle orders are discounted &mdash; two bottles go out at {peso(59900)}, not{' '}
+                {peso(79800)}.
+              </>
+            ) : (
+              <>
+                Without a parcel export the bottle count is inferred from revenue at{' '}
+                {peso(BOTTLE_COSTS[0].price)} each, so this row simply returns the sticker price.
+                Import <strong>My Waybill</strong> and it becomes a real average &mdash; lower than
+                the sticker, because multi-bottle orders are discounted.
+              </>
+            )}
+          </span>
+        </p>
+      </Card>
 
       {/* How the ad number was arrived at. It is the one input not from a statement. */}
       <Card title="How the ad figure was built" className="mt-4">

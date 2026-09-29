@@ -28,35 +28,9 @@
 
 import type { JntVipSoaCheckRow, JntVipParcelRow } from './types'
 import { adSpendBetween } from './adSpend'
+import { BOTTLE_COSTS, PRUDENT_UNIT_COST } from './bottleCost'
 
-/**
- * What one finished bottle costs to put in a box.
- *
- * Built up from the purchase prices supplied for the two live SKUs. Capsules are
- * bought in bulk and split across bottles, so the capsule cost per bottle is the
- * bulk price divided by the yield, not the bulk price.
- */
-export const UNIT_COSTS = {
-  'EYE CARE': {
-    label: 'EYE CARE',
-    /** Alaska Garlic, 500 capsules for PHP155.00, 60 capsules to a bottle. */
-    capsules: 1860,
-    packaging: 1600, // bottle 1100 + foam seal 100 + shrink wrap 100 + label 300
-    total: 3460,
-    price: 39900,
-  },
-  TESTOMAXX: {
-    label: 'TESTOMAXX',
-    /** Alingatong, 100 capsules for PHP80.00, 30 capsules to a bottle. */
-    capsules: 2400,
-    packaging: 1600, // bottle 1100 + foam seal 100 + shrink wrap 100 + sticker 300
-    total: 4000,
-    price: 39900,
-  },
-} as const
-
-/** Used when the mix cannot be resolved: the dearer SKU, so profit is never flattered. */
-export const PRUDENT_UNIT_COST = 4000
+export { BOTTLE_COSTS, PRUDENT_UNIT_COST }
 
 export interface ProfitAndLoss {
   from: string
@@ -95,10 +69,24 @@ export interface ProfitAndLoss {
   adPerDelivered: number
   profitPerDelivered: number
 
+  /** Where one bottle's revenue actually goes, from this period's own figures. */
+  perBottle: {
+    revenue: number
+    product: number
+    shipping: number
+    codService: number
+    ads: number
+    profit: number
+  }
+
   /** True when units were scaled from an export narrower than the statements. */
   unitsEstimated: boolean
   hasParcels: boolean
 }
+
+/** Both live SKUs go out at the same COD price, which is what makes the
+ *  bottles-per-parcel inference below possible. */
+const REFERENCE_PRICE = BOTTLE_COSTS[0].price
 
 const val = (stated: number | null, computed: number) => stated ?? computed
 
@@ -108,7 +96,7 @@ function bottlesIn(p: JntVipParcelRow): number {
   if (cod <= 0) return 1
   // A two-bottle order is discounted (PHP599, not PHP798), so rounding the
   // ratio recovers the count where a plain division would not.
-  return Math.max(1, Math.round(cod / UNIT_COSTS['EYE CARE'].price))
+  return Math.max(1, Math.round(cod / REFERENCE_PRICE))
 }
 
 export function profitAndLoss(rows: JntVipSoaCheckRow[], parcels: JntVipParcelRow[]): ProfitAndLoss | null {
@@ -142,7 +130,7 @@ export function profitAndLoss(rows: JntVipSoaCheckRow[], parcels: JntVipParcelRo
   const scale = exportCod > 0 ? revenue / exportCod : 1
   const units = hasParcels
     ? Math.round(rawUnits * scale)
-    : Math.round(revenue / UNIT_COSTS['EYE CARE'].price)
+    : Math.round(revenue / REFERENCE_PRICE)
   const unitCost = PRUDENT_UNIT_COST
   const cogs = units * unitCost
 
@@ -178,6 +166,14 @@ export function profitAndLoss(rows: JntVipSoaCheckRow[], parcels: JntVipParcelRo
     adHeadroom: adCeiling - adSpend,
     adPerDelivered: delivered > 0 ? Math.round(adSpend / delivered) : 0,
     profitPerDelivered: delivered > 0 ? Math.round(profit / delivered) : 0,
+    perBottle: {
+      revenue: units > 0 ? Math.round(revenue / units) : 0,
+      product: unitCost,
+      shipping: units > 0 ? Math.round(shipping / units) : 0,
+      codService: units > 0 ? Math.round((commission + vat + rtsFee) / units) : 0,
+      ads: units > 0 ? Math.round(adSpend / units) : 0,
+      profit: units > 0 ? Math.round(profit / units) : 0,
+    },
     unitsEstimated: hasParcels && Math.abs(scale - 1) > 0.005,
     hasParcels,
   }
