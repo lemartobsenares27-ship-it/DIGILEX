@@ -7,13 +7,13 @@
 // the break-even it implies, so a bad month is visible before it finishes.
 
 import { useMemo } from 'react'
-import { TrendingUp, TrendingDown, Target, AlertTriangle, Undo2, Info, FlaskConical, Building2 } from 'lucide-react'
+import { TrendingUp, TrendingDown, Target, AlertTriangle, Undo2, Info, FlaskConical, Building2, Gauge, ArrowUpRight } from 'lucide-react'
 import PageHeader from '../../components/PageHeader'
 import Card from '../../components/Card'
 import { formatNumber, formatPercent } from '../../lib/format'
 import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
-import { profitAndLoss, costStack } from '../../lib/jntvip/profit'
+import { profitAndLoss, costStack, unitEconomics, bottlesForProfit, atPrice } from '../../lib/jntvip/profit'
 import { BOTTLE_COSTS } from '../../lib/jntvip/bottleCost'
 import { fixedCostPerDay, variableCostPerBottle } from '../../lib/jntvip/operatingCosts'
 import { AD_FAILED_TOTAL, AD_FAILED_COUNT, adChargesBetween } from '../../lib/jntvip/adSpend'
@@ -52,6 +52,7 @@ export default function JntVipProfit() {
   const p = useMemo(() => profitAndLoss(rows, parcels), [rows, parcels])
   const stack = useMemo(() => (p ? costStack(p) : []), [p])
   const charges = useMemo(() => (p ? adChargesBetween(p.from, p.to) : []), [p])
+  const u = useMemo(() => (p ? unitEconomics(p) : null), [p])
 
   if (!p) {
     return (
@@ -402,6 +403,125 @@ export default function JntVipProfit() {
           </span>
         </p>
       </Card>
+
+      {/* The question a P&L cannot answer: what happens if I sell one more?
+          Total profit grades the period that has already happened. Contribution
+          per bottle is the only figure that says whether pushing is worth it. */}
+      {u && u.contribution > 0 && (
+        <Card
+          title="What one more bottle is worth"
+          description="Costs split by what causes them — the sale, or the calendar. Only the first kind grows when you sell more."
+          className="mt-4"
+        >
+          <div className="grid gap-6 md:grid-cols-2">
+            <div>
+              <div className="divide-y" style={{ borderColor: 'var(--border-hairline)' }}>
+                <div className="pb-1">
+                  <Row label="Customer pays" amount={u.revenuePerBottle} bold />
+                </div>
+                <div className="py-1">
+                  {u.variable.map((v) => (
+                    <Row key={v.label} label={v.label} amount={v.amount} negative />
+                  ))}
+                </div>
+                <div className="pt-2">
+                  <Row label="Contribution per bottle" amount={u.contribution} bold />
+                </div>
+              </div>
+              <p className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                Once the month&rsquo;s fixed costs are covered, this whole amount is profit.
+              </p>
+            </div>
+
+            <div>
+              <div className="rounded-lg p-4" style={{ background: 'color-mix(in srgb, var(--series-yellow) 10%, transparent)' }}>
+                <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                  <Gauge size={13} /> Break-even
+                </div>
+                <div className="mt-1 text-3xl font-semibold tabular" style={{ color: 'var(--text-primary)' }}>
+                  {formatNumber(u.breakEvenBottles)} <span className="text-base font-normal">bottles</span>
+                </div>
+                <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  {u.breakEvenPerDay.toFixed(1)} a day pays the {peso(u.fixedForPeriod)} of support,
+                  electricity and food
+                </div>
+                <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--border-hairline)' }}>
+                  <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                    You sold <strong>{formatNumber(u.actualBottles)}</strong> ({u.actualPerDay.toFixed(1)} a day)
+                  </div>
+                  <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    {formatNumber(u.earningBottles)} bottles above break-even &times; {peso(u.contribution)} ={' '}
+                    {peso(u.earningBottles * u.contribution)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 border-t pt-4" style={{ borderColor: 'var(--border-hairline)' }}>
+            <div className="mb-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+              What it would take to earn more
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs uppercase tracking-wide" style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-muted)' }}>
+                    <th className="py-2 pr-4 font-semibold">Profit over {p.days} days</th>
+                    <th className="py-2 pr-4 text-right font-semibold">Bottles needed</th>
+                    <th className="py-2 pr-4 text-right font-semibold">Per day</th>
+                    <th className="py-2 text-right font-semibold">vs today</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[3000000, 5000000, 10000000].map((t) => {
+                    const need = bottlesForProfit(u, t)
+                    if (need == null) return null
+                    const lift = need / u.actualBottles - 1
+                    return (
+                      <tr key={t} className="border-b last:border-0" style={{ borderColor: 'var(--border-hairline)' }}>
+                        <td className="py-2 pr-4 font-medium tabular" style={{ color: 'var(--text-primary)' }}>{peso(t)}</td>
+                        <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-primary)' }}>{formatNumber(need)}</td>
+                        <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-secondary)' }}>{(need / p.days).toFixed(0)}</td>
+                        <td className="py-2 text-right tabular" style={{ color: lift > 0 ? 'var(--status-warning-ink)' : 'var(--status-good-ink)' }}>
+                          {lift > 0 ? '+' : ''}{formatPercent(lift)}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* The price lever, quantified. Volume is the assumption, and it is named. */}
+          {(() => {
+            const raised = atPrice(u, 44900, BOTTLE_COSTS[0].price)
+            const gain = raised.profit - u.earningBottles * u.contribution
+            return (
+              <div className="mt-5 rounded-lg border p-4" style={{ borderColor: 'var(--border-hairline)' }}>
+                <div className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  <ArrowUpRight size={15} style={{ color: 'var(--status-good-ink)' }} />
+                  The cheapest lever you have: price
+                </div>
+                <p className="mt-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                  Selling at {peso(raised.price)} instead of {peso(BOTTLE_COSTS[0].price)} lifts contribution
+                  from {peso(u.contribution)} to {peso(raised.contribution)} a bottle &mdash; only 3.08% of
+                  the increase goes back to J&amp;T as commission and VAT, and no other cost moves. Break-even
+                  falls from {formatNumber(u.breakEvenBottles)} bottles to {formatNumber(raised.breakEvenBottles)}.
+                  At the same {formatNumber(u.actualBottles)} bottles that is{' '}
+                  <strong style={{ color: 'var(--status-good-ink)' }}>{peso(raised.profit)}</strong> instead of{' '}
+                  {peso(u.earningBottles * u.contribution)} &mdash; {peso(gain)} more for no extra ad spend,
+                  no extra shipping and no extra work.
+                </p>
+                <p className="mt-1.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                  The assumption is that volume holds. That is the thing to test, and it is cheap to
+                  test: run the new price on one campaign and compare orders per peso of ad spend.
+                </p>
+              </div>
+            )
+          })()}
+        </Card>
+      )}
 
       {/* Operating costs. Separated by how they scale, because that is what decides
           whether growth helps or hurts. */}

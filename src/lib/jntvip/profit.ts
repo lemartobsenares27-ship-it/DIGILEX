@@ -29,7 +29,7 @@
 import type { JntVipSoaCheckRow, JntVipParcelRow } from './types'
 import { adSpendBetween } from './adSpend'
 import { BOTTLE_COSTS, PRUDENT_UNIT_COST } from './bottleCost'
-import { chargeOperatingExpenses, type ExpenseCharge } from './operatingCosts'
+import { chargeOperatingExpenses, variableCostPerBottle, type ExpenseCharge } from './operatingCosts'
 
 export { BOTTLE_COSTS, PRUDENT_UNIT_COST }
 
@@ -202,6 +202,91 @@ export function profitAndLoss(rows: JntVipSoaCheckRow[], parcels: JntVipParcelRo
     },
     unitsEstimated: hasParcels && Math.abs(scale - 1) > 0.005,
     hasParcels,
+  }
+}
+
+/**
+ * The economics of one more bottle.
+ *
+ * This is the number the business actually turns on, and it is invisible on a
+ * P&L. Total profit answers "did this period work"; contribution answers "what
+ * happens if I sell one more", which is the only question that tells you whether
+ * to push. Costs split cleanly in two: those a bottle causes (product, shipping,
+ * the COD fee, the ad that found the buyer, packing) and those the calendar
+ * causes whether or not anything sells (support, electricity, food).
+ *
+ * Once the second group is covered, every further bottle drops its whole
+ * contribution to the bottom line. That is why profit grows so much faster than
+ * sales — and why the break-even count matters more than the margin percentage.
+ */
+export interface UnitEconomics {
+  revenuePerBottle: number
+  /** Costs a bottle causes, in the order they occur. */
+  variable: { label: string; amount: number }[]
+  variableTotal: number
+  contribution: number
+  /** Costs the calendar causes, not the sale. */
+  fixedForPeriod: number
+  breakEvenBottles: number
+  breakEvenPerDay: number
+  actualBottles: number
+  actualPerDay: number
+  /** Bottles above break-even — the ones that are actually earning. */
+  earningBottles: number
+}
+
+export function unitEconomics(p: ProfitAndLoss): UnitEconomics | null {
+  if (p.units <= 0) return null
+  const variable = [
+    { label: 'Product', amount: p.perBottle.product },
+    { label: 'Shipping', amount: p.perBottle.shipping },
+    { label: 'COD service', amount: p.perBottle.codService },
+    { label: 'Advertising', amount: p.perBottle.ads },
+    { label: 'Fulfilment', amount: variableCostPerBottle() },
+  ]
+  const variableTotal = variable.reduce((t, v) => t + v.amount, 0)
+  const contribution = p.perBottle.revenue - variableTotal
+  const fixedForPeriod = p.operating
+    .filter((e) => e.basis !== 'PER_BOTTLE')
+    .reduce((t, e) => t + e.amount, 0)
+  const breakEvenBottles = contribution > 0 ? Math.ceil(fixedForPeriod / contribution) : 0
+  return {
+    revenuePerBottle: p.perBottle.revenue,
+    variable,
+    variableTotal,
+    contribution,
+    fixedForPeriod,
+    breakEvenBottles,
+    breakEvenPerDay: breakEvenBottles / p.days,
+    actualBottles: p.units,
+    actualPerDay: p.units / p.days,
+    earningBottles: p.units - breakEvenBottles,
+  }
+}
+
+/** Bottles needed over the same period to clear a given profit. */
+export function bottlesForProfit(u: UnitEconomics, targetProfit: number): number | null {
+  if (u.contribution <= 0) return null
+  return Math.ceil((targetProfit + u.fixedForPeriod) / u.contribution)
+}
+
+/**
+ * The same period re-run at a different price.
+ *
+ * Only the COD service fee moves with price — J&T takes 2.75% plus VAT on it, so
+ * 3.08% of the increase goes straight back out. Everything else is unchanged,
+ * which is what makes a price rise such a large lever: almost all of it lands in
+ * contribution. It assumes volume holds, which is exactly what needs testing.
+ */
+export function atPrice(u: UnitEconomics, newPrice: number, oldPrice: number) {
+  const delta = newPrice - oldPrice
+  const contribution = u.contribution + delta - Math.round(delta * 0.0308)
+  const breakEvenBottles = contribution > 0 ? Math.ceil(u.fixedForPeriod / contribution) : 0
+  return {
+    price: newPrice,
+    contribution,
+    breakEvenBottles,
+    profit: (u.actualBottles - breakEvenBottles) * contribution,
   }
 }
 
