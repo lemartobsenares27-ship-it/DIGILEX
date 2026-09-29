@@ -11,6 +11,7 @@ const JntVipSoaCheck = lazy(() => import('../pages/jntvip/JntVipSoaCheck'))
 const JntVipFinance = lazy(() => import('../pages/jntvip/JntVipFinance'))
 const JntVipBookkeeping = lazy(() => import('../pages/jntvip/JntVipBookkeeping'))
 const JntVipExecutive = lazy(() => import('../pages/jntvip/JntVipExecutive'))
+const JntVipProfit = lazy(() => import('../pages/jntvip/JntVipProfit'))
 const JntVipDiscrepancyCenter = lazy(() => import('../pages/jntvip/JntVipDiscrepancyCenter'))
 const JntVipBatches = lazy(() => import('../pages/jntvip/JntVipBatches'))
 const JntVipAuditLog = lazy(() => import('../pages/jntvip/JntVipAuditLog'))
@@ -167,6 +168,7 @@ export default function JntVipApp() {
           <Route path="/import" element={<JntVipImport />} />
           <Route path="/reconciliation" element={<JntVipReconciliation />} />
           <Route path="/soa-check" element={<JntVipSoaCheck />} />
+          <Route path="/profit" element={<JntVipProfit />} />
           <Route path="/finance" element={<JntVipFinance />} />
           <Route path="/bookkeeping" element={<JntVipBookkeeping />} />
           <Route path="/executive" element={<JntVipExecutive />} />
