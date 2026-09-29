@@ -29,6 +29,7 @@
 import type { JntVipSoaCheckRow, JntVipParcelRow } from './types'
 import { adSpendBetween } from './adSpend'
 import { BOTTLE_COSTS, PRUDENT_UNIT_COST } from './bottleCost'
+import { chargeOperatingExpenses, type ExpenseCharge } from './operatingCosts'
 
 export { BOTTLE_COSTS, PRUDENT_UNIT_COST }
 
@@ -50,6 +51,14 @@ export interface ProfitAndLoss {
   cogs: number
 
   adSpend: number
+
+  /** Running the business: support, fulfilment, utilities. */
+  operating: ExpenseCharge[]
+  operatingTotal: number
+  /** Bottles packed, including those that came back. Fulfilment is charged on these. */
+  bottlesFulfilled: number
+  /** True when returns could not be counted, so fulfilment is understated. */
+  fulfilmentUnderstated: boolean
 
   profit: number
   margin: number
@@ -76,6 +85,7 @@ export interface ProfitAndLoss {
     shipping: number
     codService: number
     ads: number
+    operating: number
     profit: number
   }
 
@@ -136,8 +146,19 @@ export function profitAndLoss(rows: JntVipSoaCheckRow[], parcels: JntVipParcelRo
 
   const adSpend = adSpendBetween(from, to)
 
-  const profit = netRemitted - cogs - adSpend
-  const adCeiling = netRemitted - cogs
+  // Fulfilment is warehouse work, so it is charged on every bottle that was
+  // PACKED. A parcel that came back was picked and packed exactly like one that
+  // landed. Without a parcel export the returns cannot be counted at all, and
+  // the page says the figure is low rather than presenting it as complete.
+  const returnedUnits = hasParcels
+    ? Math.round(returnedParcels.reduce((t, p) => t + bottlesIn(p), 0) * scale)
+    : 0
+  const bottlesFulfilled = units + returnedUnits
+  const operating = chargeOperatingExpenses(days, bottlesFulfilled)
+  const operatingTotal = operating.reduce((t, e) => t + e.amount, 0)
+
+  const profit = netRemitted - cogs - adSpend - operatingTotal
+  const adCeiling = netRemitted - cogs - operatingTotal
 
   return {
     from,
@@ -154,6 +175,10 @@ export function profitAndLoss(rows: JntVipSoaCheckRow[], parcels: JntVipParcelRo
     unitCost,
     cogs,
     adSpend,
+    operating,
+    operatingTotal,
+    bottlesFulfilled,
+    fulfilmentUnderstated: !hasParcels,
     profit,
     margin: revenue > 0 ? profit / revenue : 0,
     delivered,
@@ -172,6 +197,7 @@ export function profitAndLoss(rows: JntVipSoaCheckRow[], parcels: JntVipParcelRo
       shipping: units > 0 ? Math.round(shipping / units) : 0,
       codService: units > 0 ? Math.round((commission + vat + rtsFee) / units) : 0,
       ads: units > 0 ? Math.round(adSpend / units) : 0,
+      operating: units > 0 ? Math.round(operatingTotal / units) : 0,
       profit: units > 0 ? Math.round(profit / units) : 0,
     },
     unitsEstimated: hasParcels && Math.abs(scale - 1) > 0.005,
@@ -203,5 +229,6 @@ export function costStack(p: ProfitAndLoss): CostLine[] {
     { key: 'shipping', label: 'Shipping', amount: p.shipping, share: share(p.shipping), color: 'var(--series-aqua)', note: 'Billed on dispatch, whether or not it lands' },
     { key: 'cogs', label: 'Product', amount: p.cogs, share: share(p.cogs), color: 'var(--series-orange)', note: `${p.units} bottles at \u20b1${(p.unitCost / 100).toFixed(2)}` },
     { key: 'cod', label: 'COD service', amount: p.commission + p.vat + p.rtsFee, share: share(p.commission + p.vat + p.rtsFee), color: 'var(--series-violet)', note: '2.75% commission, VAT on it, and RTS fees' },
+    { key: 'operating', label: 'Running the business', amount: p.operatingTotal, share: share(p.operatingTotal), color: 'var(--series-yellow)', note: 'Support, warehouse fulfilment, electricity and food' },
   ].filter((l) => l.amount > 0)
 }

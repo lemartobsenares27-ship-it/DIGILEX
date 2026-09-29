@@ -7,7 +7,7 @@
 // the break-even it implies, so a bad month is visible before it finishes.
 
 import { useMemo } from 'react'
-import { TrendingUp, TrendingDown, Target, AlertTriangle, Undo2, Info, FlaskConical } from 'lucide-react'
+import { TrendingUp, TrendingDown, Target, AlertTriangle, Undo2, Info, FlaskConical, Building2 } from 'lucide-react'
 import PageHeader from '../../components/PageHeader'
 import Card from '../../components/Card'
 import { formatNumber, formatPercent } from '../../lib/format'
@@ -15,6 +15,7 @@ import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
 import { profitAndLoss, costStack } from '../../lib/jntvip/profit'
 import { BOTTLE_COSTS } from '../../lib/jntvip/bottleCost'
+import { fixedCostPerDay, variableCostPerBottle } from '../../lib/jntvip/operatingCosts'
 import { AD_FAILED_TOTAL, AD_FAILED_COUNT, adChargesBetween } from '../../lib/jntvip/adSpend'
 import type { JntVipSoaCheckRow, JntVipParcelRow } from '../../lib/jntvip/types'
 
@@ -150,6 +151,11 @@ export default function JntVipProfit() {
             </div>
             <div className="py-1">
               <Row label="Meta ad spend" amount={p.adSpend} note={`${formatNumber(charges.length)} paid receipts`} negative />
+            </div>
+            <div className="py-1">
+              {p.operating.map((e) => (
+                <Row key={e.key} label={e.label} amount={e.amount} note={e.quantityLabel} negative />
+              ))}
             </div>
             <div className="pt-2">
               <Row label="Operating profit" amount={p.profit} bold />
@@ -370,6 +376,7 @@ export default function JntVipProfit() {
             <Row label="Shipping it" amount={p.perBottle.shipping} note="paid whether or not it lands" negative />
             <Row label="COD service fee" amount={p.perBottle.codService} note="commission, VAT and RTS fees" negative />
             <Row label="Advertising to find the buyer" amount={p.perBottle.ads} note="the largest single cost" negative />
+            <Row label="Running the business" amount={p.perBottle.operating} note="support, fulfilment, electricity and food" negative />
           </div>
           <div className="pt-2">
             <Row label="You keep" amount={p.perBottle.profit} bold />
@@ -392,6 +399,108 @@ export default function JntVipProfit() {
                 the sticker, because multi-bottle orders are discounted.
               </>
             )}
+          </span>
+        </p>
+      </Card>
+
+      {/* Operating costs. Separated by how they scale, because that is what decides
+          whether growth helps or hurts. */}
+      <Card
+        title="What it costs to run the business"
+        description="Costs nobody invoices you for, split by how they behave when sales change."
+        className="mt-4"
+      >
+        <div className="divide-y" style={{ borderColor: 'var(--border-hairline)' }}>
+          {p.operating.map((e) => (
+            <div key={e.key} className="flex items-baseline justify-between gap-4 py-2">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                    {e.label}
+                  </span>
+                  <span
+                    className="rounded px-1.5 py-0.5 text-xs"
+                    style={{
+                      background: 'color-mix(in srgb, var(--series-yellow) 16%, transparent)',
+                      color: 'var(--text-secondary)',
+                    }}
+                  >
+                    {e.basis === 'PER_BOTTLE'
+                      ? `${peso(e.rate)} a bottle · grows with sales`
+                      : e.basis === 'PER_DAY'
+                        ? `${peso(e.rate)} a day · fixed`
+                        : `${peso(e.rate)} a month · fixed`}
+                  </span>
+                  {e.assumed && (
+                    <span className="text-xs font-medium" style={{ color: 'var(--status-warning-ink)' }}>
+                      assumed monthly
+                    </span>
+                  )}
+                </div>
+                <div className="mt-0.5 text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {e.detail} &middot; {e.quantityLabel}
+                </div>
+              </div>
+              <span className="shrink-0 text-sm tabular" style={{ color: 'var(--text-primary)' }}>
+                {peso(e.amount)}
+              </span>
+            </div>
+          ))}
+          <div className="flex items-baseline justify-between gap-4 pt-2">
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+              Total for these {p.days} days
+            </span>
+            <span className="text-base font-semibold tabular" style={{ color: 'var(--text-primary)' }}>
+              {peso(p.operatingTotal)}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-x-10 gap-y-3 border-t pt-3" style={{ borderColor: 'var(--border-hairline)' }}>
+          <div>
+            <div className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+              Fixed cost, every day
+            </div>
+            <div className="text-2xl font-semibold tabular" style={{ color: 'var(--text-primary)' }}>
+              {peso(fixedCostPerDay())}
+            </div>
+            <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              owed before you sell a single bottle
+            </div>
+          </div>
+          <div>
+            <div className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+              Bottles a day to cover it
+            </div>
+            <div className="text-2xl font-semibold tabular" style={{ color: 'var(--status-warning-ink)' }}>
+              {p.units > 0 && p.perBottle.revenue - p.perBottle.product - p.perBottle.shipping - p.perBottle.codService - p.perBottle.ads - variableCostPerBottle() > 0
+                ? Math.ceil(
+                    fixedCostPerDay() /
+                      (p.perBottle.revenue -
+                        p.perBottle.product -
+                        p.perBottle.shipping -
+                        p.perBottle.codService -
+                        p.perBottle.ads -
+                        variableCostPerBottle()),
+                  )
+                : '—'}
+            </div>
+            <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+              at this period&rsquo;s margin per bottle
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-3 flex items-start gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <Building2 size={13} className="mt-0.5 shrink-0" />
+          <span>
+            Fulfilment is charged on every bottle <strong>packed</strong>, not every bottle paid
+            for &mdash; a parcel that came back was picked and packed exactly like one that landed.
+            {p.fulfilmentUnderstated
+              ? ' Returns cannot be counted without a parcel export, so this figure is currently low.'
+              : ''}{' '}
+            The fixed costs are the ones to watch: they do not fall when sales do, so a quiet week
+            hurts more than the drop in orders suggests.
           </span>
         </p>
       </Card>
