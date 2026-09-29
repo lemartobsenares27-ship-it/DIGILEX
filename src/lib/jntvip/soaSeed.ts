@@ -68,21 +68,48 @@ export const SEED_STATEMENTS: SeedSoa[] = [
 export interface SoaSeedResult {
   added: number
   skipped: number
+  /** Statements already present that gained their confirmed bank credit. */
+  settled: number
 }
 
 /**
- * Loads the known statements. Safe to run repeatedly: anything already in the
- * ledger is left exactly as it is, including its payment status.
+ * Loads the known statements and the bank credits that settled them.
+ *
+ * Safe to run repeatedly, with one nuance that matters. Skipping every
+ * statement already present was too blunt: a browser that seeded these before
+ * the bank statement arrived held them all as UNPAID, and no later seed could
+ * ever correct that — it showed ₱118,288.21 outstanding against money J&T had
+ * in fact already paid.
+ *
+ * So the rule is narrower: a statement with NO payment recorded against it
+ * accepts the confirmed credit, and a statement that already carries one is
+ * left completely alone. That still protects anything entered by hand — which
+ * is the only thing worth protecting — while letting a blank row learn the
+ * truth.
  */
 export async function seedKnownStatements(): Promise<SoaSeedResult> {
   const existing = await jntVipDb.soaChecks.toArray()
-  const have = new Set(existing.map((r) => r.soaNumber))
+  const byNumber = new Map(existing.map((r) => [r.soaNumber, r]))
   let added = 0
   let skipped = 0
+  let settled = 0
 
   for (const s of SEED_STATEMENTS) {
-    if (have.has(s.soaNumber)) {
-      skipped++
+    const prior = byNumber.get(s.soaNumber)
+    if (prior) {
+      // Only ever fill a blank. Never touch a recorded payment.
+      if (s.received != null && prior.receivedAmount == null) {
+        await jntVipDb.soaChecks.update(prior.id!, {
+          receivedAmount: s.received,
+          receivedDate: s.receivedOn,
+          receivedReference: s.ref,
+          paymentStatus:
+            s.received === s.net ? 'PAID' : s.received < s.net ? 'PARTIAL' : 'OVERPAID',
+        })
+        settled++
+      } else {
+        skipped++
+      }
       continue
     }
     await jntVipDb.soaChecks.add({
@@ -119,5 +146,5 @@ export async function seedKnownStatements(): Promise<SoaSeedResult> {
     added++
   }
 
-  return { added, skipped }
+  return { added, skipped, settled }
 }
