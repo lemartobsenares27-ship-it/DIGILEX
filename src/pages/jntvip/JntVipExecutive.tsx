@@ -16,6 +16,7 @@ import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
 import { executiveSummary, codTrend, moneySplit, NPMCM_BENCHMARK } from '../../lib/jntvip/executive'
 import { profitAndLoss } from '../../lib/jntvip/profit'
+import RtsBreakdown from './RtsBreakdown'
 import { toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
 import type { JntVipSoaCheckRow, JntVipParcelRow, JntVipOperatingExpenseRow } from '../../lib/jntvip/types'
 
@@ -298,6 +299,12 @@ export default function JntVipExecutive() {
           ))}
         </div>
       </Card>
+      {/* The gauge above answers "how bad"; this answers "which way is it going
+          and which product is carrying it", which is the part you can act on. */}
+      <div className="mt-4">
+        <RtsBreakdown parcels={parcels} />
+      </div>
+
     </div>
   )
 }
