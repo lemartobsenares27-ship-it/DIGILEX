@@ -16,6 +16,7 @@ import type {
   JntVipAuditLogRow,
   JntVipParcelRow,
   JntVipSoaCheckRow,
+  JntVipOperatingExpenseRow,
 } from './types'
 
 export interface JntVipMetaRow {
@@ -32,6 +33,7 @@ class JntVipDB extends Dexie {
   meta!: Table<JntVipMetaRow, string>
   parcels!: Table<JntVipParcelRow, number>
   soaChecks!: Table<JntVipSoaCheckRow, number>
+  operatingExpenses!: Table<JntVipOperatingExpenseRow, number>
 
   constructor() {
     super('jnt-vip-reconciliation')
@@ -71,6 +73,24 @@ class JntVipDB extends Dexie {
     // without touching the rows.
     this.version(4).stores({
       soaChecks: '++id, soaNumber, periodFrom, checkedAt, paymentStatus',
+    })
+    // v5 stores the operating expenses — support, fulfilment, utilities — as
+    // rows rather than constants in the source. They arrived a few at a time
+    // and kept arriving, and an expense that needs a code change to record is
+    // an expense that quietly stays missing from the P&L.
+    //
+    // `key` is unique so seeding is idempotent and an edit updates in place;
+    // retired expenses are kept with active=false rather than deleted, because
+    // a period already closed was costed with them and deleting the row would
+    // silently restate it.
+    //
+    // `active` is deliberately NOT indexed even though it is the field most
+    // often filtered on. IndexedDB keys may only be numbers, strings, Dates or
+    // Arrays — a boolean is not a valid key, and indexing one makes every read
+    // of the table throw. The list is a handful of rows, so filtering it in
+    // memory costs nothing.
+    this.version(5).stores({
+      operatingExpenses: '++id, &key, basis',
     })
   }
 }

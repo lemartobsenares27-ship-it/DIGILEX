@@ -44,12 +44,18 @@ export const OPERATING_EXPENSES: OperatingExpense[] = [
     detail: 'Picking and packing, charged on every bottle that leaves — including ones that come back',
   },
   {
-    key: 'utilities',
-    label: 'Electricity and food',
+    key: 'electricity',
+    label: 'Electricity (Meralco)',
     basis: 'PER_MONTH',
     rate: 600000,
-    detail: 'Meralco plus food, treated as a monthly bill and pro-rated across the period',
-    assumed: true,
+    detail: 'The monthly Meralco bill, pro-rated across the period',
+  },
+  {
+    key: 'internet',
+    label: 'Internet',
+    basis: 'PER_MONTH',
+    rate: 100000,
+    detail: 'Monthly connection, pro-rated across the period',
   },
 ]
 
@@ -69,8 +75,12 @@ export interface ExpenseCharge extends OperatingExpense {
  * charging fulfilment only on delivered bottles would quietly make returns look
  * cheaper than they are.
  */
-export function chargeOperatingExpenses(days: number, bottlesFulfilled: number): ExpenseCharge[] {
-  return OPERATING_EXPENSES.map((e) => {
+export function chargeOperatingExpenses(
+  days: number,
+  bottlesFulfilled: number,
+  expenses: OperatingExpense[] = OPERATING_EXPENSES,
+): ExpenseCharge[] {
+  return expenses.map((e) => {
     switch (e.basis) {
       case 'PER_DAY':
         return { ...e, quantity: days, quantityLabel: `${days} days`, amount: e.rate * days }
@@ -95,14 +105,54 @@ export function chargeOperatingExpenses(days: number, bottlesFulfilled: number):
 }
 
 /** What one day costs before a single bottle is sold. */
-export function fixedCostPerDay(): number {
-  return OPERATING_EXPENSES.filter((e) => e.basis !== 'PER_BOTTLE').reduce(
+export function fixedCostPerDay(expenses: OperatingExpense[] = OPERATING_EXPENSES): number {
+  return expenses.filter((e) => e.basis !== 'PER_BOTTLE').reduce(
     (t, e) => t + (e.basis === 'PER_DAY' ? e.rate : Math.round(e.rate / DAYS_PER_MONTH)),
     0,
   )
 }
 
 /** The part of the bill that grows with each bottle packed. */
-export function variableCostPerBottle(): number {
-  return OPERATING_EXPENSES.filter((e) => e.basis === 'PER_BOTTLE').reduce((t, e) => t + e.rate, 0)
+export function variableCostPerBottle(expenses: OperatingExpense[] = OPERATING_EXPENSES): number {
+  return expenses.filter((e) => e.basis === 'PER_BOTTLE').reduce((t, e) => t + e.rate, 0)
+}
+
+/**
+ * Writes any expense the database has never seen. Run once, at startup.
+ *
+ * Seeding deliberately does NOT happen from the page. Writing to a table while
+ * a live query on that same table is being set up races the subscription and
+ * throws inside Dexie's notifier — the page rendered, then died. Seeding at
+ * startup means the table is settled before anything subscribes to it.
+ *
+ * It only ever ADDS a key it has not seen. An expense the user has edited keeps
+ * their figure: the constants above are a starting point, not the truth.
+ */
+export async function seedOperatingExpenses(): Promise<void> {
+  const { jntVipDb } = await import('./db')
+  const existing = await jntVipDb.operatingExpenses.toArray()
+  const seen = new Set(existing.map((r) => r.key))
+  const missing = OPERATING_EXPENSES.filter((e) => !seen.has(e.key))
+  if (missing.length === 0) return
+  await jntVipDb.operatingExpenses.bulkAdd(
+    missing.map((e) => ({
+      key: e.key,
+      label: e.label,
+      basis: e.basis,
+      rate: e.rate,
+      detail: e.detail,
+      active: true,
+      assumed: e.assumed ?? false,
+      updatedAt: new Date().toISOString(),
+    })),
+  )
+}
+
+/** Stored rows to the shape the P&L consumes. Pure — safe inside a render. */
+export function toOperatingExpenses(
+  rows: { key: string; label: string; basis: ExpenseBasis; rate: number; detail: string; active: boolean; assumed: boolean }[],
+): OperatingExpense[] {
+  return rows
+    .filter((r) => r.active)
+    .map((r) => ({ key: r.key, label: r.label, basis: r.basis, rate: r.rate, detail: r.detail, assumed: r.assumed }))
 }

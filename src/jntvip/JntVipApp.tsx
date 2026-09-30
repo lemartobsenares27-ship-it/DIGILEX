@@ -3,6 +3,7 @@ import { Routes, Route } from 'react-router-dom'
 import JntVipLayout from './JntVipLayout'
 import { jntVipDb } from '../lib/jntvip/db'
 import { seedKnownStatements } from '../lib/jntvip/soaSeed'
+import { seedOperatingExpenses } from '../lib/jntvip/operatingCosts'
 
 const JntVipDashboard = lazy(() => import('../pages/jntvip/JntVipDashboard'))
 const JntVipImport = lazy(() => import('../pages/jntvip/JntVipImport'))
@@ -76,6 +77,7 @@ export default function JntVipApp() {
       // Seeding must never keep the app from opening; the ledger simply stays
       // empty and the user can import by hand.
       .then(() => seedKnownStatements().catch((e) => console.warn('Statement seed skipped:', e)))
+      .then(() => seedOperatingExpenses().catch((e) => console.warn('Expense seed skipped:', e)))
       .then(() => {
         done = true
         setPhase('ready')

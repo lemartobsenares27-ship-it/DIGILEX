@@ -29,7 +29,13 @@
 import type { JntVipSoaCheckRow, JntVipParcelRow } from './types'
 import { adSpendBetween } from './adSpend'
 import { BOTTLE_COSTS, PRUDENT_UNIT_COST } from './bottleCost'
-import { chargeOperatingExpenses, variableCostPerBottle, type ExpenseCharge } from './operatingCosts'
+import {
+  chargeOperatingExpenses,
+  variableCostPerBottle,
+  OPERATING_EXPENSES,
+  type ExpenseCharge,
+  type OperatingExpense,
+} from './operatingCosts'
 
 export { BOTTLE_COSTS, PRUDENT_UNIT_COST }
 
@@ -109,7 +115,11 @@ function bottlesIn(p: JntVipParcelRow): number {
   return Math.max(1, Math.round(cod / REFERENCE_PRICE))
 }
 
-export function profitAndLoss(rows: JntVipSoaCheckRow[], parcels: JntVipParcelRow[]): ProfitAndLoss | null {
+export function profitAndLoss(
+  rows: JntVipSoaCheckRow[],
+  parcels: JntVipParcelRow[],
+  expenses: OperatingExpense[] = OPERATING_EXPENSES,
+): ProfitAndLoss | null {
   if (rows.length === 0) return null
 
   const sorted = [...rows].sort((a, b) => a.periodFrom.localeCompare(b.periodFrom))
@@ -154,7 +164,7 @@ export function profitAndLoss(rows: JntVipSoaCheckRow[], parcels: JntVipParcelRo
     ? Math.round(returnedParcels.reduce((t, p) => t + bottlesIn(p), 0) * scale)
     : 0
   const bottlesFulfilled = units + returnedUnits
-  const operating = chargeOperatingExpenses(days, bottlesFulfilled)
+  const operating = chargeOperatingExpenses(days, bottlesFulfilled, expenses)
   const operatingTotal = operating.reduce((t, e) => t + e.amount, 0)
 
   const profit = netRemitted - cogs - adSpend - operatingTotal
@@ -235,14 +245,17 @@ export interface UnitEconomics {
   earningBottles: number
 }
 
-export function unitEconomics(p: ProfitAndLoss): UnitEconomics | null {
+export function unitEconomics(
+  p: ProfitAndLoss,
+  expenses: OperatingExpense[] = OPERATING_EXPENSES,
+): UnitEconomics | null {
   if (p.units <= 0) return null
   const variable = [
     { label: 'Product', amount: p.perBottle.product },
     { label: 'Shipping', amount: p.perBottle.shipping },
     { label: 'COD service', amount: p.perBottle.codService },
     { label: 'Advertising', amount: p.perBottle.ads },
-    { label: 'Fulfilment', amount: variableCostPerBottle() },
+    { label: 'Fulfilment', amount: variableCostPerBottle(expenses) },
   ]
   const variableTotal = variable.reduce((t, v) => t + v.amount, 0)
   const contribution = p.perBottle.revenue - variableTotal

@@ -15,9 +15,10 @@ import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
 import { profitAndLoss, costStack, unitEconomics, bottlesForProfit, atPrice } from '../../lib/jntvip/profit'
 import { BOTTLE_COSTS } from '../../lib/jntvip/bottleCost'
-import { fixedCostPerDay, variableCostPerBottle } from '../../lib/jntvip/operatingCosts'
+import { fixedCostPerDay, toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
+import OperatingExpenseEditor from './OperatingExpenseEditor'
 import { AD_FAILED_TOTAL, AD_FAILED_COUNT, adChargesBetween } from '../../lib/jntvip/adSpend'
-import type { JntVipSoaCheckRow, JntVipParcelRow } from '../../lib/jntvip/types'
+import type { JntVipSoaCheckRow, JntVipParcelRow, JntVipOperatingExpenseRow } from '../../lib/jntvip/types'
 
 const peso = (c: number) =>
   (c < 0 ? '-₱' : '₱') + (Math.abs(c) / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -48,11 +49,19 @@ function Row({ label, amount, note, bold, negative }: { label: string; amount: n
 export default function JntVipProfit() {
   const rows = useLiveTable(jntVipDb.soaChecks) as JntVipSoaCheckRow[]
   const parcels = useLiveTable(jntVipDb.parcels) as JntVipParcelRow[]
+  // The expense rows drive the bottom line, so the page reads them live: an
+  // edit that did not move the profit figure would be worse than no editor.
+  // Reading only — seeding happens once at startup, never from here.
+  const expenseRows = useLiveTable(jntVipDb.operatingExpenses) as JntVipOperatingExpenseRow[]
+  const expenses = useMemo(() => toOperatingExpenses(expenseRows), [expenseRows])
 
-  const p = useMemo(() => profitAndLoss(rows, parcels), [rows, parcels])
+  const p = useMemo(
+    () => (expenses.length > 0 ? profitAndLoss(rows, parcels, expenses) : null),
+    [rows, parcels, expenses],
+  )
   const stack = useMemo(() => (p ? costStack(p) : []), [p])
   const charges = useMemo(() => (p ? adChargesBetween(p.from, p.to) : []), [p])
-  const u = useMemo(() => (p ? unitEconomics(p) : null), [p])
+  const u = useMemo(() => (p ? unitEconomics(p, expenses) : null), [p, expenses])
 
   if (!p) {
     return (
@@ -530,50 +539,15 @@ export default function JntVipProfit() {
         description="Costs nobody invoices you for, split by how they behave when sales change."
         className="mt-4"
       >
-        <div className="divide-y" style={{ borderColor: 'var(--border-hairline)' }}>
-          {p.operating.map((e) => (
-            <div key={e.key} className="flex items-baseline justify-between gap-4 py-2">
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {e.label}
-                  </span>
-                  <span
-                    className="rounded px-1.5 py-0.5 text-xs"
-                    style={{
-                      background: 'color-mix(in srgb, var(--series-yellow) 16%, transparent)',
-                      color: 'var(--text-secondary)',
-                    }}
-                  >
-                    {e.basis === 'PER_BOTTLE'
-                      ? `${peso(e.rate)} a bottle · grows with sales`
-                      : e.basis === 'PER_DAY'
-                        ? `${peso(e.rate)} a day · fixed`
-                        : `${peso(e.rate)} a month · fixed`}
-                  </span>
-                  {e.assumed && (
-                    <span className="text-xs font-medium" style={{ color: 'var(--status-warning-ink)' }}>
-                      assumed monthly
-                    </span>
-                  )}
-                </div>
-                <div className="mt-0.5 text-xs" style={{ color: 'var(--text-muted)' }}>
-                  {e.detail} &middot; {e.quantityLabel}
-                </div>
-              </div>
-              <span className="shrink-0 text-sm tabular" style={{ color: 'var(--text-primary)' }}>
-                {peso(e.amount)}
-              </span>
-            </div>
-          ))}
-          <div className="flex items-baseline justify-between gap-4 pt-2">
-            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Total for these {p.days} days
-            </span>
-            <span className="text-base font-semibold tabular" style={{ color: 'var(--text-primary)' }}>
-              {peso(p.operatingTotal)}
-            </span>
-          </div>
+        <OperatingExpenseEditor charges={p.operating} />
+
+        <div className="mt-3 flex items-baseline justify-between gap-4 border-t pt-3" style={{ borderColor: 'var(--border-hairline)' }}>
+          <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+            Total for these {p.days} days
+          </span>
+          <span className="text-base font-semibold tabular" style={{ color: 'var(--text-primary)' }}>
+            {peso(p.operatingTotal)}
+          </span>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-x-10 gap-y-3 border-t pt-3" style={{ borderColor: 'var(--border-hairline)' }}>
@@ -582,7 +556,7 @@ export default function JntVipProfit() {
               Fixed cost, every day
             </div>
             <div className="text-2xl font-semibold tabular" style={{ color: 'var(--text-primary)' }}>
-              {peso(fixedCostPerDay())}
+              {peso(fixedCostPerDay(expenses))}
             </div>
             <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
               owed before you sell a single bottle
@@ -593,17 +567,7 @@ export default function JntVipProfit() {
               Bottles a day to cover it
             </div>
             <div className="text-2xl font-semibold tabular" style={{ color: 'var(--status-warning-ink)' }}>
-              {p.units > 0 && p.perBottle.revenue - p.perBottle.product - p.perBottle.shipping - p.perBottle.codService - p.perBottle.ads - variableCostPerBottle() > 0
-                ? Math.ceil(
-                    fixedCostPerDay() /
-                      (p.perBottle.revenue -
-                        p.perBottle.product -
-                        p.perBottle.shipping -
-                        p.perBottle.codService -
-                        p.perBottle.ads -
-                        variableCostPerBottle()),
-                  )
-                : '—'}
+              {u ? Math.ceil(u.breakEvenPerDay) : '—'}
             </div>
             <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
               at this period&rsquo;s margin per bottle

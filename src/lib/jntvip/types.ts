@@ -263,3 +263,28 @@ export interface JntVipSoaCheckRow {
 
   notes: string | null
 }
+
+/**
+ * One running cost of the business, stored rather than hard-coded.
+ *
+ * `basis` decides how the rate is priced against a period and, more
+ * importantly, how the cost behaves: PER_BOTTLE grows with sales and is paid
+ * for by the sale that causes it, while PER_DAY and PER_MONTH are owed whether
+ * or not anything sells. The break-even count depends on that split, so it is
+ * part of the record rather than a presentation detail.
+ */
+export interface JntVipOperatingExpenseRow {
+  id?: number
+  /** Stable identifier, so seeding and editing never duplicate a row. */
+  key: string
+  label: string
+  basis: 'PER_DAY' | 'PER_BOTTLE' | 'PER_MONTH'
+  /** Integer centavos, per day, per bottle, or per month. */
+  rate: number
+  detail: string
+  /** False retires an expense without erasing how past periods were costed. */
+  active: boolean
+  /** True where the amount or its period was inferred rather than stated. */
+  assumed: boolean
+  updatedAt: string
+}
