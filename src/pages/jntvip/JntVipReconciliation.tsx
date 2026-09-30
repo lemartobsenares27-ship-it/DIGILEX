@@ -10,6 +10,7 @@ import { exportFullReconciliation, exportMismatchesOnly, exportJntOnly, exportPo
 import { useJntVipTables } from './hooks'
 import { ReconStatusBadge, ConfidenceBadge } from './StatusBadge'
 import JntVipMatchDrawer from './JntVipMatchDrawer'
+import NeedsData from './NeedsData'
 
 const STATUS_OPTIONS: { value: JntVipReconStatus | 'ALL'; label: string }[] = [
   { value: 'ALL', label: 'All statuses' },
@@ -74,6 +75,25 @@ export default function JntVipReconciliation() {
     const ids = new Set(rows.filter((r) => r.status === 'JNT_ONLY' && r.shipmentId != null).map((r) => r.shipmentId!))
     return shipments.filter((s) => s.id != null && ids.has(s.id))
   }, [rows, shipments])
+
+  // With no orders at all the filters, pager and table are furniture around
+  // nothing. Say what the page is for instead of rendering an empty grid.
+  if (rows.length === 0) {
+    return (
+      <div>
+        <PageHeader
+          title="Reconciliation Table"
+          description="Every POS order and J&T VIP shipment, matched and compared side by side."
+        />
+        <NeedsData
+          shows="This table puts every POS order beside its J&T shipment so you can see, row by row, where the two disagree on delivery, COD or fees."
+          needs="a POS order export and a J&T shipment export"
+          where="your POS system, and My Waybill from the J&T portal"
+          optional="Only needed if you reconcile POS orders against J&T. To check a statement itself, SOA Check rebuilds it from the parcel export — that is the one that catches a wrong fee."
+        />
+      </div>
+    )
+  }
 
   return (
     <div>

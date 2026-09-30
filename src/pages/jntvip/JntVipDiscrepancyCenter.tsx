@@ -6,6 +6,7 @@ import { formatCurrency, formatNumber } from '../../lib/format'
 import { buildReconciliationRows, computeDiscrepancyGroups } from '../../lib/jntvip/selectors'
 import type { JntVipDiscrepancyType, JntVipReconStatus } from '../../lib/jntvip/types'
 import { useJntVipTables } from './hooks'
+import NeedsData from './NeedsData'
 
 // Each discrepancy group's "View" link opens the Reconciliation Table
 // pre-filtered to the status that carries that discrepancy type.
@@ -44,11 +45,12 @@ export default function JntVipDiscrepancyCenter() {
       </Card>
 
       {groups.length === 0 ? (
-        <Card>
-          <p className="py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
-            No discrepancies found. Import POS orders and a J&T VIP SOA to start reconciling.
-          </p>
-        </Card>
+        <NeedsData
+          shows="This is where mismatches collect once orders and shipments are compared — grouped by type and ranked by how much money each one is worth."
+          needs="a POS order export and a J&T shipment export"
+          where="your POS system, and My Waybill from the J&T portal"
+          optional="Nothing is wrong here: with no POS comparison running there is nothing to disagree about. A statement that disagrees with the parcels behind it shows up on SOA Check instead."
+        />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {groups.map((g) => (

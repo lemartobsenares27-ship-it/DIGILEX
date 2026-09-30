@@ -4,19 +4,40 @@ import { PackageCheck, UploadCloud, Table2, AlertOctagon, Boxes, History, Shield
 import { useTheme } from '../hooks/useTheme'
 import AppSwitcher from '../components/AppSwitcher'
 
-const NAV = [
-  { to: '/executive', label: 'Executive Dashboard', icon: Target },
-  { to: '/', label: 'Dashboard', icon: PackageCheck },
-  { to: '/import', label: 'Import', icon: UploadCloud },
-  { to: '/soa-check', label: 'SOA Check', icon: ShieldCheck },
-  { to: '/profit', label: 'Profit & Loss', icon: Coins },
-  { to: '/finance', label: 'Finance', icon: Wallet },
-  { to: '/bookkeeping', label: 'Monthly Bookkeeping', icon: BookOpen },
-  { to: '/reconciliation', label: 'Reconciliation Table', icon: Table2 },
-  { to: '/discrepancy-center', label: 'Discrepancy Center', icon: AlertOctagon },
-  { to: '/batches', label: 'SOA Batches', icon: Boxes },
-  { to: '/audit-log', label: 'Audit Log', icon: History },
+// Grouped, because the sidebar was presenting eleven equally-weighted pages
+// when only some of them apply. Four belong to a POS-versus-statement matching
+// workflow; if your orders never pass through a POS export they stay empty for
+// a reason, and a flat list makes that read as a broken app rather than as a
+// section you do not use. The headings say which is which.
+const NAV: { heading: string; items: { to: string; label: string; icon: typeof Target }[] }[] = [
+  {
+    heading: 'The money',
+    items: [
+      { to: '/executive', label: 'Executive Dashboard', icon: Target },
+      { to: '/profit', label: 'Profit & Loss', icon: Coins },
+      { to: '/finance', label: 'Finance', icon: Wallet },
+      { to: '/bookkeeping', label: 'Monthly Bookkeeping', icon: BookOpen },
+    ],
+  },
+  {
+    heading: 'Statements & parcels',
+    items: [
+      { to: '/soa-check', label: 'SOA Check', icon: ShieldCheck },
+      { to: '/batches', label: 'Statements', icon: Boxes },
+      { to: '/import', label: 'Import', icon: UploadCloud },
+    ],
+  },
+  {
+    heading: 'POS matching',
+    items: [
+      { to: '/', label: 'Order Dashboard', icon: PackageCheck },
+      { to: '/reconciliation', label: 'Reconciliation Table', icon: Table2 },
+      { to: '/discrepancy-center', label: 'Discrepancy Center', icon: AlertOctagon },
+      { to: '/audit-log', label: 'Audit Log', icon: History },
+    ],
+  },
 ]
+
 
 export default function JntVipLayout() {
   const [theme, toggleTheme] = useTheme()
@@ -52,26 +73,33 @@ export default function JntVipLayout() {
         <AppSwitcher current="jntvip" />
 
         <nav className="flex-1 px-3 pb-4">
-          <div className="flex flex-col gap-0.5">
-            {NAV.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={to === '/'}
-                onClick={() => setMobileOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors ${isActive ? 'font-medium' : ''}`
-                }
-                style={({ isActive }) => ({
-                  color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  background: isActive ? 'color-mix(in srgb, var(--series-orange) 14%, transparent)' : 'transparent',
-                })}
-              >
-                <Icon size={16} strokeWidth={2} />
-                <span className="flex-1 truncate">{label}</span>
-              </NavLink>
-            ))}
-          </div>
+          {NAV.map(({ heading, items }) => (
+            <div key={heading} className="mb-3">
+              <div className="px-2.5 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                {heading}
+              </div>
+              <div className="flex flex-col gap-0.5">
+                {items.map(({ to, label, icon: Icon }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={to === '/'}
+                    onClick={() => setMobileOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors ${isActive ? 'font-medium' : ''}`
+                    }
+                    style={({ isActive }) => ({
+                      color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                      background: isActive ? 'color-mix(in srgb, var(--series-orange) 14%, transparent)' : 'transparent',
+                    })}
+                  >
+                    <Icon size={16} strokeWidth={2} />
+                    <span className="flex-1 truncate">{label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            </div>
+          ))}
         </nav>
       </aside>
 

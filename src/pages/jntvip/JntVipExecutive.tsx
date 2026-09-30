@@ -15,7 +15,9 @@ import { formatNumber, formatPercent } from '../../lib/format'
 import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
 import { executiveSummary, codTrend, moneySplit, NPMCM_BENCHMARK } from '../../lib/jntvip/executive'
-import type { JntVipSoaCheckRow, JntVipParcelRow } from '../../lib/jntvip/types'
+import { profitAndLoss } from '../../lib/jntvip/profit'
+import { toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
+import type { JntVipSoaCheckRow, JntVipParcelRow, JntVipOperatingExpenseRow } from '../../lib/jntvip/types'
 
 const peso = (c: number) => '₱' + (c / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
@@ -30,7 +32,16 @@ export default function JntVipExecutive() {
   const rows = useLiveTable(jntVipDb.soaChecks) as JntVipSoaCheckRow[]
   const parcels = useLiveTable(jntVipDb.parcels) as JntVipParcelRow[]
 
+  const expenseRows = useLiveTable(jntVipDb.operatingExpenses) as JntVipOperatingExpenseRow[]
+  const expenses = useMemo(() => toOperatingExpenses(expenseRows), [expenseRows])
   const s = useMemo(() => executiveSummary(rows, parcels), [rows, parcels])
+  // The bottom line does not need parcels, so the landing page should lead with
+  // it rather than with the one figure that does. Cost per delivered parcel
+  // answers "which courier"; this answers "is any of this working".
+  const pl = useMemo(
+    () => (expenses.length > 0 ? profitAndLoss(rows, parcels, expenses) : null),
+    [rows, parcels, expenses],
+  )
   const trend = useMemo(() => codTrend(rows), [rows])
   const split = useMemo(() => moneySplit(s), [s])
   const splitTotal = split.reduce((t, x) => t + x.amount, 0)
@@ -112,14 +123,70 @@ export default function JntVipExecutive() {
             Benchmark source: {NPMCM_BENCHMARK.source}.
           </p>
         </Card>
+      ) : pl ? (
+        <Card className="mb-4">
+          <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
+            <div>
+              <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                {pl.profit > 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />} Operating profit · {pl.days} days
+              </div>
+              <div className="mt-1 flex items-baseline gap-3">
+                <span
+                  className="text-4xl font-semibold tabular"
+                  style={{ color: pl.profit > 0 ? 'var(--status-good-ink)' : 'var(--status-critical)' }}
+                >
+                  {peso(pl.profit)}
+                </span>
+                <span className="text-sm font-medium" style={{ color: pl.profit > 0 ? 'var(--status-good-ink)' : 'var(--status-critical)' }}>
+                  {pl.profit > 0 ? 'profitable' : 'losing money'}
+                </span>
+              </div>
+              <div className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                after courier, product, ads and running costs · {formatPercent(pl.margin)} of {peso(pl.revenue)}
+              </div>
+            </div>
+            <div className="h-12 w-px" style={{ background: 'var(--border-hairline)' }} />
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                ROAS
+              </div>
+              <div className="mt-1 text-2xl font-semibold tabular" style={{ color: 'var(--text-primary)' }}>
+                {pl.roas.toFixed(2)}x
+              </div>
+              <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                break-even {pl.breakEvenRoas.toFixed(2)}x
+              </div>
+            </div>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                Ad headroom
+              </div>
+              <div
+                className="mt-1 text-2xl font-semibold tabular"
+                style={{ color: pl.adHeadroom > 0 ? 'var(--status-good-ink)' : 'var(--status-critical)' }}
+              >
+                {peso(pl.adHeadroom)}
+              </div>
+              <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                before profit reaches zero
+              </div>
+            </div>
+          </div>
+          <p className="mt-3 flex items-start gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <AlertTriangle size={13} className="mt-0.5 shrink-0" style={{ color: 'var(--status-warning-ink)' }} />
+            <span>
+              Cost per delivered parcel — the like-for-like comparison against {NPMCM_BENCHMARK.label}&rsquo;s{' '}
+              {peso(NPMCM_BENCHMARK.costPerDelivered)} — needs the parcel export, because statements give totals but not
+              delivery counts. Import My Waybill on <strong>SOA Check</strong> to unlock it.
+            </span>
+          </p>
+        </Card>
       ) : (
         <Card className="mb-4">
           <div className="flex items-start gap-2 text-sm" style={{ color: 'var(--text-primary)' }}>
             <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--status-warning-ink)' }} />
             <span>
-              <strong>The comparison needs parcel data.</strong> Cost per delivered parcel cannot be computed from statements
-              alone — they give totals, not delivery counts. Import the My Waybill export on <strong>SOA Check</strong> and this
-              becomes a like-for-like number against {NPMCM_BENCHMARK.label}'s {peso(NPMCM_BENCHMARK.costPerDelivered)}.
+              <strong>The comparison needs parcel data.</strong> Import the My Waybill export on <strong>SOA Check</strong>.
             </span>
           </div>
         </Card>

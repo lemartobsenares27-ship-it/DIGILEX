@@ -4,6 +4,7 @@ import Card from '../../components/Card'
 import { formatDateTime } from '../../lib/format'
 import { exportAuditLog } from '../../lib/jntvip/exportCsv'
 import { useJntVipTables } from './hooks'
+import NeedsData from './NeedsData'
 
 export default function JntVipAuditLog() {
   const { auditLog } = useJntVipTables()
@@ -25,12 +26,18 @@ export default function JntVipAuditLog() {
         }
       />
 
+      {sorted.length === 0 ? (
+        <NeedsData
+          shows="Every manual decision — confirm, reject, mark duplicate, link, note — with a before-and-after snapshot, so a correction can always be traced to who made it and why."
+          needs="nothing"
+          where="this log fills itself as you review matches on the Reconciliation Table"
+          optional="It stays empty until you resolve a match by hand. This is a record of your own decisions, not a file you import."
+          to="/reconciliation"
+          toLabel="Go to Reconciliation Table"
+        />
+      ) : (
       <Card>
-        {sorted.length === 0 ? (
-          <p className="py-8 text-center text-sm" style={{ color: 'var(--text-muted)' }}>
-            No manual review actions yet.
-          </p>
-        ) : (
+        {(
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -62,6 +69,7 @@ export default function JntVipAuditLog() {
           </div>
         )}
       </Card>
+      )}
     </div>
   )
 }

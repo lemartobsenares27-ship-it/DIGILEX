@@ -1,12 +1,13 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, AlertTriangle, XCircle, PackageX, ShoppingBag, Copy, Upload } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, XCircle, PackageX, ShoppingBag, Copy } from 'lucide-react'
 import PageHeader from '../../components/PageHeader'
 import StatTile from '../../components/StatTile'
 import Card from '../../components/Card'
 import { formatCurrency, formatNumber, formatDate } from '../../lib/format'
 import { buildReconciliationRows, computeDashboardKpis, computeDiscrepancyGroups, computeBatchSummaries } from '../../lib/jntvip/selectors'
 import { useJntVipTables } from './hooks'
+import NeedsData from './NeedsData'
 
 export default function JntVipDashboard() {
   const { posOrders, shipments, matches, batches } = useJntVipTables()
@@ -26,22 +27,12 @@ export default function JntVipDashboard() {
           title="J&T VIP Reconciliation"
           description="Compares your POS orders against J&T VIP's Statement of Account (SOA) to catch delivery, COD, and shipping-fee discrepancies. Fully independent from the NPMCM reconciliation system elsewhere in this app."
         />
-        <Card title="No data yet" className="text-center">
-          <div className="flex flex-col items-center gap-3 py-8">
-            <Upload size={28} style={{ color: 'var(--text-muted)' }} />
-            <p className="max-w-md text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Import your POS orders and a J&T VIP SOA export to start reconciling. Nothing here touches your existing
-              NPMCM data.
-            </p>
-            <Link
-              to="/import"
-              className="rounded-lg px-4 py-2 text-sm font-semibold text-white"
-              style={{ background: 'var(--series-blue)' }}
-            >
-              Go to Import
-            </Link>
-          </div>
-        </Card>
+        <NeedsData
+          shows="This page compares each POS order against what J&T actually shipped and collected, so a paid order that never went out — or went out and was never remitted — shows up."
+          needs="a POS order export and a J&T shipment export"
+          where="your POS system's order list, and My Waybill from the J&T portal"
+          optional="If your orders do not go through a POS export, you do not need this page. Profit & Loss, Finance and Statements already cover the money, using the SOA PDFs and the parcel export."
+        />
       </div>
     )
   }
