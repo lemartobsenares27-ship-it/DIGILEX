@@ -4,6 +4,7 @@ import JntVipLayout from './JntVipLayout'
 import { jntVipDb } from '../lib/jntvip/db'
 import { seedKnownStatements } from '../lib/jntvip/soaSeed'
 import { seedOperatingExpenses } from '../lib/jntvip/operatingCosts'
+import { seedProducts } from '../lib/jntvip/products'
 
 const JntVipDashboard = lazy(() => import('../pages/jntvip/JntVipDashboard'))
 const JntVipImport = lazy(() => import('../pages/jntvip/JntVipImport'))
@@ -13,6 +14,7 @@ const JntVipFinance = lazy(() => import('../pages/jntvip/JntVipFinance'))
 const JntVipBookkeeping = lazy(() => import('../pages/jntvip/JntVipBookkeeping'))
 const JntVipExecutive = lazy(() => import('../pages/jntvip/JntVipExecutive'))
 const JntVipProfit = lazy(() => import('../pages/jntvip/JntVipProfit'))
+const JntVipProducts = lazy(() => import('../pages/jntvip/JntVipProducts'))
 const JntVipDiscrepancyCenter = lazy(() => import('../pages/jntvip/JntVipDiscrepancyCenter'))
 const JntVipBatches = lazy(() => import('../pages/jntvip/JntVipBatches'))
 const JntVipAuditLog = lazy(() => import('../pages/jntvip/JntVipAuditLog'))
@@ -78,6 +80,7 @@ export default function JntVipApp() {
       // empty and the user can import by hand.
       .then(() => seedKnownStatements().catch((e) => console.warn('Statement seed skipped:', e)))
       .then(() => seedOperatingExpenses().catch((e) => console.warn('Expense seed skipped:', e)))
+      .then(() => seedProducts().catch((e) => console.warn('Product seed skipped:', e)))
       .then(() => {
         done = true
         setPhase('ready')
@@ -171,6 +174,7 @@ export default function JntVipApp() {
           <Route path="/reconciliation" element={<JntVipReconciliation />} />
           <Route path="/soa-check" element={<JntVipSoaCheck />} />
           <Route path="/profit" element={<JntVipProfit />} />
+          <Route path="/products" element={<JntVipProducts />} />
           <Route path="/finance" element={<JntVipFinance />} />
           <Route path="/bookkeeping" element={<JntVipBookkeeping />} />
           <Route path="/executive" element={<JntVipExecutive />} />

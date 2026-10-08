@@ -288,3 +288,45 @@ export interface JntVipOperatingExpenseRow {
   assumed: boolean
   updatedAt: string
 }
+
+/**
+ * A product you sell, and the text that identifies it on a J&T parcel.
+ *
+ * Products are rows rather than a constant because the catalogue grows: it
+ * started at two and is now four. Hard-coding them meant every new SKU silently
+ * fell into an "Other" bucket and stopped being measurable, which is the
+ * opposite of what a per-product return rate is for.
+ *
+ * `aliases` exist because J&T echoes back whatever the shipper typed, and that
+ * is rarely the clean product name — TESTOMAXX arrives as "TSTMX", and a
+ * two-bottle order reads "2 BOTTLES TSTMX". Matching is widest-alias-first so a
+ * specific name is never shadowed by a shorter one that happens to be a prefix.
+ */
+export interface JntVipProductRow {
+  id?: number
+  name: string
+  /** Upper-case fragments to look for in the parcel's item text. */
+  aliases: string[]
+  /** Integer centavos. Zero when not yet costed. */
+  unitCost: number
+  price: number
+  active: boolean
+  updatedAt: string
+}
+
+/**
+ * A parcel pinned to a product by something better than text matching.
+ *
+ * The J&T export is one file for every product, and its item text is free-form,
+ * so text matching is a good default and a poor authority. A POS export covers
+ * exactly one product, so every waybill in it is known to be that product —
+ * that mapping lands here and wins over any guess.
+ */
+export interface JntVipParcelProductRow {
+  id?: number
+  awb: string
+  product: string
+  /** POS beats MANUAL beats the text guess, which is not stored at all. */
+  source: 'POS' | 'MANUAL'
+  updatedAt: string
+}

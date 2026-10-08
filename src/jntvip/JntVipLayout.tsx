@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { PackageCheck, UploadCloud, Table2, AlertOctagon, Boxes, History, ShieldCheck, Wallet, BookOpen, Target, Coins, Sun, Moon, Menu } from 'lucide-react'
+import { PackageCheck, UploadCloud, Table2, AlertOctagon, Boxes, History, ShieldCheck, Wallet, BookOpen, Target, Coins, Boxes as BoxesIcon, Sun, Moon, Menu } from 'lucide-react'
 import { useTheme } from '../hooks/useTheme'
 import AppSwitcher from '../components/AppSwitcher'
 
@@ -22,6 +22,7 @@ const NAV: { heading: string; items: { to: string; label: string; icon: typeof T
   {
     heading: 'Statements & parcels',
     items: [
+      { to: '/products', label: 'Products', icon: BoxesIcon },
       { to: '/soa-check', label: 'SOA Check', icon: ShieldCheck },
       { to: '/batches', label: 'Statements', icon: Boxes },
       { to: '/import', label: 'Import', icon: UploadCloud },

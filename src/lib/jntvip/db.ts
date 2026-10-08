@@ -17,6 +17,8 @@ import type {
   JntVipParcelRow,
   JntVipSoaCheckRow,
   JntVipOperatingExpenseRow,
+  JntVipProductRow,
+  JntVipParcelProductRow,
 } from './types'
 
 export interface JntVipMetaRow {
@@ -34,6 +36,8 @@ class JntVipDB extends Dexie {
   parcels!: Table<JntVipParcelRow, number>
   soaChecks!: Table<JntVipSoaCheckRow, number>
   operatingExpenses!: Table<JntVipOperatingExpenseRow, number>
+  products!: Table<JntVipProductRow, number>
+  parcelProducts!: Table<JntVipParcelProductRow, number>
 
   constructor() {
     super('jnt-vip-reconciliation')
@@ -91,6 +95,22 @@ class JntVipDB extends Dexie {
     // memory costs nothing.
     this.version(5).stores({
       operatingExpenses: '++id, &key, basis',
+    })
+    // v6 makes the product catalogue data. Two products were hard-coded and
+    // everything else fell into "Other"; with four SKUs that silently merges
+    // two of them and makes a per-product return rate meaningless.
+    //
+    // parcelProducts pins a waybill to a product from a source better than text
+    // matching — a POS export covers one product, so every waybill in it is
+    // known. `awb` is unique so re-importing the same POS file corrects the
+    // mapping instead of stacking duplicates.
+    //
+    // Neither `active` nor `aliases` is indexed: a boolean is not a valid
+    // IndexedDB key, and an array index would match each element rather than
+    // the row. Both lists are small enough to filter in memory.
+    this.version(6).stores({
+      products: '++id, &name',
+      parcelProducts: '++id, &awb, product',
     })
   }
 }

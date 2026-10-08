@@ -16,21 +16,21 @@
 // back yet, so counting them in the denominator makes the recent weeks look
 // better than they are, and recent weeks are the ones being judged.
 
-import type { JntVipParcelRow } from './types'
+import type { JntVipParcelRow, JntVipProductRow } from './types'
+import { resolveProduct, UNCLASSIFIED } from './products'
 
 /**
- * Which product a parcel carried.
+ * How a parcel is attributed to a product.
  *
- * Read from the text J&T echoes back rather than from a stored field, so this
- * works on parcel exports that were imported before the app knew to keep one.
- * The waybill parser puts the item name into `remarks` when the export has no
- * separate remarks column, so both are searched.
+ * Delegates to the catalogue rather than matching two names inline. The old
+ * version recognised EYE CARE and TESTOMAXX and called everything else "Other",
+ * which was fine with two products and silently merges the rest once there are
+ * four.
  */
-export function productOf(p: JntVipParcelRow): string {
-  const text = `${p.remarks ?? ''}`.toUpperCase()
-  if (text.includes('EYE CARE') || text.includes('EYECARE')) return 'EYE CARE'
-  if (text.includes('TESTOMAXX') || text.includes('TSTMX')) return 'TESTOMAXX'
-  return 'Other'
+export type ProductResolver = (p: JntVipParcelRow) => string
+
+export function makeResolver(products: JntVipProductRow[], pinned: Map<string, string>): ProductResolver {
+  return (p) => resolveProduct(p, products, pinned)
 }
 
 /** ISO week key, e.g. 2026-W38. Weeks start Monday and belong to the year holding their Thursday. */
@@ -91,7 +91,11 @@ function monthLabel(key: string): string {
  * was sent, which is the week whose rate you are trying to judge, and would make
  * the most recent weeks permanently understate.
  */
-export function rtsByPeriod(parcels: JntVipParcelRow[], grain: 'week' | 'month'): RtsPeriod[] {
+export function rtsByPeriod(
+  parcels: JntVipParcelRow[],
+  grain: 'week' | 'month',
+  productOf: ProductResolver,
+): RtsPeriod[] {
   const keyOf = grain === 'week' ? isoWeek : monthKey
   const buckets = new Map<string, Map<string, { d: number; r: number }>>()
 
@@ -136,7 +140,15 @@ export function productsIn(periods: RtsPeriod[]): string[] {
       totals.set(name, (totals.get(name) ?? 0) + c.settled)
     }
   }
-  return [...totals.entries()].sort((a, b) => b[1] - a[1]).map(([name]) => name)
+  return [...totals.entries()]
+    .sort((a, b) => {
+      // Unclassified is a gap in the data, not a product, so it sits at the end
+      // regardless of size — otherwise a bad import would head the table.
+      if (a[0] === UNCLASSIFIED) return 1
+      if (b[0] === UNCLASSIFIED) return -1
+      return b[1] - a[1]
+    })
+    .map(([name]) => name)
 }
 
 /**

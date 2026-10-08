@@ -17,8 +17,16 @@ import { jntVipDb } from '../../lib/jntvip/db'
 import { executiveSummary, codTrend, moneySplit, NPMCM_BENCHMARK } from '../../lib/jntvip/executive'
 import { profitAndLoss } from '../../lib/jntvip/profit'
 import RtsBreakdown from './RtsBreakdown'
+import { makeResolver } from '../../lib/jntvip/rts'
+import { pinnedMap } from '../../lib/jntvip/products'
 import { toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
-import type { JntVipSoaCheckRow, JntVipParcelRow, JntVipOperatingExpenseRow } from '../../lib/jntvip/types'
+import type {
+  JntVipSoaCheckRow,
+  JntVipParcelRow,
+  JntVipOperatingExpenseRow,
+  JntVipProductRow,
+  JntVipParcelProductRow,
+} from '../../lib/jntvip/types'
 
 const peso = (c: number) => '₱' + (c / 100).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
@@ -34,6 +42,9 @@ export default function JntVipExecutive() {
   const parcels = useLiveTable(jntVipDb.parcels) as JntVipParcelRow[]
 
   const expenseRows = useLiveTable(jntVipDb.operatingExpenses) as JntVipOperatingExpenseRow[]
+  const products = useLiveTable(jntVipDb.products) as JntVipProductRow[]
+  const parcelProducts = useLiveTable(jntVipDb.parcelProducts) as JntVipParcelProductRow[]
+  const productOf = useMemo(() => makeResolver(products, pinnedMap(parcelProducts)), [products, parcelProducts])
   const expenses = useMemo(() => toOperatingExpenses(expenseRows), [expenseRows])
   const s = useMemo(() => executiveSummary(rows, parcels), [rows, parcels])
   // The bottom line does not need parcels, so the landing page should lead with
@@ -302,7 +313,7 @@ export default function JntVipExecutive() {
       {/* The gauge above answers "how bad"; this answers "which way is it going
           and which product is carrying it", which is the part you can act on. */}
       <div className="mt-4">
-        <RtsBreakdown parcels={parcels} />
+        <RtsBreakdown parcels={parcels} productOf={productOf} />
       </div>
 
     </div>

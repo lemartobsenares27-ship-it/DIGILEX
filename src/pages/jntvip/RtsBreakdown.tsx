@@ -9,12 +9,12 @@ import { useMemo, useState } from 'react'
 import { TrendingUp, TrendingDown, Undo2 } from 'lucide-react'
 import Card from '../../components/Card'
 import { formatNumber, formatPercent } from '../../lib/format'
-import { rtsByPeriod, productsIn, rtsTrend, rtsBand } from '../../lib/jntvip/rts'
+import { rtsByPeriod, productsIn, rtsTrend, rtsBand, type ProductResolver } from '../../lib/jntvip/rts'
 import type { JntVipParcelRow } from '../../lib/jntvip/types'
 
-export default function RtsBreakdown({ parcels }: { parcels: JntVipParcelRow[] }) {
+export default function RtsBreakdown({ parcels, productOf }: { parcels: JntVipParcelRow[]; productOf: ProductResolver }) {
   const [grain, setGrain] = useState<'week' | 'month'>('week')
-  const periods = useMemo(() => rtsByPeriod(parcels, grain), [parcels, grain])
+  const periods = useMemo(() => rtsByPeriod(parcels, grain, productOf), [parcels, grain, productOf])
   const products = useMemo(() => productsIn(periods), [periods])
   const trend = useMemo(() => rtsTrend(periods), [periods])
 
