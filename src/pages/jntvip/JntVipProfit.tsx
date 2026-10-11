@@ -258,9 +258,9 @@ export default function JntVipProfit() {
         <Card title="What returns really cost">
           <p className="py-8 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
             J&amp;T billed {peso(p.rtsFee)} of RTS fees this period, but the statements never say how
-            many parcels came back. Import a <strong>My Waybill</strong> export on{' '}
-            <strong>Import</strong> and the return rate, its true drag and the per-parcel figures
-            appear here.
+            many parcels came back. Import a <strong>My Waybill</strong> export on <strong>Import</strong>{' '}
+            or <strong>Products</strong> and the return rate, its true drag and the per-parcel
+            figures appear here.
           </p>
         </Card>
         )}

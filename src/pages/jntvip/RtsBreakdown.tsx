@@ -30,7 +30,7 @@ export default function RtsBreakdown({ parcels, productOf }: { parcels: JntVipPa
         <p className="py-8 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
           Statements carry RTS fees but never say how many parcels came back. Import a{' '}
           <strong>My Waybill</strong> export on <strong>Import</strong> and the rate appears here,
-          by week and by month, split by product.
+          by week and by month, split by product. Per-product detail lives on <strong>Products</strong>.
         </p>
       </Card>
     )

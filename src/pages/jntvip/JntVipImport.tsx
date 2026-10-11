@@ -9,6 +9,7 @@ import { undoJntVipBatch } from '../../lib/jntvip/post'
 import { useJntVipTables } from './hooks'
 import JntVipPosWizard from './import/JntVipPosWizard'
 import JntVipSoaWizard from './import/JntVipSoaWizard'
+import WaybillImport from './WaybillImport'
 
 type Mode = 'pos' | 'soa' | null
 
@@ -76,6 +77,11 @@ export default function JntVipImport() {
           </div>
         </button>
       </div>
+
+      {/* The parcel export comes first: it feeds the return rate, the
+          per-product figures and cost per delivered parcel, and for a long
+          while it could not be imported from this page at all. */}
+      <WaybillImport className="mb-4" />
 
       <Card title="Import History" description="Every import is logged. Undoing one removes everything it added and re-runs reconciliation.">
         {sortedBatches.length === 0 ? (

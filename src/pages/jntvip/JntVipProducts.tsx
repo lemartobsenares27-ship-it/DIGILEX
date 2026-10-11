@@ -21,6 +21,8 @@ import { makeResolver, rtsByPeriod, productsIn, rtsBand } from '../../lib/jntvip
 import { pinnedMap, unmatchedSamples, UNCLASSIFIED } from '../../lib/jntvip/products'
 import { productStats } from '../../lib/jntvip/productStats'
 import PosProductImport from './PosProductImport'
+import WaybillImport from './WaybillImport'
+import RtsProductTrend from './RtsProductTrend'
 import type { JntVipParcelRow, JntVipProductRow, JntVipParcelProductRow } from '../../lib/jntvip/types'
 
 const peso = (c: number) =>
@@ -113,17 +115,20 @@ export default function JntVipProducts() {
       />
 
       {parcels.length === 0 ? (
-        <Card>
+        <>
+        <Card className="mb-4">
           <div className="py-10 text-center">
             <Boxes size={26} className="mx-auto mb-2" style={{ color: 'var(--text-muted)' }} />
             <p className="mx-auto max-w-lg text-sm" style={{ color: 'var(--text-secondary)' }}>
               No parcels loaded. Everything on this page is derived from the J&amp;T parcel export —
               statements give period totals and never say which product earned them. Import a{' '}
-              <strong>My Waybill</strong> export on <strong>Import</strong> and each product&rsquo;s
-              return rate appears here.
+              <strong>My Waybill</strong> export below and each product&rsquo;s return rate appears
+              here.
             </p>
           </div>
         </Card>
+        <WaybillImport />
+        </>
       ) : (
         <>
           {/* One card per product. The return rate leads because it is the figure
@@ -238,7 +243,11 @@ export default function JntVipProducts() {
                 </button>
               ))}
             </div>
-            <div className="overflow-x-auto">
+            {/* The shape first, the numbers under it. The table is the authority;
+                the line is what makes a four-week climb visible at a glance. */}
+            <RtsProductTrend periods={periods} products={columns.filter((c) => c !== UNCLASSIFIED)} />
+
+            <div className="mt-4 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b text-left text-xs uppercase tracking-wide" style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-muted)' }}>
