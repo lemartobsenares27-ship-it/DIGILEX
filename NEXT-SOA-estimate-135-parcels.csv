@@ -1,0 +1,84 @@
+# SUPERSEDED on 2026-10-02. Do not quote any figure from the earlier version of this file.
+# The earlier version carried a row reading "SUBTOTAL - NPMCM (claim this) ... 13011.34".
+# That 13,011.34 was an ESTIMATE made before the statement existed, and it was WRONG AND LOW.
+# NPMCM's actual Sep 22-29 statement says For Remittance PHP 21,475.65 (cell B29 of Digilex-Sep-22-29.xlsx).
+# The estimate was short by PHP 8,464.31 because it counted only parcels absent from every SOA,
+# and so missed 23 parcels (PHP 10,777.00) dispatched in the Sep 11-21 batch that only DELIVERED in this window.
+# Verified figure to use: PHP 21,475.65. Below is the per-parcel reconciliation of estimate against actual.
+J&T Tracking Number,Delivered,Actual COD paid (PHP),Was this in the Sep-24 estimate?,Why missed
+JT0024576740338,2026-09-25,1999.0,yes,
+JT0024490945583,2026-09-23,799.0,yes,
+JT0024414614732,2026-09-23,799.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024538822764,2026-09-25,599.0,yes,
+JT0024539285417,2026-09-26,599.0,yes,
+JT0024520771287,2026-09-25,599.0,yes,
+JT0024550574718,2026-09-25,599.0,yes,
+JT0024539629831,2026-09-24,599.0,yes,
+JT0024524542011,2026-09-29,599.0,yes,
+JT0024490030272,2026-09-26,599.0,yes,
+JT0024488004991,2026-09-27,599.0,yes,
+JT0024489238214,2026-09-23,599.0,yes,
+JT0024526911958,2026-09-24,599.0,yes,
+JT0024474995656,2026-09-25,599.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024393891095,2026-09-26,599.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024414501016,2026-09-23,599.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024373099380,2026-09-23,599.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024319107605,2026-09-25,599.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024238271411,2026-09-23,599.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024606158296,2026-09-25,599.0,yes,
+JT0024585195873,2026-09-25,599.0,yes,
+JT0024585799786,2026-09-25,599.0,yes,
+JT0024577098814,2026-09-25,599.0,yes,
+JT0024555733005,2026-09-24,399.0,yes,
+JT0024535640218,2026-09-24,399.0,yes,
+JT0024540406785,2026-09-27,399.0,yes,
+JT0024526038050,2026-09-24,399.0,yes,
+JT0024524854438,2026-09-24,399.0,yes,
+JT0024489289026,2026-09-23,399.0,yes,
+JT0024490200734,2026-09-23,399.0,yes,
+JT0024483331618,2026-09-23,399.0,yes,
+JT0024487490410,2026-09-29,399.0,yes,
+JT0024489474249,2026-09-25,399.0,yes,
+JT0024488271527,2026-09-26,399.0,yes,
+JT0024490337456,2026-09-26,399.0,yes,
+JT0024540439528,2026-09-27,399.0,yes,
+JT0024473620633,2026-09-22,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024473497829,2026-09-22,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024414283319,2026-09-23,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024392554585,2026-09-25,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024408185560,2026-09-24,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024467423573,2026-09-22,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024387551640,2026-09-26,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024389178743,2026-09-22,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024472819619,2026-09-23,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024368867646,2026-09-23,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024525885309,2026-09-24,399.0,yes,
+JT0024292993370,2026-09-23,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024226445596,2026-09-22,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024224507959,2026-09-22,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024227038994,2026-09-23,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024227878303,2026-09-24,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024225763169,2026-09-22,399.0,NO - estimate missed it,"Dispatched in the Sep 11-21 batch; its fee was billed there, so the estimate treated it as already settled. COD follows the DELIVERY date, not the dispatch date."
+JT0024636342922,2026-09-25,399.0,yes,
+JT0024622158225,2026-09-27,399.0,yes,
+JT0024633202917,2026-09-28,399.0,yes,
+JT0024585310961,2026-09-25,399.0,yes,
+JT0024590822562,2026-09-25,399.0,yes,
+JT0024590412777,2026-09-25,399.0,yes,
+JT0024577482107,2026-09-25,399.0,yes,
+JT0024571406870,2026-09-26,399.0,yes,
+JT0024606727022,2026-09-25,399.0,yes,
+JT0024489590806,,0,yes - but did not land in this SOA,Still unpaid or returned; expected in the final statement.
+JT0024520234872,,0,yes - but did not land in this SOA,Still unpaid or returned; expected in the final statement.
+JT0024525253849,,0,yes - but did not land in this SOA,Still unpaid or returned; expected in the final statement.
+JT0024536251745,,0,yes - but did not land in this SOA,Still unpaid or returned; expected in the final statement.
+JT0024537020689,,0,yes - but did not land in this SOA,Still unpaid or returned; expected in the final statement.
+JT0024552395177,,0,yes - but did not land in this SOA,Still unpaid or returned; expected in the final statement.
+JT0024575335118,,0,yes - but did not land in this SOA,Still unpaid or returned; expected in the final statement.
+JT0024577292989,,0,yes - but did not land in this SOA,Still unpaid or returned; expected in the final statement.
+JT0024587614286,,0,yes - but did not land in this SOA,Still unpaid or returned; expected in the final statement.
+JT0024635354676,,0,yes - but did not land in this SOA,Still unpaid or returned; expected in the final statement.
+JT0024684251234,,0,yes - but did not land in this SOA,Still unpaid or returned; expected in the final statement.
+JT0024684835083,,0,yes - but did not land in this SOA,Still unpaid or returned; expected in the final statement.
+ACTUAL - NPMCM stated For Remittance,,21475.65,verified against their file,
+The Sep-24 estimate said,,13011.34,"estimate - too low by 8,464.31",
