@@ -14,12 +14,10 @@ import {
   CircleDashed,
   CircleDollarSign,
   XCircle,
-  Download,
   ChevronDown,
   ChevronRight,
   CalendarX,
 } from 'lucide-react'
-import * as XLSX from 'xlsx'
 import PageHeader from '../../components/PageHeader'
 import Card from '../../components/Card'
 import StatTile from '../../components/StatTile'
@@ -71,34 +69,6 @@ export default function JntVipFinance() {
   const totals = useMemo(() => financeTotals(all), [all])
   const gaps = useMemo(() => findPeriodGaps(all), [all])
 
-  function exportLedger() {
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        all.map((r) => ({
-          SOA: r.soa.soaNumber,
-          'Period from': r.soa.periodFrom,
-          'Period to': r.soa.periodTo,
-          'COD collected': r.cod / 100,
-          Shipping: r.shipping / 100,
-          'Service fees': r.serviceFees / 100,
-          'Net due': r.netDue / 100,
-          Received: r.soa.receivedAmount == null ? '' : r.received / 100,
-          'Received on': r.soa.receivedDate ?? '',
-          Reference: r.soa.receivedReference ?? '',
-          Variance: r.soa.receivedAmount == null ? '' : r.variance / 100,
-          Payment: PAYMENT_LABEL[r.paymentStatus],
-          'Arithmetic check': r.soa.verdict,
-          'Days since period end': r.ageDays,
-          Delivered: r.soa.deliveredParcels,
-          Returned: r.soa.returnedParcels,
-        })),
-      ),
-      'Remittance ledger',
-    )
-    XLSX.writeFile(wb, `JNT_Remittance_Ledger_${new Date().toISOString().slice(0, 10)}.xlsx`)
-  }
 
   if (soaRows.length === 0) {
     return (
@@ -127,15 +97,6 @@ export default function JntVipFinance() {
       <PageHeader
         title="Finance"
         description="Every statement, what it promised, and whether the money landed. A correct SOA and a paid SOA are different facts — both are tracked here."
-        actions={
-          <button
-            onClick={exportLedger}
-            className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium"
-            style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-secondary)' }}
-          >
-            <Download size={12} /> Export
-          </button>
-        }
       />
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">

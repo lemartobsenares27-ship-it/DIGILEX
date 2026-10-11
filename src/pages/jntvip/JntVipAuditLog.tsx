@@ -1,8 +1,6 @@
-import { Download } from 'lucide-react'
 import PageHeader from '../../components/PageHeader'
 import Card from '../../components/Card'
 import { formatDateTime } from '../../lib/format'
-import { exportAuditLog } from '../../lib/jntvip/exportCsv'
 import { useJntVipTables } from './hooks'
 import NeedsData from './NeedsData'
 
@@ -15,15 +13,6 @@ export default function JntVipAuditLog() {
       <PageHeader
         title="Audit Log"
         description="Every manual review action — confirm, reject, duplicate, link, note — with a before/after snapshot."
-        actions={
-          <button
-            onClick={() => exportAuditLog(sorted)}
-            className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium"
-            style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-secondary)' }}
-          >
-            <Download size={12} /> Export
-          </button>
-        }
       />
 
       {sorted.length === 0 ? (

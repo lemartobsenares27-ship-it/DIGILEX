@@ -5,8 +5,7 @@
 // deductions on the right, net underneath, one card per month.
 
 import { useMemo } from 'react'
-import { BookOpen, Wallet, Receipt, Clock, Download } from 'lucide-react'
-import * as XLSX from 'xlsx'
+import { BookOpen, Wallet, Receipt, Clock } from 'lucide-react'
 import PageHeader from '../../components/PageHeader'
 import Card from '../../components/Card'
 import StatTile from '../../components/StatTile'
@@ -43,18 +42,6 @@ export default function JntVipBookkeeping() {
   const books = useMemo(() => buildBooks(rows), [rows])
   const totals = useMemo(() => booksTotals(books), [books])
 
-  function exportBooks() {
-    const wb = XLSX.utils.book_new()
-    const flat = books.flatMap((b) => [
-      { Month: b.monthLabel, Section: 'REVENUE', Line: 'COD collected', Detail: `${b.statements.length} statement(s)`, Amount: b.revenueTotal / 100 },
-      ...b.deductions.map((d) => ({ Month: b.monthLabel, Section: 'DEDUCTIONS', Line: d.label, Detail: d.detail, Amount: -d.amount / 100 })),
-      { Month: b.monthLabel, Section: 'NET', Line: 'Net remittance due', Detail: '', Amount: b.net / 100 },
-      { Month: b.monthLabel, Section: 'NET', Line: 'Received', Detail: '', Amount: b.received / 100 },
-      { Month: b.monthLabel, Section: 'NET', Line: 'Outstanding', Detail: '', Amount: b.outstanding / 100 },
-    ])
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(flat), 'Monthly books')
-    XLSX.writeFile(wb, `JNT_Bookkeeping_${new Date().toISOString().slice(0, 10)}.xlsx`)
-  }
 
   if (books.length === 0) {
     return (
@@ -77,15 +64,6 @@ export default function JntVipBookkeeping() {
       <PageHeader
         title="Monthly Bookkeeping"
         description="What J&T collected for you each month, what they charged for it, and what was left. Revenue is COD collected on delivered parcels; every deduction is a fee on the statement."
-        actions={
-          <button
-            onClick={exportBooks}
-            className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium"
-            style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-secondary)' }}
-          >
-            <Download size={12} /> Export
-          </button>
-        }
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">

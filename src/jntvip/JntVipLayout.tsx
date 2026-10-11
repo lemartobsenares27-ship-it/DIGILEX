@@ -1,14 +1,20 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { PackageCheck, UploadCloud, Table2, AlertOctagon, Boxes, History, ShieldCheck, Wallet, BookOpen, Target, Coins, Boxes as BoxesIcon, Sun, Moon, Menu } from 'lucide-react'
+import { UploadCloud, AlertOctagon, Boxes, ShieldCheck, Wallet, BookOpen, Target, Coins, Boxes as BoxesIcon, Sun, Moon, Menu } from 'lucide-react'
 import { useTheme } from '../hooks/useTheme'
 import AppSwitcher from '../components/AppSwitcher'
 
-// Grouped, because the sidebar was presenting eleven equally-weighted pages
-// when only some of them apply. Four belong to a POS-versus-statement matching
-// workflow; if your orders never pass through a POS export they stay empty for
-// a reason, and a flat list makes that read as a broken app rather than as a
-// section you do not use. The headings say which is which.
+// Only pages that show data.
+//
+// Four tabs used to sit here for a POS-versus-statement matching workflow that
+// these orders never pass through. Labelling them "POS matching" was an
+// improvement on letting them look broken, but it was still four sidebar
+// entries that could never show anything — and the ask was data, not a better
+// excuse. Three are gone, and the fourth, Discrepancy Center, is rebuilt as
+// Issues to fix: the same idea driven by statements and parcels, which do
+// exist, instead of POS matches, which do not.
+//
+// Their routes stay mounted so an old bookmark still resolves.
 const NAV: { heading: string; items: { to: string; label: string; icon: typeof Target }[] }[] = [
   {
     heading: 'The money',
@@ -25,16 +31,8 @@ const NAV: { heading: string; items: { to: string; label: string; icon: typeof T
       { to: '/products', label: 'Products', icon: BoxesIcon },
       { to: '/soa-check', label: 'SOA Check', icon: ShieldCheck },
       { to: '/batches', label: 'Statements', icon: Boxes },
+      { to: '/issues', label: 'Issues to fix', icon: AlertOctagon },
       { to: '/import', label: 'Import', icon: UploadCloud },
-    ],
-  },
-  {
-    heading: 'POS matching',
-    items: [
-      { to: '/', label: 'Order Dashboard', icon: PackageCheck },
-      { to: '/reconciliation', label: 'Reconciliation Table', icon: Table2 },
-      { to: '/discrepancy-center', label: 'Discrepancy Center', icon: AlertOctagon },
-      { to: '/audit-log', label: 'Audit Log', icon: History },
     ],
   },
 ]

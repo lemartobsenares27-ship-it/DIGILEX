@@ -14,16 +14,14 @@ import {
   FileSpreadsheet,
   FileText,
   Trash2,
-  Download,
-} from 'lucide-react'
-import * as XLSX from 'xlsx'
+  } from 'lucide-react'
 import PageHeader from '../../components/PageHeader'
 import Card from '../../components/Card'
 import StatTile from '../../components/StatTile'
 import { formatNumber } from '../../lib/format'
 import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
-import { parseWaybillFile, importParcels, PARCEL_STATUS_LABEL, type WaybillImportResult } from '../../lib/jntvip/waybill'
+import { parseWaybillFile, importParcels, type WaybillImportResult } from '../../lib/jntvip/waybill'
 import { checkSoa, rtsByWeek, rtsSummary, DEFAULT_TERMS, type SoaStated, type CheckedLine } from '../../lib/jntvip/soaCheck'
 import { importSoaPdfBatch, type BatchResult, type BatchOutcome } from '../../lib/jntvip/soaBulk'
 import type { JntVipParcelRow } from '../../lib/jntvip/types'
@@ -199,40 +197,6 @@ export default function JntVipSoaCheck() {
     setTimeout(() => setSaved(null), 8000)
   }
 
-  function exportCheck() {
-    if (!result) return
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        result.lines.map((l) => ({
-          Line: l.label,
-          'Computed from parcels': l.computed / 100,
-          'SOA states': l.stated == null ? '' : l.stated / 100,
-          Difference: l.stated == null ? '' : l.difference / 100,
-          Verdict: VERDICT_STYLE[l.verdict].label,
-          Parcels: l.parcelCount,
-          Basis: l.basis,
-        })),
-      ),
-      'SOA check',
-    )
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        result.delivered.map((p) => ({ AWB: p.awb, 'POD time': p.podAt, COD: p.cod, Province: p.province })),
-      ),
-      'Delivered in period',
-    )
-    XLSX.utils.book_append_sheet(
-      wb,
-      XLSX.utils.json_to_sheet(
-        result.dispatched.map((p) => ({ AWB: p.awb, Dispatched: p.shipAt, Shipping: p.shippingCost, Status: PARCEL_STATUS_LABEL[p.status] })),
-      ),
-      'Dispatched in period',
-    )
-    XLSX.writeFile(wb, `JNT_SOA_Check_${soa.soaNumber.trim() || soa.periodFrom}.xlsx`)
-  }
 
   async function clearParcels() {
     if (!window.confirm('Remove every imported parcel? Saved SOA checks are kept. You can re-import the export at any time.')) return
@@ -247,17 +211,6 @@ export default function JntVipSoaCheck() {
       <PageHeader
         title="SOA Check"
         description="Rebuilds every line of a J&T statement from the parcel export and compares it to what the SOA claims. Covers all products on the account — J&T bills the account, not the brand."
-        actions={
-          result && (
-            <button
-              onClick={exportCheck}
-              className="flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium"
-              style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-secondary)' }}
-            >
-              <Download size={12} /> Export
-            </button>
-          )
-        }
       />
 
       {/* 0 — statement PDFs, the fast path */}
