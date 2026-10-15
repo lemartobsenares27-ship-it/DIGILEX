@@ -638,6 +638,19 @@ export default function JntVipProfit() {
         </div>
       </Card>
 
+      {p.adCoverageShort && (
+        <p className="mt-4 flex items-start gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <AlertTriangle size={13} className="mt-0.5 shrink-0" style={{ color: 'var(--status-critical)' }} />
+          <span>
+            <strong>This profit is overstated.</strong> Ad receipts are only loaded to{' '}
+            {p.adCoverageTo}, but the statements run to {p.to} — so the advertising for the last
+            stretch is missing while all the revenue for it is counted. Every other line grows with
+            the statements and this one stops, which flatters the margin. Send the Meta receipts
+            charged after {p.adCoverageTo} and the figure corrects itself.
+          </span>
+        </p>
+      )}
+
       {p.unitsEstimated && (
         <p className="mt-4 flex items-start gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
           <AlertTriangle size={13} className="mt-0.5 shrink-0" style={{ color: 'var(--status-warning-ink)' }} />

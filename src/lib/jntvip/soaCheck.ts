@@ -8,7 +8,7 @@
 // Two rules learned from auditing real SOAs, both confirmed to the centavo
 // against SOA202608280830MNL-V11913 and SOA202608310831MNL-V11913:
 //
-//  1. Commission is 2.75% PER PARCEL, floored to the centavo, then summed —
+//  1. Commission is 2.75% PER PARCEL, rounded to the centavo, then summed —
 //     not 2.75% of the grand total. Flooring on the total is off by a few
 //     centavos and looks like an error when it is not.
 //  2. Shipping is billed on DISPATCH date, COD is credited on DELIVERY date.
@@ -89,9 +89,21 @@ export interface SoaCheckResult {
 
 const c = (peso: number) => Math.round(peso * 100)
 
-/** Money the way J&T computes it: per parcel, floored, then summed. */
+/**
+ * Money the way J&T computes it: per parcel, rounded to the centavo, then summed.
+ *
+ * This was documented as FLOORED, and on the August statements floor and round
+ * agree on every parcel, so it verified 20/20 and looked settled. October broke
+ * the tie: two-bottle orders at PHP599 and PHP798 put the product exactly on a
+ * half-centavo, where the two rules diverge. Across fifteen October statements
+ * round-per-parcel matches 15/15 and floor only 8/15, so floor was wrong and
+ * happened to be indistinguishable on the earlier data.
+ *
+ * It is still per parcel, not a flat rate on the period total — that model
+ * matches only 3 of 15.
+ */
 export function commissionCentavos(parcels: JntVipParcelRow[], rate: number): number {
-  return parcels.reduce((sum, p) => sum + Math.floor(p.cod * rate * 100), 0)
+  return parcels.reduce((sum, p) => sum + Math.round(p.cod * rate), 0)
 }
 
 function inWindow(day: string | null, from: string, to: string): boolean {
@@ -107,14 +119,14 @@ export function checkSoa(parcels: JntVipParcelRow[], stated: SoaStated, terms: T
   const returned = parcels.filter((p) => p.status === 'RETURNED' && inWindow(p.podDate, from, to))
   const undated = parcels.filter((p) => p.podDate == null && p.shipDate == null)
 
-  const codCollected = delivered.reduce((s, p) => s + c(p.cod), 0)
+  const codCollected = delivered.reduce((s, p) => s + p.cod, 0)
   const commission = commissionCentavos(delivered, terms.commissionRate)
   const vat = Math.round(commission * terms.vatRate)
   const codPayable = codCollected - commission - vat
-  const shippingFee = dispatched.reduce((s, p) => s + c(p.shippingCost), 0)
+  const shippingFee = dispatched.reduce((s, p) => s + p.shippingCost, 0)
   // Per returned parcel, from its own freight — so a Mindanao return costs
   // more to send back than a Metro Manila one, exactly as it cost more to send.
-  const rtsFee = returned.reduce((sum, p) => sum + Math.round(c(p.freight) * terms.rtsShareOfFreight), 0)
+  const rtsFee = returned.reduce((sum, p) => sum + Math.round(p.freight * terms.rtsShareOfFreight), 0)
   const totalDeduction = shippingFee + rtsFee
   const adjustments = stated.adjustments != null ? c(stated.adjustments) : 0
   const netRemittance = codPayable - totalDeduction + adjustments
@@ -145,7 +157,7 @@ export function checkSoa(parcels: JntVipParcelRow[], stated: SoaStated, terms: T
     line('cod', 'COD collected', codCollected, stated.codCollected,
       `Sum of COD on parcels delivered (POD) between ${from} and ${to}.`, delivered.length),
     line('commission', `Commission @ ${(terms.commissionRate * 100).toFixed(2)}%`, commission, stated.commission,
-      'Per parcel, floored to the centavo, then summed — not a flat rate on the total.', delivered.length),
+      'Per parcel, rounded to the centavo, then summed — not a flat rate on the total.', delivered.length),
     line('vat', `VAT @ ${(terms.vatRate * 100).toFixed(0)}% of commission`, vat, stated.vat,
       'Twelve percent of the commission above.', delivered.length),
     line('codPayable', 'Total COD payable', codPayable, stated.codPayable,
@@ -307,9 +319,9 @@ export function rtsSummary(parcels: JntVipParcelRow[], terms: Terms = DEFAULT_TE
   const rateOnSettled = settled > 0 ? returned / settled : 0
 
   const rejects = parcels.filter((p) => p.status === 'RETURNED' || p.status === 'FOR_RETURN')
-  const codLost = rejects.reduce((s, p) => s + c(p.cod), 0)
-  const shippingSunk = rejects.reduce((s, p) => s + c(p.shippingCost), 0)
-  const rtsFees = rejects.reduce((s, p) => s + Math.round(c(p.freight) * terms.rtsShareOfFreight), 0)
+  const codLost = rejects.reduce((s, p) => s + p.cod, 0)
+  const shippingSunk = rejects.reduce((s, p) => s + p.shippingCost, 0)
+  const rtsFees = rejects.reduce((s, p) => s + Math.round(p.freight * terms.rtsShareOfFreight), 0)
 
   return {
     total,

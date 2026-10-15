@@ -12,6 +12,9 @@
 // double-counting them, and every change is reported back to the user.
 
 import { parseSpreadsheetFile, findColumn, findHeaderRow, gridToRecords, toNumber, type RawSheet } from '../import/parseFile'
+
+/** The export states pesos; this app stores integer centavos. */
+const toCentavos = (v: unknown) => Math.round(toNumber(v) * 100)
 import { jntVipDb } from './db'
 import type { JntVipParcelRow } from './types'
 
@@ -127,9 +130,15 @@ export function parseWaybillSheet(sheet: RawSheet): ParsedWaybillFile {
       podDate: col.pod ? dayOf(rec[col.pod]) : null,
       shipAt: col.ship ? stamp(rec[col.ship]) : null,
       shipDate: col.ship ? dayOf(rec[col.ship]) : null,
-      cod: col.cod ? toNumber(rec[col.cod]) : 0,
-      shippingCost: col.shippingCost ? toNumber(rec[col.shippingCost]) : 0,
-      freight: col.freight ? toNumber(rec[col.freight]) : 0,
+      // Centavos, like every other amount in this app. The export states
+      // pesos. These three were the only money in the codebase still kept as
+      // a float, and the inconsistency was live: soaCheck multiplied them up
+      // on the way in while productStats, profit and issues read them as if
+      // they were already centavos, so the same parcel was worth PHP399 in one
+      // place and PHP3.99 in another.
+      cod: toCentavos(col.cod ? rec[col.cod] : 0),
+      shippingCost: toCentavos(col.shippingCost ? rec[col.shippingCost] : 0),
+      freight: toCentavos(col.freight ? rec[col.freight] : 0),
       weight: col.weight ? toNumber(rec[col.weight]) : 0,
       province: col.province ? String(rec[col.province] ?? '').trim() || null : null,
       city: col.city ? String(rec[col.city] ?? '').trim() || null : null,

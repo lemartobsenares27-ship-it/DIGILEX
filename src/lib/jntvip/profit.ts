@@ -27,7 +27,7 @@
 // All amounts are integer centavos.
 
 import type { JntVipSoaCheckRow, JntVipParcelRow } from './types'
-import { adSpendBetween } from './adSpend'
+import { adSpendBetween, AD_CHARGES } from './adSpend'
 import { BOTTLE_COSTS, PRUDENT_UNIT_COST } from './bottleCost'
 import {
   chargeOperatingExpenses,
@@ -95,6 +95,15 @@ export interface ProfitAndLoss {
     profit: number
   }
 
+  /**
+   * The last day ad spend is known for. When it falls before the period ends,
+   * advertising is understated and the profit above is therefore too high —
+   * the single easiest way for this page to mislead, because every other line
+   * grows with the statements while this one silently stops.
+   */
+  adCoverageTo: string | null
+  adCoverageShort: boolean
+
   /** True when units were scaled from an export narrower than the statements. */
   unitsEstimated: boolean
   hasParcels: boolean
@@ -155,6 +164,7 @@ export function profitAndLoss(
   const cogs = units * unitCost
 
   const adSpend = adSpendBetween(from, to)
+  const lastAdDay = AD_CHARGES.length > 0 ? AD_CHARGES[AD_CHARGES.length - 1].chargedOn : null
 
   // Fulfilment is warehouse work, so it is charged on every bottle that was
   // PACKED. A parcel that came back was picked and packed exactly like one that
@@ -210,6 +220,8 @@ export function profitAndLoss(
       operating: units > 0 ? Math.round(operatingTotal / units) : 0,
       profit: units > 0 ? Math.round(profit / units) : 0,
     },
+    adCoverageTo: lastAdDay,
+    adCoverageShort: lastAdDay != null && lastAdDay < to,
     unitsEstimated: hasParcels && Math.abs(scale - 1) > 0.005,
     hasParcels,
   }
