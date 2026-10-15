@@ -17,7 +17,7 @@ import { profitAndLoss, costStack, unitEconomics, bottlesForProfit, atPrice } fr
 import { BOTTLE_COSTS } from '../../lib/jntvip/bottleCost'
 import { fixedCostPerDay, toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
 import OperatingExpenseEditor from './OperatingExpenseEditor'
-import { AD_FAILED_TOTAL, AD_FAILED_COUNT, adChargesBetween } from '../../lib/jntvip/adSpend'
+import { adChargesBetween, adSpendBySource } from '../../lib/jntvip/adSpend'
 import type { JntVipSoaCheckRow, JntVipParcelRow, JntVipOperatingExpenseRow } from '../../lib/jntvip/types'
 
 const peso = (c: number) =>
@@ -61,6 +61,9 @@ export default function JntVipProfit() {
   )
   const stack = useMemo(() => (p ? costStack(p) : []), [p])
   const charges = useMemo(() => (p ? adChargesBetween(p.from, p.to) : []), [p])
+  // Split by card. Finding that two cards were paying for ads in parallel is
+  // what corrected this figure, so the page shows both rather than one total.
+  const adBySource = useMemo(() => (p ? adSpendBySource(p.from, p.to) : { GOTYME: 0, RCBC: 0 }), [p])
   const u = useMemo(() => (p ? unitEconomics(p, expenses) : null), [p, expenses])
 
   if (!p) {
@@ -160,7 +163,7 @@ export default function JntVipProfit() {
               />
             </div>
             <div className="py-1">
-              <Row label="Meta ad spend" amount={p.adSpend} note={`${formatNumber(charges.length)} paid receipts`} negative />
+              <Row label="Meta ad spend" amount={p.adSpend} note={`${formatNumber(charges.length)} card charges`} negative />
             </div>
             <div className="py-1">
               {p.operating.map((e) => (
@@ -589,37 +592,50 @@ export default function JntVipProfit() {
         </p>
       </Card>
 
-      {/* How the ad number was arrived at. It is the one input not from a statement. */}
+      {/* Where the ad figure comes from — now a statement like everything else. */}
       <Card title="How the ad figure was built" className="mt-4">
         <p className="mb-3 flex items-start gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
           <Info size={13} className="mt-0.5 shrink-0" />
           <span>
-          Only receipts marked <strong>Paid</strong> are counted. Meta marks a receipt{' '}
-          <strong>Failed</strong> when the card declined — no money moved — then retries, usually
-          splitting the amount, and each retry is its own receipt.{' '}
-          {formatNumber(AD_FAILED_COUNT)} failed receipts totalling {peso(AD_FAILED_TOTAL)} sit in
-          the same export; adding them would overstate ad spend by about a third. Each receipt is
-          attributed to the day the card was charged, because the billing windows printed on them
-          overlap and cannot be spread across days and re-summed.
+          Taken from the bank and card statements that paid it, not from Meta&rsquo;s receipts. The
+          receipts understated August by ₱137,060 — they are issued per payment attempt and only
+          some were uploaded, so they were never a spend record. Two streams run in parallel and are
+          both counted: the <strong>GoTyme</strong> card ...9509 and the <strong>RCBC</strong> card.
+          Checked for double counting on date and amount — no collisions. Instalment conversions on
+          the RCBC card and their reversals are excluded, because converting a charge to instalments
+          does not spend the money again.
           </span>
         </p>
+        <div className="mb-3 flex flex-wrap gap-x-8 gap-y-2">
+          {(['GOTYME', 'RCBC'] as const).map((src) => (
+            <div key={src}>
+              <div className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+                {src === 'GOTYME' ? 'GoTyme card …9509' : 'RCBC card'}
+              </div>
+              <div className="text-lg font-semibold tabular" style={{ color: 'var(--text-primary)' }}>
+                {peso(adBySource[src])}
+              </div>
+            </div>
+          ))}
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left text-xs uppercase tracking-wide" style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-muted)' }}>
                 <th className="py-2 pr-4 font-semibold">Charged</th>
-                <th className="py-2 pr-4 font-semibold">Billing window from</th>
+                <th className="py-2 pr-4 font-semibold">Card</th>
                 <th className="py-2 pr-4 text-right font-semibold">Amount</th>
-                <th className="py-2 font-semibold">Receipt</th>
+                
               </tr>
             </thead>
             <tbody>
               {charges.map((c) => (
-                <tr key={c.receipt} className="border-b last:border-0" style={{ borderColor: 'var(--border-hairline)' }}>
+                <tr key={`${c.chargedOn}-${c.amount}-${c.source}`} className="border-b last:border-0" style={{ borderColor: 'var(--border-hairline)' }}>
                   <td className="py-1.5 pr-4 tabular" style={{ color: 'var(--text-primary)' }}>{c.chargedOn}</td>
-                  <td className="py-1.5 pr-4 tabular" style={{ color: 'var(--text-secondary)' }}>{c.coversFrom}</td>
+                  <td className="py-1.5 pr-4" style={{ color: 'var(--text-secondary)' }}>{c.source}</td>
                   <td className="py-1.5 pr-4 text-right tabular" style={{ color: 'var(--text-primary)' }}>{peso(c.amount)}</td>
-                  <td className="py-1.5 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>{c.receipt}</td>
+                  
                 </tr>
               ))}
             </tbody>
@@ -642,7 +658,7 @@ export default function JntVipProfit() {
         <p className="mt-4 flex items-start gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
           <AlertTriangle size={13} className="mt-0.5 shrink-0" style={{ color: 'var(--status-critical)' }} />
           <span>
-            <strong>This profit is overstated.</strong> Ad receipts are only loaded to{' '}
+            <strong>This profit is overstated.</strong> Ad statements only cover to{' '}
             {p.adCoverageTo}, but the statements run to {p.to} — so the advertising for the last
             stretch is missing while all the revenue for it is counted. Every other line grows with
             the statements and this one stops, which flatters the margin. Send the Meta receipts
