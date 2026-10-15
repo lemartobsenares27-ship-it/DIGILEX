@@ -315,6 +315,99 @@ export function atPrice(u: UnitEconomics, newPrice: number, oldPrice: number) {
   }
 }
 
+/**
+ * The same profit calculation, run per calendar month.
+ *
+ * A single figure over the whole period is the most misleading thing this page
+ * can show. Across 28 Aug to 14 Oct it reads as a PHP51,668 loss, which is true
+ * and useless: late August lost heavily at 0.86x ROAS while the most recent
+ * month made money at 2.21x. Blending them reports "losing money" about a
+ * business that has already turned, and that is the kind of number someone
+ * shuts a working business over.
+ *
+ * Months are cut on the statement's period END, the same rule the bookkeeping
+ * page uses, so a statement spanning a month boundary lands in one month only
+ * and no revenue is counted twice.
+ */
+export interface ProfitPeriod {
+  key: string
+  label: string
+  days: number
+  statements: number
+  revenue: number
+  courier: number
+  cogs: number
+  adSpend: number
+  operating: number
+  profit: number
+  margin: number
+  roas: number
+  /** False where no parcels cover this month, so its product cost is inferred. */
+  hasParcels: boolean
+}
+
+export function profitByMonth(
+  rows: JntVipSoaCheckRow[],
+  parcels: JntVipParcelRow[],
+  expenses: OperatingExpense[] = OPERATING_EXPENSES,
+): ProfitPeriod[] {
+  const months = new Map<string, JntVipSoaCheckRow[]>()
+  for (const r of rows) {
+    const k = r.periodTo.slice(0, 7)
+    if (!months.has(k)) months.set(k, [])
+    months.get(k)!.push(r)
+  }
+
+  return [...months.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([key, group]) => {
+      const sorted = [...group].sort((a, b) => a.periodFrom.localeCompare(b.periodFrom))
+      const from = sorted[0].periodFrom
+      const to = sorted[sorted.length - 1].periodTo
+      const days = Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1
+
+      const sum = (f: (s: JntVipSoaCheckRow) => number) => group.reduce((t, s) => t + f(s), 0)
+      const revenue = sum((s) => val(s.statedCod, s.computedCod))
+      const courier =
+        sum((s) => val(s.statedShipping, s.computedShipping)) +
+        sum((s) => val(s.statedCommission, s.computedCommission)) +
+        sum((s) => val(s.statedVat, s.computedVat)) +
+        sum((s) => val(s.statedRtsFee, s.computedRtsFee))
+
+      const inWindow = (d: string | null) => d != null && d >= from && d <= to
+      const delivered = parcels.filter((p) => p.status === 'DELIVERED' && inWindow(p.podDate))
+      const returned = parcels.filter((p) => p.status === 'RETURNED' && inWindow(p.podDate))
+      const hasParcels = delivered.length > 0
+
+      // With parcels, count bottles. Without, infer from revenue at the
+      // reference price — stated as inferred rather than passed off as counted.
+      const units = hasParcels
+        ? Math.round(delivered.reduce((t, p) => t + bottlesIn(p), 0) * (revenue / Math.max(1, delivered.reduce((t, p) => t + p.cod, 0))))
+        : Math.round(revenue / REFERENCE_PRICE)
+      const packed = units + (hasParcels ? returned.reduce((t, p) => t + bottlesIn(p), 0) : 0)
+      const cogs = units * PRUDENT_UNIT_COST
+      const adSpend = adSpendBetween(from, to)
+      const operating = chargeOperatingExpenses(days, packed, expenses).reduce((t, e) => t + e.amount, 0)
+      const profit = revenue - courier - cogs - adSpend - operating
+
+      return {
+        key,
+        label: new Date(key + '-01T00:00:00Z').toLocaleString('en-PH', { month: 'long', year: 'numeric', timeZone: 'UTC' }),
+        days,
+        statements: group.length,
+        revenue,
+        courier,
+        cogs,
+        adSpend,
+        operating,
+        profit,
+        margin: revenue > 0 ? profit / revenue : 0,
+        roas: adSpend > 0 ? revenue / adSpend : 0,
+        hasParcels,
+      }
+    })
+}
+
 export interface CostLine {
   key: string
   label: string

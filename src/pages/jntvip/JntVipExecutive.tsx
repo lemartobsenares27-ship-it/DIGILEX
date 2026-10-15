@@ -132,7 +132,9 @@ export default function JntVipExecutive() {
           <p className="mt-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>
             Measured per <em>delivered</em> parcel, not per parcel shipped — a parcel that comes back still costs shipping, so
             cost-per-dispatch flatters the courier. J&T's cost per dispatched parcel is {peso(s.costPerDispatched ?? 0)}.
-            Benchmark source: {NPMCM_BENCHMARK.source}.
+            Based on the {formatNumber(s.comparisonStatements)} statements the parcel export covers
+            ({s.comparisonFrom} to {s.comparisonTo}) — charges and deliveries over the same days, or
+            the figure inflates. Benchmark source: {NPMCM_BENCHMARK.source}.
           </p>
         </Card>
       ) : pl ? (

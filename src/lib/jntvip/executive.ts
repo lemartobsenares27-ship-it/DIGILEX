@@ -54,11 +54,21 @@ export interface ExecutiveSummary {
   rtsRate: number
   hasParcels: boolean
 
-  /** The comparison that answers "is this better". Null without parcel data. */
+  /**
+   * The comparison that answers "is this better". Null without parcel data.
+   *
+   * Computed only over statement periods the parcel export actually covers.
+   * Dividing every statement's charges by a delivery count that spans fewer
+   * days inflates it: on this data it reported PHP171.92 and "111% dearer than
+   * NPMCM" because 48 days of fees were divided by 30 days of parcels.
+   */
   costPerDelivered: number | null
   costPerDispatched: number | null
   vsBenchmark: number | null
   vsBenchmarkPct: number | null
+  comparisonStatements: number
+  comparisonFrom: string | null
+  comparisonTo: string | null
 }
 
 const val = (stated: number | null, computed: number) => stated ?? computed
@@ -87,6 +97,31 @@ export function executiveSummary(rows: JntVipSoaCheckRow[], parcels: JntVipParce
   const settled = delivered + returned
   const hasParcels = dispatched > 0 || delivered > 0
 
+  // Cost per delivered parcel must divide like by like. Restrict BOTH the
+  // charges and the delivery count to the statement periods the parcel export
+  // actually reaches; a statement with no parcels behind it contributes fees
+  // and no deliveries, and inflates the result.
+  const parcelDays = parcels.map((p) => p.podDate).filter((d): d is string => !!d).sort()
+  const firstParcel = parcelDays[0]
+  const lastParcel = parcelDays[parcelDays.length - 1]
+  const covered = firstParcel
+    ? rows.filter((r) => r.periodFrom >= firstParcel && r.periodTo <= lastParcel)
+    : []
+  const coveredCharges = covered.reduce(
+    (t, s2) =>
+      t +
+      val(s2.statedShipping, s2.computedShipping) +
+      val(s2.statedCommission, s2.computedCommission) +
+      val(s2.statedVat, s2.computedVat) +
+      val(s2.statedRtsFee, s2.computedRtsFee),
+    0,
+  )
+  const coveredPeriods = covered.map((r) => [r.periodFrom, r.periodTo] as const)
+  const inCovered = (day: string | null) => day != null && coveredPeriods.some(([a, b]) => day >= a && day <= b)
+  const coveredDelivered = parcels.filter((p) => p.status === 'DELIVERED' && inCovered(p.podDate)).length
+  const coveredDispatched = parcels.filter((p) => inCovered(p.shipDate)).length
+  const perDelivered = coveredDelivered > 0 ? Math.round(coveredCharges / coveredDelivered) : null
+
   return {
     statements: rows.length,
     codCollected,
@@ -106,11 +141,14 @@ export function executiveSummary(rows: JntVipSoaCheckRow[], parcels: JntVipParce
     deliveryRate: settled > 0 ? delivered / settled : 0,
     rtsRate: settled > 0 ? returned / settled : 0,
     hasParcels,
-    costPerDelivered: delivered > 0 ? Math.round(charges / delivered) : null,
-    costPerDispatched: dispatched > 0 ? Math.round(charges / dispatched) : null,
-    vsBenchmark: delivered > 0 ? Math.round(charges / delivered) - NPMCM_BENCHMARK.costPerDelivered : null,
-    vsBenchmarkPct:
-      delivered > 0 ? Math.round(charges / delivered) / NPMCM_BENCHMARK.costPerDelivered - 1 : null,
+    costPerDelivered: perDelivered,
+    costPerDispatched: coveredDispatched > 0 ? Math.round(coveredCharges / coveredDispatched) : null,
+    vsBenchmark: perDelivered != null ? perDelivered - NPMCM_BENCHMARK.costPerDelivered : null,
+    vsBenchmarkPct: perDelivered != null ? perDelivered / NPMCM_BENCHMARK.costPerDelivered - 1 : null,
+    /** Statements the comparison is based on, so the page can say so. */
+    comparisonStatements: covered.length,
+    comparisonFrom: covered.length > 0 ? covered[0].periodFrom : null,
+    comparisonTo: covered.length > 0 ? covered[covered.length - 1].periodTo : null,
   }
 }
 

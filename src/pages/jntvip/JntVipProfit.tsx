@@ -13,7 +13,7 @@ import Card from '../../components/Card'
 import { formatNumber, formatPercent } from '../../lib/format'
 import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
-import { profitAndLoss, costStack, unitEconomics, bottlesForProfit, atPrice } from '../../lib/jntvip/profit'
+import { profitAndLoss, costStack, unitEconomics, bottlesForProfit, atPrice, profitByMonth } from '../../lib/jntvip/profit'
 import { BOTTLE_COSTS } from '../../lib/jntvip/bottleCost'
 import { fixedCostPerDay, toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
 import OperatingExpenseEditor from './OperatingExpenseEditor'
@@ -65,6 +65,11 @@ export default function JntVipProfit() {
   // what corrected this figure, so the page shows both rather than one total.
   const adBySource = useMemo(() => (p ? adSpendBySource(p.from, p.to) : { GOTYME: 0, RCBC: 0 }), [p])
   const u = useMemo(() => (p ? unitEconomics(p, expenses) : null), [p, expenses])
+  // The blended total is the single most misleading number this page can show,
+  // so the months sit above it.
+  const months = useMemo(() => profitByMonth(rows, parcels, expenses), [rows, parcels, expenses])
+  const latest = months.length > 0 ? months[months.length - 1] : null
+  const turned = months.length >= 2 && months[months.length - 2].profit < 0 && latest != null && latest.profit > 0
 
   if (!p) {
     return (
@@ -90,6 +95,82 @@ export default function JntVipProfit() {
         title="Profit &amp; Loss"
         description={`${p.from} to ${p.to} · ${p.days} days · ${formatNumber(rows.length)} statements. COD collected, less every cost, including ads.`}
       />
+
+      {/* Month by month, above the total. Across this whole period the blended
+          figure reads as a loss, which is true and useless: the early weeks lost
+          heavily and the most recent month makes money. Someone could shut a
+          working business over the blended number. */}
+      {months.length > 1 && (
+        <Card
+          title="Month by month"
+          description="The same calculation run per month. The total underneath blends these together, which hides whichever direction things are moving."
+          className="mb-4"
+        >
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-xs uppercase tracking-wide" style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-muted)' }}>
+                  <th className="py-2 pr-4 font-semibold">Month</th>
+                  <th className="py-2 pr-4 text-right font-semibold">COD collected</th>
+                  <th className="py-2 pr-4 text-right font-semibold">J&amp;T</th>
+                  <th className="py-2 pr-4 text-right font-semibold">Product</th>
+                  <th className="py-2 pr-4 text-right font-semibold">Ads</th>
+                  <th className="py-2 pr-4 text-right font-semibold">Running</th>
+                  <th className="py-2 pr-4 text-right font-semibold">Profit</th>
+                  <th className="py-2 pr-4 text-right font-semibold">Margin</th>
+                  <th className="py-2 text-right font-semibold">ROAS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {months.map((m) => (
+                  <tr key={m.key} className="border-b last:border-0" style={{ borderColor: 'var(--border-hairline)' }}>
+                    <td className="whitespace-nowrap py-2 pr-4 font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {m.label}
+                      <span className="ml-1.5 text-xs font-normal" style={{ color: 'var(--text-muted)' }}>
+                        {m.days}d
+                      </span>
+                    </td>
+                    <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-primary)' }}>{peso(m.revenue)}</td>
+                    <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-secondary)' }}>{peso(-m.courier)}</td>
+                    <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-secondary)' }}>
+                      {peso(-m.cogs)}
+                      {!m.hasParcels && <span className="ml-1 text-xs" style={{ color: 'var(--status-warning-ink)' }}>est</span>}
+                    </td>
+                    <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-secondary)' }}>{peso(-m.adSpend)}</td>
+                    <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-secondary)' }}>{peso(-m.operating)}</td>
+                    <td className="py-2 pr-4 text-right tabular font-semibold" style={{ color: m.profit > 0 ? 'var(--status-good-ink)' : 'var(--status-critical)' }}>
+                      {peso(m.profit)}
+                    </td>
+                    <td className="py-2 pr-4 text-right tabular" style={{ color: m.profit > 0 ? 'var(--status-good-ink)' : 'var(--status-critical)' }}>
+                      {formatPercent(m.margin)}
+                    </td>
+                    <td className="py-2 text-right tabular font-medium" style={{ color: m.roas >= 1.9 ? 'var(--status-good-ink)' : 'var(--status-critical)' }}>
+                      {m.roas > 0 ? `${m.roas.toFixed(2)}x` : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {turned && latest && (
+            <p className="mt-3 rounded-lg p-3 text-sm" style={{ background: 'color-mix(in srgb, var(--status-good-ink) 10%, transparent)', color: 'var(--text-primary)' }}>
+              <strong>It turned.</strong> {months[months.length - 2].label} lost{' '}
+              {peso(Math.abs(months[months.length - 2].profit))} at {months[months.length - 2].roas.toFixed(2)}x —
+              ads were costing more than customers were paying. {latest.label} made{' '}
+              {peso(latest.profit)} at {latest.roas.toFixed(2)}x. The blended total below still shows
+              the loss, because it averages the two.
+            </p>
+          )}
+
+          <p className="mt-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            A month is cut on the statement&rsquo;s closing date, so a statement spanning a boundary
+            lands in one month only and no revenue is counted twice. &ldquo;est&rdquo; marks a month
+            with no parcel export behind it, where bottles are inferred from revenue rather than
+            counted.
+          </p>
+        </Card>
+      )}
 
       {/* The verdict. This is the page's whole reason for existing. */}
       <Card className="mb-4">
