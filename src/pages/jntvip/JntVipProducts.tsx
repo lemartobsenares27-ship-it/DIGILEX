@@ -48,7 +48,7 @@ export default function JntVipProducts() {
 
   const pinned = useMemo(() => pinnedMap(parcelProducts), [parcelProducts])
   const productOf = useMemo(() => makeResolver(products, pinned), [products, pinned])
-  const stats = useMemo(() => productStats(parcels, productOf), [parcels, productOf])
+  const stats = useMemo(() => productStats(parcels, productOf, products), [parcels, productOf, products])
   const periods = useMemo(() => rtsByPeriod(parcels, grain, productOf), [parcels, grain, productOf])
   const columns = useMemo(() => productsIn(periods), [periods])
   const unmatched = useMemo(() => unmatchedSamples(parcels, products, pinned), [parcels, products, pinned])
@@ -173,6 +173,66 @@ export default function JntVipProducts() {
                 )
               })}
           </div>
+
+          {/* Everything per product, side by side. The cards above answer "how is
+              each one doing"; this answers "which one should I push", which
+              needs them in the same row where the numbers can be compared. */}
+          <Card title="Every product, side by side" className="mb-4">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-xs uppercase tracking-wide" style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-muted)' }}>
+                    <th className="py-2 pr-4 font-semibold">Product</th>
+                    <th className="py-2 pr-4 text-right font-semibold">Dispatched</th>
+                    <th className="py-2 pr-4 text-right font-semibold">Delivered</th>
+                    <th className="py-2 pr-4 text-right font-semibold">Returned</th>
+                    <th className="py-2 pr-4 text-right font-semibold">RTS rate</th>
+                    <th className="py-2 pr-4 text-right font-semibold">Bottles</th>
+                    <th className="py-2 pr-4 text-right font-semibold">COD collected</th>
+                    <th className="py-2 pr-4 text-right font-semibold">Product cost</th>
+                    <th className="py-2 pr-4 text-right font-semibold">Shipping</th>
+                    <th className="py-2 pr-4 text-right font-semibold">COD fees</th>
+                    <th className="py-2 pr-4 text-right font-semibold">RTS fees</th>
+                    <th className="py-2 pr-4 text-right font-semibold">Contribution</th>
+                    <th className="py-2 text-right font-semibold">Per bottle</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.filter((x) => x.name !== UNCLASSIFIED).map((x) => (
+                    <tr key={x.name} className="border-b last:border-0" style={{ borderColor: 'var(--border-hairline)' }}>
+                      <td className="whitespace-nowrap py-2 pr-4 font-medium" style={{ color: 'var(--text-primary)' }}>{x.name}</td>
+                      <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-secondary)' }}>{formatNumber(x.dispatched)}</td>
+                      <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-secondary)' }}>{formatNumber(x.delivered)}</td>
+                      <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-secondary)' }}>{formatNumber(x.returned)}</td>
+                      <td className="py-2 pr-4 text-right tabular font-medium" style={{ color: rtsBand(x.rtsRate).color }}>
+                        {x.settled > 0 ? formatPercent(x.rtsRate) : '—'}
+                      </td>
+                      <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-secondary)' }}>{formatNumber(x.bottles)}</td>
+                      <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-primary)' }}>{peso(x.revenue)}</td>
+                      <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-secondary)' }}>{x.cogs == null ? '—' : peso(-x.cogs)}</td>
+                      <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-secondary)' }}>{peso(-x.shippingCost)}</td>
+                      <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-secondary)' }}>{peso(-x.codService)}</td>
+                      <td className="py-2 pr-4 text-right tabular" style={{ color: 'var(--text-secondary)' }}>{peso(-x.rtsFeeEstimate)}</td>
+                      <td className="py-2 pr-4 text-right tabular font-semibold" style={{ color: x.contribution == null ? 'var(--text-muted)' : x.contribution > 0 ? 'var(--status-good-ink)' : 'var(--status-critical)' }}>
+                        {x.contribution == null ? 'no cost set' : peso(x.contribution)}
+                      </td>
+                      <td className="py-2 text-right tabular" style={{ color: 'var(--text-secondary)' }}>
+                        {x.contributionPerBottle == null ? '—' : peso(x.contributionPerBottle)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
+              Contribution is what each product leaves after everything it causes — making it,
+              shipping it, J&amp;T&rsquo;s COD fees and the RTS fees on its returns. Advertising and
+              the running costs are left out on purpose: neither can be attributed to a single SKU
+              without a per-campaign split, and sharing them out by revenue would invent a number
+              rather than measure one. Use this to rank the products against each other, and{' '}
+              <strong>Profit &amp; Loss</strong> for what the business actually keeps.
+            </p>
+          </Card>
 
           {/* Unattributed parcels are shown, never absorbed. */}
           {unclassified && unclassified.dispatched > 0 && (

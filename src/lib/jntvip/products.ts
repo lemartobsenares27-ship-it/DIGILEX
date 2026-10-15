@@ -26,16 +26,16 @@ export const UNCLASSIFIED = 'Unclassified'
  * The four products currently shipping, with the names J&T echoes back.
  *
  * ALMUTRIA and GOLDEN EAR were found in the October parcel export, not supplied
- * as a list — 91 and 100 parcels respectively. Their prices are read from the
- * COD actually collected; their unit costs are zero because the capsule and
- * packaging costs for them have never been given, and a guessed cost would
- * quietly overstate margin on a fifth of the volume.
+ * as a list — 91 and 100 parcels. Their prices are read from the COD actually
+ * collected. Their unit cost is TESTOMAXX's PHP40.00, which is what was given:
+ * the same capsules-plus-packaging build. If either one's capsule bulk price or
+ * yield differs from Alingatong's, this figure moves and so does their margin.
  */
 export const SEED_PRODUCTS: Omit<JntVipProductRow, 'id' | 'updatedAt'>[] = [
   { name: 'EYE CARE', aliases: ['EYE CARE', 'EYECARE'], unitCost: 3460, price: 39900, active: true },
   { name: 'TESTOMAXX', aliases: ['TESTOMAXX', 'TSTMX'], unitCost: 4000, price: 39900, active: true },
-  { name: 'GOLDEN EAR', aliases: ['GOLDEN EAR', 'GOLDENEAR'], unitCost: 0, price: 39800, active: true },
-  { name: 'ALMUTRIA', aliases: ['ALMUTRIA'], unitCost: 0, price: 39800, active: true },
+  { name: 'GOLDEN EAR', aliases: ['GOLDEN EAR', 'GOLDENEAR'], unitCost: 4000, price: 39800, active: true },
+  { name: 'ALMUTRIA', aliases: ['ALMUTRIA'], unitCost: 4000, price: 39800, active: true },
 ]
 
 /** The text J&T carries back for a parcel, normalised for matching. */
