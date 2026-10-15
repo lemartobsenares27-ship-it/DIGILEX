@@ -5,6 +5,7 @@ import { jntVipDb } from '../lib/jntvip/db'
 import { seedKnownStatements } from '../lib/jntvip/soaSeed'
 import { seedOperatingExpenses } from '../lib/jntvip/operatingCosts'
 import { seedProducts } from '../lib/jntvip/products'
+import { seedParcels } from '../lib/jntvip/parcelSeed'
 
 const JntVipDashboard = lazy(() => import('../pages/jntvip/JntVipDashboard'))
 const JntVipImport = lazy(() => import('../pages/jntvip/JntVipImport'))
@@ -82,6 +83,7 @@ export default function JntVipApp() {
       .then(() => seedKnownStatements().catch((e) => console.warn('Statement seed skipped:', e)))
       .then(() => seedOperatingExpenses().catch((e) => console.warn('Expense seed skipped:', e)))
       .then(() => seedProducts().catch((e) => console.warn('Product seed skipped:', e)))
+      .then(() => seedParcels().catch((e) => console.warn('Parcel seed skipped:', e)))
       .then(() => {
         done = true
         setPhase('ready')
