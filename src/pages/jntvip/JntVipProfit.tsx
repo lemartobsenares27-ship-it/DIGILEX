@@ -17,6 +17,7 @@ import { profitAndLoss, costStack, unitEconomics, bottlesForProfit, atPrice, pro
 import { BOTTLE_COSTS } from '../../lib/jntvip/bottleCost'
 import { fixedCostPerDay, toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
 import OperatingExpenseEditor from './OperatingExpenseEditor'
+import CostCoverage from './CostCoverage'
 import { adChargesBetween, adSpendBySource } from '../../lib/jntvip/adSpend'
 import type { JntVipSoaCheckRow, JntVipParcelRow, JntVipOperatingExpenseRow } from '../../lib/jntvip/types'
 
@@ -672,6 +673,9 @@ export default function JntVipProfit() {
           </span>
         </p>
       </Card>
+
+      {/* The boundary of what these figures can see. */}
+      <CostCoverage profit={latest ? latest.profit : p.profit} days={latest ? latest.days : p.days} />
 
       {/* Where the ad figure comes from — now a statement like everything else. */}
       <Card title="How the ad figure was built" className="mt-4">
