@@ -23,18 +23,57 @@ export interface OperatingExpense {
   detail: string
   /** True where the rate was inferred rather than stated, so the page can say so. */
   assumed?: boolean
+  /** Working days per week for a PER_DAY cost. Defaults to 7. */
+  daysPerWeek?: number
+  /** The window this rate applies to. Null on either side means open-ended. */
+  effectiveFrom?: string | null
+  effectiveTo?: string | null
 }
+
+/**
+ * The day the CSR admin's rate steps from PHP500 to PHP700.
+ *
+ * An ASSUMPTION. The two-week probation was described but not dated, and the
+ * start date decides which days are charged at which rate. Both rows are
+ * marked assumed and the date is editable; change it and every figure that
+ * depends on payroll moves with it.
+ */
+export const CSR_RATE_CHANGES_ON = '2026-10-01'
 
 /** An average calendar month, used to pro-rate monthly bills across a statement period. */
 export const DAYS_PER_MONTH = 30.4375
 
 export const OPERATING_EXPENSES: OperatingExpense[] = [
+  // Payroll, per person, because one blended "support" rate was wrong in both
+  // directions: Marcian works five days a week, not seven, and the CSR admin
+  // costs more than the old PHP600 figure once past probation.
   {
-    key: 'support',
-    label: 'Customer support',
+    key: 'staff-marcian',
+    label: 'Marcian',
     basis: 'PER_DAY',
-    rate: 60000,
-    detail: 'Answering buyers and confirming orders — paid every day, busy or quiet',
+    rate: 75000,
+    daysPerWeek: 5,
+    detail: 'PHP750 a day, five days a week',
+  },
+  {
+    key: 'staff-csr-probation',
+    label: 'CSR admin (probation rate)',
+    basis: 'PER_DAY',
+    rate: 50000,
+    daysPerWeek: 7,
+    effectiveTo: CSR_RATE_CHANGES_ON,
+    detail: 'PHP500 a day for the first two weeks',
+    assumed: true,
+  },
+  {
+    key: 'staff-csr',
+    label: 'CSR admin',
+    basis: 'PER_DAY',
+    rate: 70000,
+    daysPerWeek: 7,
+    effectiveFrom: CSR_RATE_CHANGES_ON,
+    detail: 'PHP700 a day once past the first two weeks',
+    assumed: true,
   },
   {
     key: 'fulfillment',
@@ -79,11 +118,25 @@ export function chargeOperatingExpenses(
   days: number,
   bottlesFulfilled: number,
   expenses: OperatingExpense[] = OPERATING_EXPENSES,
+  /** The period being costed, needed for rates that start or stop part-way. */
+  window?: { from: string; to: string },
 ): ExpenseCharge[] {
   return expenses.map((e) => {
     switch (e.basis) {
-      case 'PER_DAY':
-        return { ...e, quantity: days, quantityLabel: `${days} days`, amount: e.rate * days }
+      case 'PER_DAY': {
+        // A rate can start or end mid-period (a probationary wage that steps
+        // up), and staff are not always paid seven days a week. Both have to
+        // be handled or payroll is wrong by a large margin rather than a
+        // rounding — a five-day week charged as seven overstates it by 40%.
+        const span = overlapDays(days, window, e.effectiveFrom ?? null, e.effectiveTo ?? null)
+        const perWeek = e.daysPerWeek ?? 7
+        const worked = perWeek >= 7 ? span : Math.round((span * perWeek) / 7)
+        const label =
+          perWeek >= 7
+            ? `${worked} days`
+            : `${worked} working days of ${span} (${perWeek}/week)`
+        return { ...e, quantity: worked, quantityLabel: label, amount: e.rate * worked }
+      }
       case 'PER_BOTTLE':
         return {
           ...e,
@@ -106,10 +159,35 @@ export function chargeOperatingExpenses(
 
 /** What one day costs before a single bottle is sold. */
 export function fixedCostPerDay(expenses: OperatingExpense[] = OPERATING_EXPENSES): number {
-  return expenses.filter((e) => e.basis !== 'PER_BOTTLE').reduce(
-    (t, e) => t + (e.basis === 'PER_DAY' ? e.rate : Math.round(e.rate / DAYS_PER_MONTH)),
-    0,
-  )
+  return expenses
+    .filter((e) => e.basis !== 'PER_BOTTLE')
+    .reduce(
+      (t, e) =>
+        t +
+        (e.basis === 'PER_DAY'
+          ? Math.round((e.rate * (e.daysPerWeek ?? 7)) / 7)
+          : Math.round(e.rate / DAYS_PER_MONTH)),
+      0,
+    )
+}
+
+/**
+ * Days of a period that a rate's effective window covers.
+ *
+ * Without a window to compare against, a dated rate cannot be apportioned, so
+ * it applies to the whole period — the same behaviour as before dates existed.
+ */
+function overlapDays(
+  days: number,
+  window: { from: string; to: string } | undefined,
+  from: string | null,
+  to: string | null,
+): number {
+  if (!window || (!from && !to)) return days
+  const start = from && from > window.from ? from : window.from
+  const end = to && to < window.to ? to : window.to
+  if (end < start) return 0
+  return Math.min(days, Math.round((Date.parse(end) - Date.parse(start)) / 86400000) + 1)
 }
 
 /** The part of the bill that grows with each bottle packed. */
@@ -132,6 +210,20 @@ export async function seedOperatingExpenses(): Promise<void> {
   const { jntVipDb } = await import('./db')
   const existing = await jntVipDb.operatingExpenses.toArray()
   const seen = new Set(existing.map((r) => r.key))
+
+  // The old blended 'support' row is superseded by the per-person payroll
+  // rows. Retire it rather than delete it — a period already costed with it
+  // was costed correctly at the time — but it must not stay active alongside
+  // the replacements, or payroll is charged twice.
+  const superseded = existing.find((r) => r.key === 'support' && r.active)
+  if (superseded && OPERATING_EXPENSES.some((e) => e.key === 'staff-marcian')) {
+    await jntVipDb.operatingExpenses.update(superseded.id!, {
+      active: false,
+      detail: 'Replaced by the per-person payroll rows',
+      updatedAt: new Date().toISOString(),
+    })
+  }
+
   const missing = OPERATING_EXPENSES.filter((e) => !seen.has(e.key))
   if (missing.length === 0) return
   await jntVipDb.operatingExpenses.bulkAdd(
@@ -143,6 +235,9 @@ export async function seedOperatingExpenses(): Promise<void> {
       detail: e.detail,
       active: true,
       assumed: e.assumed ?? false,
+      daysPerWeek: e.daysPerWeek,
+      effectiveFrom: e.effectiveFrom ?? null,
+      effectiveTo: e.effectiveTo ?? null,
       updatedAt: new Date().toISOString(),
     })),
   )
@@ -150,9 +245,30 @@ export async function seedOperatingExpenses(): Promise<void> {
 
 /** Stored rows to the shape the P&L consumes. Pure — safe inside a render. */
 export function toOperatingExpenses(
-  rows: { key: string; label: string; basis: ExpenseBasis; rate: number; detail: string; active: boolean; assumed: boolean }[],
+  rows: {
+    key: string
+    label: string
+    basis: ExpenseBasis
+    rate: number
+    detail: string
+    active: boolean
+    assumed: boolean
+    daysPerWeek?: number
+    effectiveFrom?: string | null
+    effectiveTo?: string | null
+  }[],
 ): OperatingExpense[] {
   return rows
     .filter((r) => r.active)
-    .map((r) => ({ key: r.key, label: r.label, basis: r.basis, rate: r.rate, detail: r.detail, assumed: r.assumed }))
+    .map((r) => ({
+      key: r.key,
+      label: r.label,
+      basis: r.basis,
+      rate: r.rate,
+      detail: r.detail,
+      assumed: r.assumed,
+      daysPerWeek: r.daysPerWeek,
+      effectiveFrom: r.effectiveFrom,
+      effectiveTo: r.effectiveTo,
+    }))
 }

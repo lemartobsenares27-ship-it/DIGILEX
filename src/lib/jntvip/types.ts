@@ -286,6 +286,16 @@ export interface JntVipOperatingExpenseRow {
   active: boolean
   /** True where the amount or its period was inferred rather than stated. */
   assumed: boolean
+  /**
+   * Working days per week, for a PER_DAY cost that is not paid every day.
+   * Staff on a five-day week cost five sevenths of their daily rate across a
+   * calendar period, and charging seven overstates payroll by 40%.
+   */
+  daysPerWeek?: number
+  /** First day this rate applies. Null means it has always applied. */
+  effectiveFrom?: string | null
+  /** Last day this rate applies. Null means it still applies. */
+  effectiveTo?: string | null
   updatedAt: string
 }
 

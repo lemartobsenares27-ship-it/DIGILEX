@@ -174,7 +174,7 @@ export function profitAndLoss(
     ? Math.round(returnedParcels.reduce((t, p) => t + bottlesIn(p), 0) * scale)
     : 0
   const bottlesFulfilled = units + returnedUnits
-  const operating = chargeOperatingExpenses(days, bottlesFulfilled, expenses)
+  const operating = chargeOperatingExpenses(days, bottlesFulfilled, expenses, { from, to })
   const operatingTotal = operating.reduce((t, e) => t + e.amount, 0)
 
   const profit = netRemitted - cogs - adSpend - operatingTotal
@@ -387,7 +387,7 @@ export function profitByMonth(
       const packed = units + (hasParcels ? returned.reduce((t, p) => t + bottlesIn(p), 0) : 0)
       const cogs = units * PRUDENT_UNIT_COST
       const adSpend = adSpendBetween(from, to)
-      const operating = chargeOperatingExpenses(days, packed, expenses).reduce((t, e) => t + e.amount, 0)
+      const operating = chargeOperatingExpenses(days, packed, expenses, { from, to }).reduce((t, e) => t + e.amount, 0)
       const profit = revenue - courier - cogs - adSpend - operating
 
       return {

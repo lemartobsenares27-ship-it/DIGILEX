@@ -26,7 +26,8 @@ const COUNTED: Line[] = [
   { label: 'Shipping, COD commission, VAT, RTS fees', source: 'the same statements — shipping and COD verified against your parcel export on every overlapping period' },
   { label: 'Product cost', source: 'your capsule and packaging prices, times bottles counted from the parcel export' },
   { label: 'Facebook advertising', source: '194 charges read off the GoTyme and RCBC statements — not from Meta receipts, which understated August by ₱137,060' },
-  { label: 'Customer support, warehouse fulfilment, Meralco, internet', source: 'the rates you gave, editable below' },
+  { label: 'Payroll — Marcian ₱750/day (5 days a week), CSR admin ₱500/day then ₱700', source: 'the rates you gave. The date the CSR rate steps up is an assumption and is editable below.' },
+  { label: 'Warehouse fulfilment, Meralco, internet', source: 'the rates you gave, editable below' },
 ]
 
 /** Outflows seen in the bank but deliberately NOT charged to the business. */
@@ -35,10 +36,10 @@ const EXCLUDED: Line[] = [
   { label: 'Credit card bill payments', source: '₱94,982 — paying the card whose Facebook charges are already in the ad figure. Counting both would double-count.' },
   { label: 'Majestic Line, Germike Packaging', source: '₱28,790 — buying stock. Already counted per bottle as product cost.' },
   { label: 'Shopee, food, load, family transfers', source: '₱16,149 — personal, not business.' },
+  { label: 'Drew Marcian Abanez', source: '₱19,480 — this is payroll, now counted properly above at ₱750 a day, five days a week. The bank transfers are how it was paid, so counting them again would double-charge it.' },
 ]
 
 const UNKNOWN = [
-  { label: 'Drew Marcian Abanez', amount: 1948000 },
   { label: 'Incepxion Services Inc', amount: 100000 },
   { label: 'Mariella Bareto Obsenares', amount: 65000 },
   { label: 'Sa**h Ro*e S.', amount: 58700 },
@@ -116,10 +117,11 @@ export default function CostCoverage({ profit, days }: { profit: number; days: n
         </div>
 
         <p className="mt-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
-          <strong>What could still be wrong:</strong> cash. Anything paid in cash, or from an account
-          not listed here, is invisible. These figures see UnionBank (J&amp;T money in), MariBank
-          (suppliers and funding out), GoTyme and the RCBC card (advertising). If money leaves
-          anywhere else, that account needs adding.
+          <strong>What is still invisible:</strong> <strong>GCash</strong>, and anything paid in
+          cash. Money moved to GCash shows in the bank as a transfer out, but what it then paid for
+          does not, so those costs are missing unless they are entered as an expense below. These
+          figures see UnionBank (J&amp;T money in), MariBank (suppliers and funding out), GoTyme and
+          the RCBC card (advertising). A GCash statement would close the last gap.
         </p>
       </div>
     </Card>
