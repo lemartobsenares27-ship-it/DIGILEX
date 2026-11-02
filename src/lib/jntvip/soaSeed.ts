@@ -91,29 +91,32 @@ export const SEED_STATEMENTS: SeedSoa[] = [
   { soaNumber: 'SOA202610091011MNL-V11913', periodFrom: '2026-10-09', periodTo: '2026-10-11', cod: 5504800, commission: 151379, vat: 18165, shipping: 1222100, rtsFee: 39500, adjustments: 0, net: 4073656, received: 4073656, receivedOn: '2026-10-12', ref: 'UB1362508' },
   { soaNumber: 'SOA202610121012MNL-V11913', periodFrom: '2026-10-12', periodTo: '2026-10-12', cod: 1794600, commission: 49354, vat: 5922, shipping: 497400, rtsFee: 26000, adjustments: 0, net: 1215924, received: 1215924, receivedOn: '2026-10-13', ref: 'UB650877' },
   { soaNumber: 'SOA202610131013MNL-V11913', periodFrom: '2026-10-13', periodTo: '2026-10-13', cod: 2033900, commission: 55932, vat: 6712, shipping: 404400, rtsFee: 12000, adjustments: 0, net: 1554856, received: 1554856, receivedOn: '2026-10-14', ref: 'UB771290' },
-  { soaNumber: 'SOA202610141014MNL-V11913', periodFrom: '2026-10-14', periodTo: '2026-10-14', cod: 1974400, commission: 54296, vat: 6516, shipping: 496100, rtsFee: 22750, adjustments: 0, net: 1394738, received: null, receivedOn: null, ref: null },
+  { soaNumber: 'SOA202610141014MNL-V11913', periodFrom: '2026-10-14', periodTo: '2026-10-14', cod: 1974400, commission: 54296, vat: 6516, shipping: 496100, rtsFee: 22750, adjustments: 0, net: 1394738, received: 1394738, receivedOn: '2026-10-15', ref: 'UB1923608' },
   // --- Late October batch: 2026-10-15 to 2026-10-31, 12 statements ---
   //
   // All twelve rebuild exactly from their own figures, and across the 37 PDFs
   // supplied for this period there were no reissues — eight SOA numbers arrived
   // more than once, every copy carrying identical figures.
   //
-  // Unlike the October batch these are NOT verified against parcels or a bank
-  // statement: the parcel export stops at 14 October and the bank statement at
-  // 15 October. Their arithmetic is sound, which is a different and weaker
-  // claim than the earlier rows carry. They stay received: null until a credit
-  // is evidenced.
-  { soaNumber: 'SOA202610151015MNL-V11913', periodFrom: '2026-10-15', periodTo: '2026-10-15', cod: 2069100, commission: 56902, vat: 6828, shipping: 466000, rtsFee: 26250, adjustments: 0, net: 1513120, received: null, receivedOn: null, ref: null },
-  { soaNumber: 'SOA202610161018MNL-V11913', periodFrom: '2026-10-16', periodTo: '2026-10-18', cod: 6620000, commission: 182056, vat: 21847, shipping: 1432000, rtsFee: 90750, adjustments: 0, net: 4893347, received: null, receivedOn: null, ref: null },
-  { soaNumber: 'SOA202610191019MNL-V11913', periodFrom: '2026-10-19', periodTo: '2026-10-19', cod: 3190600, commission: 87746, vat: 10530, shipping: 532000, rtsFee: 43000, adjustments: 0, net: 2517324, received: null, receivedOn: null, ref: null },
-  { soaNumber: 'SOA202610201020MNL-V11913', periodFrom: '2026-10-20', periodTo: '2026-10-20', cod: 2651100, commission: 72912, vat: 8749, shipping: 411000, rtsFee: 21500, adjustments: 0, net: 2136939, received: null, receivedOn: null, ref: null },
-  { soaNumber: 'SOA202610211021MNL-V11913', periodFrom: '2026-10-21', periodTo: '2026-10-21', cod: 1974700, commission: 54303, vat: 6516, shipping: 352700, rtsFee: 41000, adjustments: 0, net: 1520181, received: null, receivedOn: null, ref: null },
-  { soaNumber: 'SOA202610221022MNL-V11913', periodFrom: '2026-10-22', periodTo: '2026-10-22', cod: 2491800, commission: 68534, vat: 8224, shipping: 574900, rtsFee: 41750, adjustments: 0, net: 1798392, received: null, receivedOn: null, ref: null },
-  { soaNumber: 'SOA202610231025MNL-V11913', periodFrom: '2026-10-23', periodTo: '2026-10-25', cod: 6179700, commission: 169958, vat: 20395, shipping: 1178000, rtsFee: 88750, adjustments: 0, net: 4722597, received: null, receivedOn: null, ref: null },
-  { soaNumber: 'SOA202610261026MNL-V11913', periodFrom: '2026-10-26', periodTo: '2026-10-26', cod: 2228800, commission: 61295, vat: 7355, shipping: 331500, rtsFee: 38500, adjustments: 0, net: 1790150, received: null, receivedOn: null, ref: null },
-  { soaNumber: 'SOA202610271027MNL-V11913', periodFrom: '2026-10-27', periodTo: '2026-10-27', cod: 1236500, commission: 34003, vat: 4080, shipping: 228600, rtsFee: 30500, adjustments: 0, net: 939317, received: null, receivedOn: null, ref: null },
-  { soaNumber: 'SOA202610281028MNL-V11913', periodFrom: '2026-10-28', periodTo: '2026-10-28', cod: 1714200, commission: 47146, vat: 5658, shipping: 284700, rtsFee: 30000, adjustments: 0, net: 1346696, received: null, receivedOn: null, ref: null },
-  { soaNumber: 'SOA202610291029MNL-V11913', periodFrom: '2026-10-29', periodTo: '2026-10-29', cod: 1675200, commission: 46066, vat: 5528, shipping: 352500, rtsFee: 48750, adjustments: 0, net: 1222356, received: null, receivedOn: null, ref: null },
+  // Now verified the same three ways as the rest. Shipping and RTS match the
+  // November parcel export on 12 of 12 periods, to the centavo. Twelve of the
+  // thirteen outstanding nets match a single UnionBank credit exactly, each
+  // one day after its period closed; only 30-31 Oct is still unpaid, and on
+  // that pattern it lands 1 November.
+  //
+  // COD remains the one line nobody can check: J&T dropped the Cod column from
+  // the November export, so there is no independent figure to compare against.
+  { soaNumber: 'SOA202610151015MNL-V11913', periodFrom: '2026-10-15', periodTo: '2026-10-15', cod: 2069100, commission: 56902, vat: 6828, shipping: 466000, rtsFee: 26250, adjustments: 0, net: 1513120, received: 1513120, receivedOn: '2026-10-16', ref: 'UB801912' },
+  { soaNumber: 'SOA202610161018MNL-V11913', periodFrom: '2026-10-16', periodTo: '2026-10-18', cod: 6620000, commission: 182056, vat: 21847, shipping: 1432000, rtsFee: 90750, adjustments: 0, net: 4893347, received: 4893347, receivedOn: '2026-10-19', ref: 'UB1359732' },
+  { soaNumber: 'SOA202610191019MNL-V11913', periodFrom: '2026-10-19', periodTo: '2026-10-19', cod: 3190600, commission: 87746, vat: 10530, shipping: 532000, rtsFee: 43000, adjustments: 0, net: 2517324, received: 2517324, receivedOn: '2026-10-20', ref: 'UB731417' },
+  { soaNumber: 'SOA202610201020MNL-V11913', periodFrom: '2026-10-20', periodTo: '2026-10-20', cod: 2651100, commission: 72912, vat: 8749, shipping: 411000, rtsFee: 21500, adjustments: 0, net: 2136939, received: 2136939, receivedOn: '2026-10-21', ref: 'UB661230' },
+  { soaNumber: 'SOA202610211021MNL-V11913', periodFrom: '2026-10-21', periodTo: '2026-10-21', cod: 1974700, commission: 54303, vat: 6516, shipping: 352700, rtsFee: 41000, adjustments: 0, net: 1520181, received: 1520181, receivedOn: '2026-10-22', ref: 'UB631984' },
+  { soaNumber: 'SOA202610221022MNL-V11913', periodFrom: '2026-10-22', periodTo: '2026-10-22', cod: 2491800, commission: 68534, vat: 8224, shipping: 574900, rtsFee: 41750, adjustments: 0, net: 1798392, received: 1798392, receivedOn: '2026-10-23', ref: 'UB830915' },
+  { soaNumber: 'SOA202610231025MNL-V11913', periodFrom: '2026-10-23', periodTo: '2026-10-25', cod: 6179700, commission: 169958, vat: 20395, shipping: 1178000, rtsFee: 88750, adjustments: 0, net: 4722597, received: 4722597, receivedOn: '2026-10-26', ref: 'UB1478674' },
+  { soaNumber: 'SOA202610261026MNL-V11913', periodFrom: '2026-10-26', periodTo: '2026-10-26', cod: 2228800, commission: 61295, vat: 7355, shipping: 331500, rtsFee: 38500, adjustments: 0, net: 1790150, received: 1790150, receivedOn: '2026-10-27', ref: 'UB665814' },
+  { soaNumber: 'SOA202610271027MNL-V11913', periodFrom: '2026-10-27', periodTo: '2026-10-27', cod: 1236500, commission: 34003, vat: 4080, shipping: 228600, rtsFee: 30500, adjustments: 0, net: 939317, received: 939317, receivedOn: '2026-10-28', ref: 'UB767878' },
+  { soaNumber: 'SOA202610281028MNL-V11913', periodFrom: '2026-10-28', periodTo: '2026-10-28', cod: 1714200, commission: 47146, vat: 5658, shipping: 284700, rtsFee: 30000, adjustments: 0, net: 1346696, received: 1346696, receivedOn: '2026-10-29', ref: 'UB974833' },
+  { soaNumber: 'SOA202610291029MNL-V11913', periodFrom: '2026-10-29', periodTo: '2026-10-29', cod: 1675200, commission: 46066, vat: 5528, shipping: 352500, rtsFee: 48750, adjustments: 0, net: 1222356, received: 1222356, receivedOn: '2026-10-30', ref: 'UB1140612' },
   { soaNumber: 'SOA202610301031MNL-V11913', periodFrom: '2026-10-30', periodTo: '2026-10-31', cod: 3368700, commission: 92648, vat: 11118, shipping: 670000, rtsFee: 56000, adjustments: 0, net: 2538934, received: null, receivedOn: null, ref: null },
 ]
 

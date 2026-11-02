@@ -23,6 +23,8 @@ export interface OperatingExpense {
   detail: string
   /** True where the rate was inferred rather than stated, so the page can say so. */
   assumed?: boolean
+  /** Superseded rows: kept so past figures stay explainable, never charged. */
+  retired?: boolean
   /** Working days per week for a PER_DAY cost. Defaults to 7. */
   daysPerWeek?: number
   /** The window this rate applies to. Null on either side means open-ended. */
@@ -31,12 +33,12 @@ export interface OperatingExpense {
 }
 
 /**
- * The day the CSR admin's rate steps from PHP500 to PHP700.
+ * The day the CSR admin's rate was assumed to step from PHP500 to PHP700.
  *
- * An ASSUMPTION. The two-week probation was described but not dated, and the
- * start date decides which days are charged at which rate. Both rows are
- * marked assumed and the date is editable; change it and every figure that
- * depends on payroll moves with it.
+ * SUPERSEDED, kept because the two probation-rate rows below still reference it
+ * and those rows are retired rather than deleted. The rate was later stated
+ * directly as PHP550 a day, which is what `staff-csr-stated` now charges. Were
+ * the probation story to be reinstated, this is still the date to edit.
  */
 export const CSR_RATE_CHANGES_ON = '2026-10-01'
 
@@ -55,32 +57,47 @@ export const OPERATING_EXPENSES: OperatingExpense[] = [
     daysPerWeek: 5,
     detail: 'PHP750 a day, five days a week',
   },
+  // The CSR admin's rate, as stated: PHP550 a day. It replaces a two-row
+  // probation model (PHP500 for a fortnight, then PHP700) that was inferred from
+  // a description and never confirmed. Those rows are retired, not deleted —
+  // they are what the earlier figures were built on, and deleting them would
+  // make past numbers impossible to explain.
+  {
+    key: 'staff-csr-stated',
+    label: 'CSR admin',
+    basis: 'PER_DAY',
+    rate: 55000,
+    daysPerWeek: 7,
+    detail: 'PHP550 a day, as stated',
+  },
   {
     key: 'staff-csr-probation',
-    label: 'CSR admin (probation rate)',
+    label: 'CSR admin (probation rate, retired)',
     basis: 'PER_DAY',
     rate: 50000,
     daysPerWeek: 7,
     effectiveTo: CSR_RATE_CHANGES_ON,
-    detail: 'PHP500 a day for the first two weeks',
+    detail: 'Inferred PHP500/day probation rate — superseded by the stated PHP550',
     assumed: true,
+    retired: true,
   },
   {
     key: 'staff-csr',
-    label: 'CSR admin',
+    label: 'CSR admin (post-probation rate, retired)',
     basis: 'PER_DAY',
     rate: 70000,
     daysPerWeek: 7,
     effectiveFrom: CSR_RATE_CHANGES_ON,
-    detail: 'PHP700 a day once past the first two weeks',
+    detail: 'Inferred PHP700/day rate — superseded by the stated PHP550',
     assumed: true,
+    retired: true,
   },
   {
     key: 'fulfillment',
-    label: 'Warehouse fulfilment',
+    label: 'Warehouse packers (fulfilment)',
     basis: 'PER_BOTTLE',
     rate: 600,
-    detail: 'Picking and packing, charged on every bottle that leaves — including ones that come back',
+    detail: 'The logistics packers, at PHP6 a bottle — charged on every bottle that leaves, including ones that come back',
   },
   {
     key: 'electricity',
@@ -106,6 +123,19 @@ export interface ExpenseCharge extends OperatingExpense {
 }
 
 /**
+ * Drops superseded rows before anything is priced.
+ *
+ * A retired row is kept on the list so an older figure can still be explained,
+ * but charging it alongside its replacement bills the same person twice. Every
+ * pricing entry point goes through here for that reason.
+ */
+export function activeExpenses(
+  expenses: OperatingExpense[] = OPERATING_EXPENSES,
+): OperatingExpense[] {
+  return expenses.filter((e) => !e.retired)
+}
+
+/**
  * Prices the expense list against one statement period.
  *
  * `bottlesFulfilled` must count every bottle that was PACKED, not every bottle
@@ -121,7 +151,7 @@ export function chargeOperatingExpenses(
   /** The period being costed, needed for rates that start or stop part-way. */
   window?: { from: string; to: string },
 ): ExpenseCharge[] {
-  return expenses.map((e) => {
+  return activeExpenses(expenses).map((e) => {
     switch (e.basis) {
       case 'PER_DAY': {
         // A rate can start or end mid-period (a probationary wage that steps
@@ -159,7 +189,7 @@ export function chargeOperatingExpenses(
 
 /** What one day costs before a single bottle is sold. */
 export function fixedCostPerDay(expenses: OperatingExpense[] = OPERATING_EXPENSES): number {
-  return expenses
+  return activeExpenses(expenses)
     .filter((e) => e.basis !== 'PER_BOTTLE')
     .reduce(
       (t, e) =>
@@ -192,7 +222,9 @@ function overlapDays(
 
 /** The part of the bill that grows with each bottle packed. */
 export function variableCostPerBottle(expenses: OperatingExpense[] = OPERATING_EXPENSES): number {
-  return expenses.filter((e) => e.basis === 'PER_BOTTLE').reduce((t, e) => t + e.rate, 0)
+  return activeExpenses(expenses)
+    .filter((e) => e.basis === 'PER_BOTTLE')
+    .reduce((t, e) => t + e.rate, 0)
 }
 
 /**
@@ -224,6 +256,22 @@ export async function seedOperatingExpenses(): Promise<void> {
     })
   }
 
+  // Same again for the two inferred CSR rates, now that the rate has been
+  // stated outright. Left active they would charge PHP500-700 a day on top of
+  // the stated PHP550 — one person, billed twice or three times over.
+  if (OPERATING_EXPENSES.some((e) => e.key === 'staff-csr-stated')) {
+    for (const key of ['staff-csr-probation', 'staff-csr']) {
+      const row = existing.find((r) => r.key === key && r.active)
+      if (row) {
+        await jntVipDb.operatingExpenses.update(row.id!, {
+          active: false,
+          detail: 'Inferred rate, superseded by the stated PHP550 a day',
+          updatedAt: new Date().toISOString(),
+        })
+      }
+    }
+  }
+
   const missing = OPERATING_EXPENSES.filter((e) => !seen.has(e.key))
   if (missing.length === 0) return
   await jntVipDb.operatingExpenses.bulkAdd(
@@ -233,7 +281,7 @@ export async function seedOperatingExpenses(): Promise<void> {
       basis: e.basis,
       rate: e.rate,
       detail: e.detail,
-      active: true,
+      active: !e.retired,
       assumed: e.assumed ?? false,
       daysPerWeek: e.daysPerWeek,
       effectiveFrom: e.effectiveFrom ?? null,
