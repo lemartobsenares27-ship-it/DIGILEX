@@ -45,6 +45,40 @@ export const CSR_RATE_CHANGES_ON = '2026-10-01'
 /** An average calendar month, used to pro-rate monthly bills across a statement period. */
 export const DAYS_PER_MONTH = 30.4375
 
+/**
+ * What October's payroll actually looked like leaving the bank.
+ *
+ * The MariBank statement for 1-31 Oct 2026 was reconciled transaction by
+ * transaction. Its PDF does not say which column an amount sits in, so the
+ * direction of all 70 entries was solved against the daily balances in the
+ * interest table: every day resolved to exactly one possible set of signs, and
+ * the derived totals match the statement's own PHP396,178.23 out and
+ * PHP393,010.00 in to the centavo.
+ *
+ * Three payments look like wages:
+ *
+ *   Drew Marcian Evangelio Abanes  PHP14,500  (7,000 on 9 Oct, then 3,750 on
+ *                                  the 18th and 25th - 3,750 is five days at
+ *                                  PHP750, so the weekly rate is confirmed,
+ *                                  but only three weeks were paid from here)
+ *   Jessel Padrogado Villas        PHP5,450   (3,270 and 2,180)
+ *   "Pk"                           PHP5,536   (550, 2,500, 2,486)
+ *
+ * That is PHP25,486 against the PHP33,550 this file charges. The model is NOT
+ * lowered to match, because a smaller number is not automatically the truer
+ * one: wages paid in cash or through GCash would not appear on this statement,
+ * and Marcian's first October week is missing from it. Which of Jessel and
+ * "Pk" is the CSR admin, and whether anyone was paid from elsewhere, decides
+ * whether PHP33,550 is too high or about right. Until that is answered the
+ * higher figure stands, so profit is understated rather than flattered.
+ *
+ * Everything else on the statement is already accounted for and must not be
+ * added again: PHP251,803 of transfers to the owner's own accounts (which fund
+ * the GoTyme ad card), PHP51,101.36 of RCBC card bills (those cards ARE the ad
+ * spend), and PHP41,140 to Majestic Line and Germike - the capsule and
+ * packaging suppliers whose cost is already the PHP40 a bottle. One PHP19,043.87
+ * Shopee payment is unclassified and in no figure anywhere.
+ */
 export const OPERATING_EXPENSES: OperatingExpense[] = [
   // Payroll, per person, because one blended "support" rate was wrong in both
   // directions: Marcian works five days a week, not seven, and the CSR admin
