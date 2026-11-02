@@ -386,7 +386,7 @@ export default function JntVipProfit() {
           single number the reader has to trust. */}
       <Card
         title="What one bottle costs to make"
-        description="Built from your purchase prices. Capsules are bought in bulk, so the cost in a bottle is the bulk price scaled to the capsules that actually go in it."
+        description="Built from your purchase prices. Capsules are bought in bulk, so the cost in a bottle is the bulk price scaled to the capsules that actually go in it — not the bulk price itself."
         className="mt-4"
       >
         <div className="grid gap-6 md:grid-cols-2">
@@ -437,6 +437,15 @@ export default function JntVipProfit() {
                     {peso(b.grossProfit)} gross · {formatPercent(b.grossMargin)}
                   </span>
                 </div>
+                {/* Said rather than implied: two of these builds were given as
+                    matching a third, not priced from their own receipts. The
+                    total is as stated; the split is carried across. */}
+                {b.statedAs && (
+                  <p className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                    Given as the same build as {b.statedAs} — same capsule cost, bottle, seal, wrap and sticker.
+                    Not priced separately, so a change to any one line here would need {b.statedAs}'s figures changed too.
+                  </p>
+                )}
               </div>
             </div>
           ))}
