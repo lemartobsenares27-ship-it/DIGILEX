@@ -55,32 +55,39 @@ export const DAYS_PER_MONTH = 30.4375
  * the derived totals match the statement's own PHP396,178.23 out and
  * PHP393,010.00 in to the centavo.
  *
- * Three payments looked like wages. Two are:
+ * Three payments looked like wages. Only one is.
  *
  *   Drew Marcian Evangelio Abanes  PHP14,500  (7,000 on 9 Oct, then 3,750 on
  *                                  the 18th and 25th - 3,750 is five days at
- *                                  PHP750, confirming the weekly rate)
- *   Jessel Padrogado Villas        PHP5,450   (3,270 and 2,180)
+ *                                  PHP750, confirming the weekly rate).
+ *                                  Confirmed paid in full for October, so the
+ *                                  PHP16,500 charged below stands and the
+ *                                  PHP2,000 not visible here went through
+ *                                  another channel.
  *
- * The third, "Pk" at PHP5,536, is not payroll at all: it pays for product
- * labels. That puts it with Majestic Line and Germike as a supplier already
- * inside the PHP40 a bottle, not with staff. October's three supplier payments
- * come to PHP46,676 against the PHP65,443 of product cost the model charges
- * for the bottles actually delivered, which is the expected direction - stock
- * is bought in batches, ahead of the month it ships in.
+ * The other two are suppliers, both stated as such: "Pk" at PHP5,536 pays for
+ * product labels, and Jessel Padrogado Villas at PHP5,450 pays for bottles.
+ * With Majestic Line's capsules and Germike's packaging that is the whole
+ * PHP40 build - capsules, bottles, labels, outer packaging - and all four are
+ * therefore already inside the per-bottle cost. None may be added again.
  *
- * Marcian is confirmed paid in full for October, so the PHP16,500 this file
- * charges him stands and the PHP2,000 not visible here went through another
- * channel. Payroll is therefore NOT lowered to the PHP19,950 of wages this
- * statement shows: it is the part of payroll that happens to leave this
- * account, and GCash and cash are not on it. Who Jessel is - the CSR admin,
- * or one of the warehouse packers the PHP6 a bottle already pays for - is the
- * one payroll question still open.
+ *   capsules   Majestic Line   PHP37,800
+ *   bottles    Jessel          PHP 5,450
+ *   labels     Pk              PHP 5,536
+ *   packaging  Germike         PHP 3,340
+ *                              PHP52,126 paid, against PHP65,443 of product
+ *                              cost charged for the bottles actually
+ *                              delivered. Paying less than is charged is the
+ *                              right direction: stock is bought in batches
+ *                              ahead of the month it ships in.
  *
- * Everything else on the statement is already accounted for and must not be
- * added again: PHP251,803 of transfers to the owner's own accounts (which fund
- * the GoTyme ad card) and PHP51,101.36 of RCBC card bills (those cards ARE the
- * ad spend).
+ * So the only payroll on this statement is Marcian's. The CSR admin's
+ * PHP17,050 leaves through GCash or cash, where no statement has been read.
+ * Payroll is NOT lowered to what this one account shows.
+ *
+ * Everything else is already accounted for and must not be added again:
+ * PHP251,803 of transfers to the owner's own accounts (which fund the GoTyme
+ * ad card) and PHP51,101.36 of RCBC card bills (those cards ARE the ad spend).
  *
  * One item is in no figure anywhere: a PHP19,043.87 Shopee payment on 3 Oct,
  * stated to cover both family and business with no split given. It is left out
