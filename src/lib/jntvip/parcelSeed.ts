@@ -6,10 +6,22 @@
 // so the file never got in. That is fixed, but a fresh browser is still an
 // empty table, and the statements are seeded for exactly this reason.
 //
-// So the export is seeded too: 963 parcels dispatched 2026-09-15 to 2026-10-14,
-// checked before being written down. No duplicate waybills, no negative
-// amounts, no parcel delivered before it shipped, every row dated. Shipping
-// reconciles to the centavo against all eight statements that overlap it.
+// So the export is seeded too: 1,876 parcels dispatched 2026-09-15 to
+// 2026-11-01, from two exports, checked before being written down. No
+// duplicate waybills, no negative amounts, no parcel delivered before it
+// shipped, every row dated. Shipping reconciles to the centavo against every
+// statement that overlaps them, and RTS against all twelve of the late-October
+// ones.
+//
+// One caveat carried by the November export only. J&T dropped the "Cod" column
+// from it, so for parcels after 14 October the `cod` field here holds ITEM
+// VALUE instead. On the 595 waybills the two exports share, item value equals
+// the old COD column on 590 — and differs on exactly the five where collection
+// went wrong, including the parcel delivered with nothing collected and the one
+// that came up PHP50 short. Item value is therefore what SHOULD have been
+// collected, not what was. It is close enough to count bottles and far too
+// weak to audit a remittance with, which is why the COD column is worth asking
+// J&T to restore.
 //
 // Stored as a positional array rather than objects: at 963 rows the key names
 // would be most of the file, and this keeps it to 167 KB.
