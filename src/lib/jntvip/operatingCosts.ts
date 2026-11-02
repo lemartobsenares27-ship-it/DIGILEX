@@ -55,29 +55,38 @@ export const DAYS_PER_MONTH = 30.4375
  * the derived totals match the statement's own PHP396,178.23 out and
  * PHP393,010.00 in to the centavo.
  *
- * Three payments look like wages:
+ * Three payments looked like wages. Two are:
  *
  *   Drew Marcian Evangelio Abanes  PHP14,500  (7,000 on 9 Oct, then 3,750 on
  *                                  the 18th and 25th - 3,750 is five days at
- *                                  PHP750, so the weekly rate is confirmed,
- *                                  but only three weeks were paid from here)
+ *                                  PHP750, confirming the weekly rate)
  *   Jessel Padrogado Villas        PHP5,450   (3,270 and 2,180)
- *   "Pk"                           PHP5,536   (550, 2,500, 2,486)
  *
- * That is PHP25,486 against the PHP33,550 this file charges. The model is NOT
- * lowered to match, because a smaller number is not automatically the truer
- * one: wages paid in cash or through GCash would not appear on this statement,
- * and Marcian's first October week is missing from it. Which of Jessel and
- * "Pk" is the CSR admin, and whether anyone was paid from elsewhere, decides
- * whether PHP33,550 is too high or about right. Until that is answered the
- * higher figure stands, so profit is understated rather than flattered.
+ * The third, "Pk" at PHP5,536, is not payroll at all: it pays for product
+ * labels. That puts it with Majestic Line and Germike as a supplier already
+ * inside the PHP40 a bottle, not with staff. October's three supplier payments
+ * come to PHP46,676 against the PHP65,443 of product cost the model charges
+ * for the bottles actually delivered, which is the expected direction - stock
+ * is bought in batches, ahead of the month it ships in.
+ *
+ * Marcian is confirmed paid in full for October, so the PHP16,500 this file
+ * charges him stands and the PHP2,000 not visible here went through another
+ * channel. Payroll is therefore NOT lowered to the PHP19,950 of wages this
+ * statement shows: it is the part of payroll that happens to leave this
+ * account, and GCash and cash are not on it. Who Jessel is - the CSR admin,
+ * or one of the warehouse packers the PHP6 a bottle already pays for - is the
+ * one payroll question still open.
  *
  * Everything else on the statement is already accounted for and must not be
  * added again: PHP251,803 of transfers to the owner's own accounts (which fund
- * the GoTyme ad card), PHP51,101.36 of RCBC card bills (those cards ARE the ad
- * spend), and PHP41,140 to Majestic Line and Germike - the capsule and
- * packaging suppliers whose cost is already the PHP40 a bottle. One PHP19,043.87
- * Shopee payment is unclassified and in no figure anywhere.
+ * the GoTyme ad card) and PHP51,101.36 of RCBC card bills (those cards ARE the
+ * ad spend).
+ *
+ * One item is in no figure anywhere: a PHP19,043.87 Shopee payment on 3 Oct,
+ * stated to cover both family and business with no split given. It is left out
+ * rather than halved, because a made-up proportion would be indistinguishable
+ * from a measured one six months from now. October's profit is PHP99,149 with
+ * it excluded and PHP80,105 if every peso of it turns out to be business.
  */
 export const OPERATING_EXPENSES: OperatingExpense[] = [
   // Payroll, per person, because one blended "support" rate was wrong in both
