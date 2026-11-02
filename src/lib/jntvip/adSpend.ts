@@ -22,6 +22,26 @@
 // counting both the original and the three parts would inflate July fourfold.
 // Refunds are included as negative rows so a reversed charge nets to zero.
 //
+// Cards checked and found to carry NO advertising:
+//
+//   JCB Platinum ...2007. The 1 Oct 2026 statement is groceries, dining and
+//   retail — NABE, DALI, Starbucks, Lifestyles — plus older instalment plans
+//   for Octagon Computer (07/12) and Yamaha Kart Plaza (21/24). Not one
+//   Facebook charge. It is listed here so it does not get re-examined every
+//   time it turns up, and because its PHP12,800.74 a month of instalments is
+//   real money leaving the same pocket even though no part of it is ad spend
+//   or, on the face of it, a business cost.
+//
+// Coverage, which matters as much as the amounts: a month is only as complete
+// as the statements behind it. RCBC's charges end 7 Oct 2026 because that is
+// where its statement ends, NOT because the card went quiet — the next
+// statement has not been read. The reason October is nonetheless believed
+// complete is that GoTyme's daily spend steps from PHP2,635 to PHP7,841 on
+// exactly the day RCBC stops, which is what moving the spend to one card looks
+// like. If an RCBC statement covering 8 Oct to 7 Nov shows further Facebook
+// charges, October's profit falls peso for peso and this note is how to know
+// it was never verified.
+//
 // Amounts are integer centavos.
 
 import raw from '../../data/jntAdCharges.json'
