@@ -9,6 +9,7 @@ const Inventory = lazy(() => import('../pages/warehouse/Inventory'))
 const Receive = lazy(() => import('../pages/warehouse/Receive'))
 const Fulfillment = lazy(() => import('../pages/warehouse/Fulfillment'))
 const Rts = lazy(() => import('../pages/warehouse/Rts'))
+const ExpectedReturns = lazy(() => import('../pages/warehouse/ExpectedReturns'))
 const Transfers = lazy(() => import('../pages/warehouse/Transfers'))
 const StockCount = lazy(() => import('../pages/warehouse/StockCount'))
 const Production = lazy(() => import('../pages/warehouse/Production'))
@@ -64,6 +65,7 @@ export default function WarehouseApp() {
           <Route path="/receive" element={<Receive />} />
           <Route path="/fulfillment" element={<Fulfillment />} />
           <Route path="/rts" element={<Rts />} />
+          <Route path="/expected-returns" element={<ExpectedReturns />} />
           <Route path="/transfers" element={<Transfers />} />
           <Route path="/stock-count" element={<StockCount />} />
           <Route path="/production" element={<Production />} />

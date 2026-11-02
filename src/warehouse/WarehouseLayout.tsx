@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import {
+  PackageX,
   LayoutDashboard,
   Boxes,
   PackagePlus,
@@ -34,6 +35,7 @@ const NAV: { title: string; items: { to: string; label: string; icon: typeof Lay
     items: [
       { to: '/receive', label: 'Receive', icon: PackagePlus },
       { to: '/fulfillment', label: 'Fulfillment', icon: Truck },
+      { to: '/expected-returns', label: 'Expected Returns', icon: PackageX },
       { to: '/rts', label: 'RTS / Returns', icon: Undo2 },
       { to: '/transfers', label: 'Transfers', icon: ArrowLeftRight },
       { to: '/stock-count', label: 'Stock Count', icon: ClipboardList },
