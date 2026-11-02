@@ -17,6 +17,8 @@ import { jntVipDb } from '../../lib/jntvip/db'
 import { executiveSummary, codTrend, moneySplit, NPMCM_BENCHMARK } from '../../lib/jntvip/executive'
 import { profitAndLoss } from '../../lib/jntvip/profit'
 import RtsBreakdown from './RtsBreakdown'
+import RtsReasons from './RtsReasons'
+import { adSpendBetween } from '../../lib/jntvip/adSpend'
 import { makeResolver } from '../../lib/jntvip/rts'
 import { pinnedMap } from '../../lib/jntvip/products'
 import { toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
@@ -45,6 +47,17 @@ export default function JntVipExecutive() {
   const products = useLiveTable(jntVipDb.products) as JntVipProductRow[]
   const parcelProducts = useLiveTable(jntVipDb.parcelProducts) as JntVipParcelProductRow[]
   const productOf = useMemo(() => makeResolver(products, pinnedMap(parcelProducts)), [products, parcelProducts])
+  // Advertising over exactly the window the settled parcels cover, so the share
+  // apportioned to returns is comparable to them. Taking all ad spend ever would
+  // load months of it onto whatever parcels happen to be in the table.
+  const returnsWindowAdSpend = useMemo(() => {
+    const days = parcels
+      .filter((p) => (p.status === 'DELIVERED' || p.status === 'RETURNED') && p.podDate)
+      .map((p) => p.podDate as string)
+      .sort()
+    if (days.length === 0) return 0
+    return adSpendBetween(days[0], days[days.length - 1])
+  }, [parcels])
   const expenses = useMemo(() => toOperatingExpenses(expenseRows), [expenseRows])
   const s = useMemo(() => executiveSummary(rows, parcels), [rows, parcels])
   // The bottom line does not need parcels, so the landing page should lead with
@@ -316,6 +329,12 @@ export default function JntVipExecutive() {
           and which product is carrying it", which is the part you can act on. */}
       <div className="mt-4">
         <RtsBreakdown parcels={parcels} productOf={productOf} />
+      </div>
+      {/* And this answers the question both of those leave open: whether the
+          returns are something logistics can fix, or whether the order was
+          never really won. The two have nothing in common except the number. */}
+      <div className="mt-4">
+        <RtsReasons parcels={parcels} adSpendCentavos={returnsWindowAdSpend} />
       </div>
 
     </div>
