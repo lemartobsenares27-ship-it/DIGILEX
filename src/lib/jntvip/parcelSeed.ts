@@ -73,23 +73,77 @@ function unpack(p: Packed): JntVipParcelRow {
 export interface ParcelSeedResult {
   added: number
   skipped: number
+  advanced: number
+}
+
+/**
+ * How far through its life a parcel is. A parcel only ever moves up this list.
+ *
+ * Ranking the statuses is what makes it safe for the seed to correct a stored
+ * parcel at all. Without it the rule has to be "never touch what is already
+ * there", which leaves a browser that imported in mid-October still showing
+ * those parcels as IN_TRANSIT for ever — and a return rate computed from them
+ * reads far too low, because the returns are sitting in the undecided pile.
+ */
+const PROGRESS: Record<string, number> = {
+  IN_TRANSIT: 0,
+  DELIVERING: 1,
+  FOR_RETURN: 2,
+  DELIVERED: 3,
+  RETURNED: 3,
 }
 
 /**
  * Loads the parcels this export covers, once.
  *
- * Only ever ADDS a waybill the database has not seen. A parcel already present
- * was either imported by the user from a more recent export or seeded before,
- * and in both cases it knows at least as much as this snapshot does — a parcel
- * that has since been delivered must not be pushed back to IN_TRANSIT because a
- * three-week-old file still said so. Re-importing through the Import page is
- * the way to move statuses forward; that path compares and updates properly.
+ * Adds any waybill the database has not seen, and advances one it has only
+ * where the seed knows the parcel got further — never the reverse. A parcel
+ * that has since been delivered is never pushed back to IN_TRANSIT because an
+ * older file still says so, and a delivery is never rewritten as a return.
+ * Importing a fresh export through the Import page remains the way to bring in
+ * new waybills and corrections; this keeps an existing browser from being
+ * stranded on statuses that have since settled.
  */
 export async function seedParcels(): Promise<ParcelSeedResult> {
   const { jntVipDb } = await import('./db')
-  const known = new Set((await jntVipDb.parcels.toArray()).map((p) => p.awb))
+  const stored = await jntVipDb.parcels.toArray()
+  const known = new Set(stored.map((p) => p.awb))
+  const byAwb = new Map(stored.map((p) => [p.awb, p]))
 
   const missing = (raw as Packed[]).filter((p) => !known.has(p[0])).map(unpack)
   if (missing.length > 0) await jntVipDb.parcels.bulkAdd(missing)
-  return { added: missing.length, skipped: (raw as Packed[]).length - missing.length }
+
+  // Parcels already stored: advance the ones the seed now knows more about.
+  //
+  // Strictly forward, and never between two settled states. DELIVERED and
+  // RETURNED both rank 3, so neither can be rewritten as the other and a
+  // delivery is never quietly turned into a return. Anything below them can
+  // only move up. The result does not depend on which file is newer, so a
+  // stale seed cannot undo a fresh import — the case this function used to
+  // refuse to touch anything at all to avoid.
+  let advanced = 0
+  for (const packed of raw as Packed[]) {
+    if (!known.has(packed[0])) continue
+    const stored = byAwb.get(packed[0])
+    if (!stored?.id) continue
+    const to = PROGRESS[packed[1]]
+    const from = PROGRESS[stored.status]
+    if (to === undefined || from === undefined || to <= from) continue
+    const next = unpack(packed)
+    await jntVipDb.parcels.update(stored.id, {
+      status: next.status,
+      rawStatus: next.rawStatus,
+      podAt: next.podAt,
+      podDate: next.podDate,
+      rtsReason: next.rtsReason ?? stored.rtsReason,
+      updatedAt: next.updatedAt,
+    })
+    advanced++
+  }
+
+  return {
+    added: missing.length,
+    skipped: (raw as Packed[]).length - missing.length - advanced,
+    advanced,
+  }
 }
