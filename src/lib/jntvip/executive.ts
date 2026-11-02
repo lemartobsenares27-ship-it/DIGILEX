@@ -84,15 +84,20 @@ export function executiveSummary(rows: JntVipSoaCheckRow[], parcels: JntVipParce
   const netDue = sum((s) => val(s.statedNet, s.computedNet))
   const received = sum((s) => s.receivedAmount ?? 0)
 
-  // Count parcels only inside the periods the statements actually cover, so
-  // the cost ratio compares like with like. Counting every parcel ever
-  // exported against fees from twenty statements would understate the cost.
-  const periods = rows.map((r) => [r.periodFrom, r.periodTo] as const)
-  const inAny = (day: string | null) => day != null && periods.some(([a, b]) => day >= a && day <= b)
-
-  const delivered = parcels.filter((p) => p.status === 'DELIVERED' && inAny(p.podDate)).length
-  const returned = parcels.filter((p) => p.status === 'RETURNED' && inAny(p.podDate)).length
-  const dispatched = parcels.filter((p) => inAny(p.shipDate)).length
+  // Operational counts use EVERY parcel, not only those falling inside a
+  // statement period.
+  //
+  // They used to be restricted to the statement periods, which is right for
+  // the cost ratio further down and wrong here. A statement period is an
+  // accounting boundary; whether a parcel came back is not. The restriction
+  // put two different return rates on one screen — 212 of 1,685 in the gauge
+  // against 222 of 1,731 in the panel below it — and a page that disagrees
+  // with itself gets believed in whichever direction the reader already
+  // leaned. The cost ratio keeps its own narrower count (coveredDelivered,
+  // coveredDispatched) precisely because it must divide like by like.
+  const delivered = parcels.filter((p) => p.status === 'DELIVERED').length
+  const returned = parcels.filter((p) => p.status === 'RETURNED').length
+  const dispatched = parcels.filter((p) => p.shipDate != null).length
   const inFlight = parcels.filter((p) => p.status === 'IN_TRANSIT' || p.status === 'DELIVERING').length
   const settled = delivered + returned
   const hasParcels = dispatched > 0 || delivered > 0

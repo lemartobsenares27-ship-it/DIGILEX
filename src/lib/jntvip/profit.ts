@@ -115,12 +115,36 @@ const REFERENCE_PRICE = BOTTLE_COSTS[0].price
 
 const val = (stated: number | null, computed: number) => stated ?? computed
 
-/** Bottles in a parcel, read from its COD value against the SKU price. */
+/**
+ * Quantity as the shipper typed it: "3Pc -3 BOTTLES EYE CARE ...".
+ *
+ * J&T echoes the line back on every parcel, and on the 1,508 waybills where
+ * the November export also carries its own "Number Of Items" column the two
+ * agree on all but one. It is the only count in the data that was recorded
+ * rather than inferred.
+ */
+const QTY = /^\s*(\d+)\s*Pc/i
+
+/**
+ * Bottles in a parcel.
+ *
+ * Read from the item text, and only inferred from price when there is no item
+ * text to read. Inferring it was wrong on 11.3% of parcels, and always in the
+ * same direction: because multi-bottle orders are discounted, PHP799 for three
+ * bottles divided by the PHP399 single-bottle price rounds to two, and PHP999
+ * for four rounds to three. That quietly dropped 181 bottles of product cost
+ * and fulfilment — the error only ever UNDERSTATES what was shipped, so it
+ * only ever flatters the profit, which is the worst direction for a number
+ * someone is deciding whether to keep trading on.
+ */
 function bottlesIn(p: JntVipParcelRow): number {
+  const stated = QTY.exec(p.remarks ?? '')
+  if (stated) {
+    const n = Number(stated[1])
+    if (Number.isFinite(n) && n > 0 && n < 100) return n
+  }
   const cod = p.cod
   if (cod <= 0) return 1
-  // A two-bottle order is discounted (PHP599, not PHP798), so rounding the
-  // ratio recovers the count where a plain division would not.
   return Math.max(1, Math.round(cod / REFERENCE_PRICE))
 }
 
