@@ -18,7 +18,7 @@ import { BOTTLE_COSTS } from '../../lib/jntvip/bottleCost'
 import { fixedCostPerDay, toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
 import OperatingExpenseEditor from './OperatingExpenseEditor'
 import CostCoverage from './CostCoverage'
-import { adChargesBetween, adSpendBySource } from '../../lib/jntvip/adSpend'
+import { adChargesBetween, adSpendBySource, accruedBetween, ACCRUED_AD_SPEND } from '../../lib/jntvip/adSpend'
 import type { JntVipSoaCheckRow, JntVipParcelRow, JntVipOperatingExpenseRow } from '../../lib/jntvip/types'
 
 const peso = (c: number) =>
@@ -61,6 +61,7 @@ export default function JntVipProfit() {
     [rows, parcels, expenses],
   )
   const stack = useMemo(() => (p ? costStack(p) : []), [p])
+  const accrued = useMemo(() => (p ? accruedBetween(p.from, p.to) : 0), [p])
   const charges = useMemo(() => (p ? adChargesBetween(p.from, p.to) : []), [p])
   // Split by card. Finding that two cards were paying for ads in parallel is
   // what corrected this figure, so the page shows both rather than one total.
@@ -245,7 +246,24 @@ export default function JntVipProfit() {
               />
             </div>
             <div className="py-1">
-              <Row label="Meta ad spend" amount={p.adSpend} note={`${formatNumber(charges.length)} card charges`} negative />
+              {/* Split, because the two halves are not equally certain. One is
+                money that left a bank; the other is spend Meta reports with no
+                statement behind it yet. Shown as one line they would be taken
+                for the same thing. */}
+            <Row
+              label="Meta ad spend — billed to a card"
+              amount={p.adSpend - accrued}
+              note={`${formatNumber(charges.length)} card charges`}
+              negative
+            />
+            {accrued > 0 && (
+              <Row
+                label="Meta ad spend — spent, not yet billed"
+                amount={accrued}
+                note="estimated from Ads Manager; no statement for it yet"
+                negative
+              />
+            )}
             </div>
             <div className="py-1">
               {p.operating.map((e) => (
@@ -380,6 +398,34 @@ export default function JntVipProfit() {
         </Card>
         )}
       </div>
+
+      {accrued > 0 && (
+        <Card
+          title="Advertising counted here that no statement has billed yet"
+          description="Why one line of the statement above is an estimate, and what will replace it."
+          className="mt-4"
+        >
+          {ACCRUED_AD_SPEND.map((a) => (
+            <div key={`${a.source}-${a.from}`}>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                  {a.source}, {a.from} to {a.to}
+                </span>
+                <span className="text-base font-semibold tabular" style={{ color: 'var(--series-orange)' }}>
+                  {peso(a.amount)}
+                </span>
+              </div>
+              <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>{a.basis}</p>
+              <p className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>Replaced by: {a.supersededBy}</p>
+            </div>
+          ))}
+          <p className="mt-3 border-t pt-3 text-xs" style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-muted)' }}>
+            Left out, this made October read PHP95,977 of profit instead of PHP56,613. It is counted because the
+            question these pages answer is what the period COST, not what has cleared a bank — and it is kept on its
+            own line so it is never mistaken for a charge anyone can point at.
+          </p>
+        </Card>
+      )}
 
       {/* What a bottle costs to make. The only P&L input that comes from purchase
           prices rather than a statement, so it is shown itemised rather than as a

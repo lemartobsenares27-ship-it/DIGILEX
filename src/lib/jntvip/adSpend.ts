@@ -87,7 +87,72 @@ export const COVERAGE_BY_SOURCE: Record<AdSource, string | null> = (() => {
 })()
 
 /** Ad spend charged within [from, to] inclusive. */
+/**
+ * Advertising that Meta's own reports show but no statement has billed yet.
+ *
+ * The card statements are the record of money leaving, and they stay that way.
+ * But RCBC has no statement read past 7 October, and Meta's Ads Manager puts
+ * October's spend across all four accounts at PHP277,777 against PHP236,208
+ * charged. The difference is not missing money or another payment method — the
+ * owner uses two cards and this is one of them, unread. Leaving it out made
+ * every page report October PHP41,570 better than it was: PHP95,977 of profit
+ * where the honest figure is PHP56,613.
+ *
+ * So it is accrued, dated across the days it was actually spent, and labelled
+ * as an estimate rather than folded into the verified charges. When the
+ * statement arrives, the real charges go into jntAdCharges.json and the
+ * matching entry here is deleted — the `supersededBy` note says exactly what
+ * replaces it.
+ */
+export interface AccruedAdSpend {
+  from: string
+  to: string
+  amount: number
+  source: AdSource
+  basis: string
+  supersededBy: string
+}
+
+export const ACCRUED_AD_SPEND: AccruedAdSpend[] = [
+  {
+    from: '2026-10-08',
+    to: '2026-10-31',
+    amount: 4156967,
+    source: 'RCBC',
+    basis:
+      "Meta Ads Manager reports PHP277,777 of October spend across all four accounts (1 Oct-4 Nov export, less four days of November at its own daily rate). Card charges for October total PHP236,208. The difference falls entirely in the window RCBC has no statement for, and works out at PHP1,732 a day against the PHP3,942 it ran before 8 October.",
+    supersededBy: 'The RCBC Airmiles statement dated about 8 Nov 2026, covering 8 Oct to 7 Nov.',
+  },
+]
+
+/** Accrued spend overlapping a window, apportioned by day. */
+export function accruedBetween(from: string, to: string): number {
+  let total = 0
+  for (const a of ACCRUED_AD_SPEND) {
+    const start = a.from > from ? a.from : from
+    const end = a.to < to ? a.to : to
+    if (end < start) continue
+    const days = Math.round((Date.parse(a.to) - Date.parse(a.from)) / 86400000) + 1
+    const covered = Math.round((Date.parse(end) - Date.parse(start)) / 86400000) + 1
+    total += Math.round((a.amount * covered) / days)
+  }
+  return total
+}
+
+/**
+ * What advertising cost over a window: charges that reached a statement, plus
+ * spend that has happened and has not been billed yet.
+ *
+ * Both, deliberately. Counting only the charges understates a month whose
+ * statements have not all arrived, and every page that asks this question is
+ * asking what the period COST, not what has cleared a bank.
+ */
 export function adSpendBetween(from: string, to: string): number {
+  return adChargedBetween(from, to) + accruedBetween(from, to)
+}
+
+/** Only what a statement actually billed. The verified figure. */
+export function adChargedBetween(from: string, to: string): number {
   return AD_CHARGES.filter((c) => c.chargedOn >= from && c.chargedOn <= to).reduce((t, c) => t + c.amount, 0)
 }
 
