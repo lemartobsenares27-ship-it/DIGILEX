@@ -89,11 +89,20 @@ export const DAYS_PER_MONTH = 30.4375
  * PHP251,803 of transfers to the owner's own accounts (which fund the GoTyme
  * ad card) and PHP51,101.36 of RCBC card bills (those cards ARE the ad spend).
  *
- * One item is in no figure anywhere: a PHP19,043.87 Shopee payment on 3 Oct,
- * stated to cover both family and business with no split given. It is left out
- * rather than halved, because a made-up proportion would be indistinguishable
- * from a measured one six months from now. October's profit is PHP99,149 with
- * it excluded and PHP80,105 if every peso of it turns out to be business.
+ * The PHP19,043.87 Shopee payment of 3 Oct is a SUPPLIER payment: mostly
+ * business stock, as stated. That puts it with Majestic Line, Jessel, Pk and
+ * Germike, inside the PHP40 a bottle, and it must not be deducted again.
+ *
+ * The supplier total is what settles it. Without Shopee, October's stock
+ * purchases came to PHP52,126 against PHP68,480 of product cost charged for
+ * the bottles actually shipped — buying PHP16,354 less stock than went out of
+ * the door, which one month can do by drawing down what is on the shelf but
+ * no business can keep doing. With Shopee counted, purchases are PHP71,170
+ * against PHP68,480 charged: slightly ahead, which is what buying in batches
+ * looks like. The arithmetic agrees with what was said about it.
+ *
+ * Treating it as personal spending, as an earlier reading did, took PHP9,522
+ * off the owner's take-home for money that had gone into stock they will sell.
  */
 export const OPERATING_EXPENSES: OperatingExpense[] = [
   // Payroll, per person, because one blended "support" rate was wrong in both
