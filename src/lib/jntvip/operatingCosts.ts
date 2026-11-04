@@ -126,8 +126,14 @@ export const OPERATING_EXPENSES: OperatingExpense[] = [
     label: 'CSR admin',
     basis: 'PER_DAY',
     rate: 55000,
-    daysPerWeek: 7,
-    detail: 'PHP550 a day, as stated',
+    // Six, not seven. Stated as "6 or 5 days", and six is the dearer of the
+    // two — an unsettled rota should overstate payroll rather than flatter
+    // profit. Seven was never stated and was simply the default; it charged
+    // five days a month nobody worked, PHP2,750 of payroll that did not
+    // happen. If the rota is really five days, change this to 5 and another
+    // PHP2,200 a month comes back.
+    daysPerWeek: 6,
+    detail: 'PHP550 a day, six days a week (stated as six or five)',
   },
   {
     key: 'staff-csr-probation',
