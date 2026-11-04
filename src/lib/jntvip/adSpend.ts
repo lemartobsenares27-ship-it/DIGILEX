@@ -66,6 +66,26 @@ export const AD_CHARGES: AdCharge[] = (raw as Packed[]).map(([chargedOn, amount,
 /** The last day a statement covers. Beyond this, spend is unknown, not zero. */
 export const AD_COVERAGE_TO = AD_CHARGES.length > 0 ? AD_CHARGES[AD_CHARGES.length - 1].chargedOn : null
 
+/**
+ * The last day each card has a statement behind it.
+ *
+ * Per source, not just the latest overall, because the latest overall hides
+ * the thing that matters: one card can be months behind while the other is
+ * current, and the total then looks complete when it is not. RCBC's charges
+ * stop on 7 Oct 2026 and GoTyme's run to 1 Nov, so any window reaching past
+ * those dates is short by whatever the unread statements hold — which is the
+ * whole of a PHP63,828 discrepancy against Meta's own figures that otherwise
+ * looks like money appearing from nowhere.
+ */
+export const COVERAGE_BY_SOURCE: Record<AdSource, string | null> = (() => {
+  const out: Record<string, string | null> = { GOTYME: null, RCBC: null }
+  for (const c of AD_CHARGES) {
+    const seen = out[c.source]
+    if (seen == null || c.chargedOn > seen) out[c.source] = c.chargedOn
+  }
+  return out as Record<AdSource, string | null>
+})()
+
 /** Ad spend charged within [from, to] inclusive. */
 export function adSpendBetween(from: string, to: string): number {
   return AD_CHARGES.filter((c) => c.chargedOn >= from && c.chargedOn <= to).reduce((t, c) => t + c.amount, 0)

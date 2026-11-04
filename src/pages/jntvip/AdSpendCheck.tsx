@@ -24,6 +24,7 @@ import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
 import { profitAndLoss, profitByMonth } from '../../lib/jntvip/profit'
 import { toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
+import { COVERAGE_BY_SOURCE } from '../../lib/jntvip/adSpend'
 import { formatPercent } from '../../lib/format'
 import type {
   JntVipOperatingExpenseRow,
@@ -84,6 +85,11 @@ export default function AdSpendCheck() {
   const shown = test ?? recorded
   const profit = ceiling - shown
   const safe = profit > 0
+  // Last calendar day of the month being shown.
+  const monthEnd = (() => {
+    const [y, m] = period.key.split('-').map(Number)
+    return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10)
+  })()
 
   return (
     <div>
@@ -221,6 +227,38 @@ export default function AdSpendCheck() {
               })}
           </tbody>
         </table>
+      </Card>
+
+      {/* The single most useful fact on this page when the totals disagree:
+          which card is behind, and since when. */}
+      <Card title="How far each card is actually covered" className="mt-4">
+        <table className="w-full text-sm">
+          <tbody>
+            {(Object.entries(COVERAGE_BY_SOURCE) as [string, string | null][]).map(([src, to]) => {
+              // Against the LAST DAY of the month, not the month itself. Comparing
+              // months said RCBC was "current for October" on the strength of
+              // covering seven days of it — the exact false reassurance this
+              // panel exists to prevent.
+              const stale = to == null || to < monthEnd
+              return (
+                <tr key={src} className="border-t first:border-0" style={{ borderColor: 'var(--border-hairline)' }}>
+                  <td className="py-2" style={{ color: 'var(--text-primary)' }}>{src}</td>
+                  <td className="py-2" style={{ color: 'var(--text-secondary)' }}>
+                    statements read up to {to ?? '—'}
+                  </td>
+                  <td className="py-2 text-right" style={{ color: stale ? 'var(--series-orange)' : 'var(--status-good-ink)' }}>
+                    {stale ? `BEHIND — nothing after ${to ?? 'never'}` : 'covers the whole month'}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+        <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+          Where a card is behind, the figure above is short by whatever its unread statements hold — not by money that
+          went somewhere else. If the two cards are the only way ads are paid for, then every peso Meta reports beyond
+          what is shown here sits in a statement that has not been read yet.
+        </p>
       </Card>
 
       <Card title="Why the two numbers differ, and why it does not decide the answer" className="mt-4">
