@@ -134,7 +134,7 @@ export default function ProductPerformance() {
           value={totals.adSpend > 0 ? `${(totals.revenue / totals.adSpend).toFixed(2)}x` : '—'}
           icon={<Layers size={16} />}
           accent="var(--series-violet)"
-          sub={`${peso(totals.adSpend)} of ads, shared by parcel`}
+          sub={`${peso(totals.adSpend)} of ads`}
         />
       </div>
 
@@ -245,11 +245,15 @@ function PeriodCard({ period, picked }: { period: ProductPeriod; picked: string 
   const rows = picked === ALL ? period.cells : period.cells.filter((c) => c.product === picked)
   if (rows.length === 0) return null
   const foot = picked === ALL ? period.total : null
+  // Measured where the Meta exports cover the whole period, a parcel-share
+  // stand-in where they do not. The two are not the same claim, so the header
+  // says which one this period's ad column is.
+  const adsMeasured = period.cells.some((c) => c.adMeasured)
 
   return (
     <Card
       title={period.label}
-      description={`${period.days} day${period.days === 1 ? '' : 's'} · ${peso(period.adSpend)} of advertising${period.partial ? ' · PART PERIOD — a full week of fixed costs against fewer days of parcels, and its returns have not all happened yet' : ''}`}
+      description={`${period.days} day${period.days === 1 ? '' : 's'} · ${peso(period.adSpend)} of advertising${adsMeasured ? '' : ' · ads split by parcels, not measured'}${period.partial ? ' · PART PERIOD — a full week of fixed costs against fewer days of parcels, and its returns have not all happened yet' : ''}`}
     >
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -264,7 +268,12 @@ function PeriodCard({ period, picked }: { period: ProductPeriod; picked: string 
               <th className="pb-2 text-right font-medium">RTS fee</th>
               <th className="pb-2 text-right font-medium">COD fee</th>
               <th className="pb-2 text-right font-medium">Product</th>
-              <th className="pb-2 text-right font-medium" title="Shared out by parcel share">Ads*</th>
+              <th
+                className="pb-2 text-right font-medium"
+                title={adsMeasured ? 'Measured campaign spend per product' : 'No campaign data for this period — shared out by parcel share'}
+              >
+                {adsMeasured ? 'Ads' : 'Ads*'}
+              </th>
               <th className="pb-2 text-right font-medium" title="Shared out by parcel and bottle share">Expenses*</th>
               <th className="pb-2 text-right font-medium">Profit</th>
               <th className="pb-2 text-right font-medium">Margin</th>
