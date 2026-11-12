@@ -117,11 +117,24 @@ export default function CostCoverage({ profit, days }: { profit: number; days: n
         </div>
 
         <p className="mt-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
-          <strong>What is still invisible:</strong> <strong>GCash</strong>, and anything paid in
-          cash. Money moved to GCash shows in the bank as a transfer out, but what it then paid for
-          does not, so those costs are missing unless they are entered as an expense below. These
-          figures see UnionBank (J&amp;T money in), MariBank (suppliers and funding out), GoTyme and
-          the RCBC card (advertising). A GCash statement would close the last gap.
+          <strong>GCash is spent money, not a gap.</strong> You have said that once it leaves
+          MariBank for GCash it is already an expense, and that is the right way to count it: it
+          does not come back. What is still missing is not the rule but the amount. MariBank's
+          October statement shows {peso(25180300)} of transfers to your own accounts as a single
+          bucket, and that bucket funds both the GoTyme ad card and GCash. The ad card half must
+          not be charged — the advertising it buys is already counted from the card statements,
+          and charging the transfer too would count it twice. So the GCash half needs splitting
+          out of that {peso(25180300)} before any of it can be charged.
+        </p>
+        <p className="mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+          One thing to settle when it is: the CSR admin is already charged here at the stated daily
+          rate, and {peso(1360000)} of that is believed to be paid through GCash. If the GCash
+          transfer is charged as a lump as well, that {peso(1360000)} is charged twice. Whichever
+          way it is counted, it is counted once.
+        </p>
+        <p className="mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+          These figures see UnionBank (J&amp;T money in), MariBank (suppliers and funding out),
+          GoTyme and the RCBC card (advertising).
         </p>
       </div>
     </Card>
