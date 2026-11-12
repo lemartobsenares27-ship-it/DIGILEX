@@ -1,0 +1,12 @@
+{
+  "window": { "from": "2026-10-01", "to": "2026-11-04" },
+  "source": "Meta Ads Manager campaign exports, 4 accounts (alas1, Lee-Ecom-Vntrs-3, -4, -5), 165 campaigns",
+  "totalSpend": 30785401,
+  "products": [
+    { "name": "EYE CARE",   "spend": 8770525, "purchases": 484, "campaigns": 49 },
+    { "name": "TESTOMAXX",  "spend": 8237545, "purchases": 431, "campaigns": 62 },
+    { "name": "GOLDEN EAR", "spend": 7732430, "purchases": 389, "campaigns": 17 },
+    { "name": "ALMUTRIA",   "spend": 5594083, "purchases": 209, "campaigns": 17 }
+  ],
+  "unattributed": { "spend": 450818, "purchases": 27, "campaigns": 20 }
+}

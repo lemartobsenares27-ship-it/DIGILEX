@@ -45,6 +45,7 @@ import {
   type OperatingExpense,
 } from './operatingCosts'
 import { adSpendBetween } from './adSpend'
+import { shareOf, windowCovers } from './adByProduct'
 
 /** COD commission plus the VAT charged on it, as the statements apply it. */
 const COD_FEE_RATE = 0.0275 * 1.12
@@ -66,8 +67,10 @@ export interface ProductCell {
   codFee: number
   /** Bottles that actually left, at their own SKU cost. Measured. */
   cogs: number
-  /** Share of the period's advertising. Allocated by parcels. */
+  /** Share of the period's advertising. */
   adSpend: number
+  /** True where the share came from campaign data, false where parcels stood in. */
+  adMeasured: boolean
   /** Share of the period's payroll, overhead and packing. Allocated. */
   operating: number
   profit: number
@@ -131,6 +134,7 @@ function blank(product: string): ProductCell {
     codFee: 0,
     cogs: 0,
     adSpend: 0,
+    adMeasured: false,
     operating: 0,
     profit: 0,
     margin: 0,
@@ -234,19 +238,36 @@ export function productPnl(
         .filter((l) => l.basis !== 'PER_BOTTLE')
         .reduce((t, l) => t + l.amount, 0)
 
-      for (const c of cells) {
+      // Advertising is split by MEASURED campaign share where the Meta exports
+      // cover the period, and by parcels only where they do not.
+      //
+      // The parcel split was never more than a stand-in: it assumes every
+      // product costs the same to advertise, and measured against real campaign
+      // spend it was out by PHP43,441 on TESTOMAXX over five weeks — enough to
+      // make a good product look like the problem one and to hide that ALMUTRIA
+      // was losing money on every order. Where the measurement exists it is
+      // used; where it does not, the fallback is flagged rather than passed off
+      // as the same thing.
+      const measured = windowCovers(from, to)
+      const shares = cells.map((c) => (measured ? shareOf(c.product) : null))
+      const haveAll = shares.every((v) => v != null)
+
+      cells.forEach((c, i) => {
         // settled is derived in finish(), which has not run yet — so the share
         // is taken from the counts directly. Reading c.settled here made every
         // share zero and silently allocated no advertising at all.
         const cellSettled = c.delivered + c.returned
-        // Advertising and overhead follow parcels; packing follows bottles,
-        // because that is the basis it is actually charged on.
         const parcelShare = totalSettled > 0 ? cellSettled / totalSettled : 0
         const bottleShare = totalBottles > 0 ? c.bottles / totalBottles : 0
-        c.adSpend = Math.round(adSpend * parcelShare)
+
+        const adShare = haveAll ? (shares[i] as number) : parcelShare
+        c.adSpend = Math.round(adSpend * adShare)
+        c.adMeasured = haveAll
+        // Overhead and packing stay on parcels and bottles: those really are
+        // what they are charged on, so there is nothing better to measure.
         c.operating = Math.round(fixedOps * parcelShare + perBottleOps * bottleShare)
         finish(c)
-      }
+      })
       cells.sort((a, b) => b.revenue - a.revenue)
 
       const total = finish(
@@ -260,6 +281,7 @@ export function productPnl(
           t.codFee += c.codFee
           t.cogs += c.cogs
           t.adSpend += c.adSpend
+          t.adMeasured = c.adMeasured
           t.operating += c.operating
           return t
         }, blank('All products')),

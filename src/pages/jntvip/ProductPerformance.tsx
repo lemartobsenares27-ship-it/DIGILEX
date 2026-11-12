@@ -19,6 +19,7 @@ import NeedsData from './NeedsData'
 import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
 import { productPnl, type ProductCell, type ProductPeriod } from '../../lib/jntvip/productPnl'
+import { AD_PRODUCT_WINDOW, AD_SHARES, unattributedSpend } from '../../lib/jntvip/adByProduct'
 import { makeResolver } from '../../lib/jntvip/rts'
 import { pinnedMap } from '../../lib/jntvip/products'
 import { toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
@@ -143,17 +144,60 @@ export default function ProductPerformance() {
         ))}
       </div>
 
+      <Card
+        title="How advertising is split between products"
+        description={`Measured from ${AD_SHARES.reduce((t, s2) => t + s2.campaigns, 0)} campaigns across four Meta accounts, ${AD_PRODUCT_WINDOW.from} to ${AD_PRODUCT_WINDOW.to}.`}
+        className="mt-4"
+      >
+        <table className="w-full text-sm">
+          <thead>
+            <tr style={{ color: 'var(--text-muted)' }}>
+              <th className="pb-2 text-left font-medium">Product</th>
+              <th className="pb-2 text-right font-medium">Campaigns</th>
+              <th className="pb-2 text-right font-medium">Spend</th>
+              <th className="pb-2 text-right font-medium">Orders</th>
+              <th className="pb-2 text-right font-medium">Cost per order</th>
+              <th className="pb-2 text-right font-medium">Share</th>
+            </tr>
+          </thead>
+          <tbody>
+            {AD_SHARES.map((s2) => (
+              <tr key={s2.product} className="border-t" style={{ borderColor: 'var(--border-hairline)' }}>
+                <td className="py-1.5" style={{ color: 'var(--text-primary)' }}>{s2.product}</td>
+                <td className="py-1.5 text-right tabular-nums" style={{ color: 'var(--text-secondary)' }}>{s2.campaigns}</td>
+                <td className="whitespace-nowrap py-1.5 text-right tabular-nums" style={{ color: 'var(--text-secondary)' }}>{peso(s2.spend)}</td>
+                <td className="py-1.5 text-right tabular-nums" style={{ color: 'var(--text-secondary)' }}>{formatNumber(s2.purchases)}</td>
+                {/* Break-even is PHP224 an order. Above it the product loses money
+                    however good everything else about it looks. */}
+                <td className="whitespace-nowrap py-1.5 text-right font-medium tabular-nums" style={{ color: s2.costPerPurchase > 22400 ? 'var(--series-orange)' : 'var(--text-primary)' }}>
+                  {peso(s2.costPerPurchase)}
+                </td>
+                <td className="py-1.5 text-right tabular-nums" style={{ color: 'var(--text-secondary)' }}>{formatPercent(s2.share, 1)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+          Break-even is {peso(22400)} an order; anything above it loses money whatever else is true of the product.
+          A further {peso(unattributedSpend().spend)} sits in {unattributedSpend().campaigns} campaigns whose names carry
+          no product code — 1.5% of spend, spread across the four above rather than held back, so the page adds up.
+          Before these exports, advertising was split by each product's share of parcels: that was wrong by PHP43,441
+          on TESTOMAXX alone over five weeks.
+        </p>
+      </Card>
+
       <Card className="mt-4">
         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
           <strong style={{ color: 'var(--text-secondary)' }}>How to read this.</strong> A parcel belongs to the period
           it settled in — delivered or returned — and carries its own freight, return fee and product cost into that
           same period. Revenue, freight, return fees and bottles are measured from the parcel itself.{' '}
-          <strong style={{ color: 'var(--text-secondary)' }}>Advertising and operating costs are shared out</strong>,
-          because neither arrives labelled by product: advertising and overhead by each product's share of parcels,
-          packing by its share of bottles. A product that converts cheaply is therefore charged too much here, and one
-          that converts dearly too little. Returned bottles carry no product cost — they come back sellable, and
-          charging them would count the same stock as lost twice. These figures come from parcels, not statements, so
-          they will not tie exactly to Profit &amp; Loss, which is statement-based and is the authority on money.
+          <strong style={{ color: 'var(--text-secondary)' }}>Advertising is split by measured campaign spend</strong>{' '}
+          wherever the Meta exports cover the period ({AD_PRODUCT_WINDOW.from} to {AD_PRODUCT_WINDOW.to}); a period they
+          do not reach falls back to splitting by parcels, and its rows say so. Operating costs are still shared by
+          parcels and bottles, because those are what they are actually charged on. Returned bottles carry no product
+          cost — they come back sellable, and charging them would count the same stock as lost twice. These figures come
+          from parcels, not statements, so they will not tie exactly to Profit &amp; Loss, which is statement-based and
+          is the authority on money.
         </p>
       </Card>
     </div>
