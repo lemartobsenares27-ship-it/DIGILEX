@@ -23,6 +23,16 @@
 // advertised changes slowly, while the amount changes weekly — so a period's
 // own ad spend is divided by these shares instead.
 //
+// TO REFRESH IT, after exporting the next period from Ads Manager: total
+// each account's Amount spent and Purchases by the product code in the
+// campaign name, add the four accounts together, and write the four products
+// plus the window into src/data/jntAdByProduct.json. Campaigns whose names
+// carry no product code go in `unattributed` rather than being forced into a
+// product. Nothing else needs changing: the page reads the window and labels
+// any period the window does not cover as a parcel-share estimate rather than
+// a measurement, so an out-of-date file understates what is known and never
+// overstates it.
+//
 // All amounts are integer centavos.
 
 import raw from '../../data/jntAdByProduct.json'
