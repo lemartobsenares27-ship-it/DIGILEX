@@ -340,3 +340,33 @@ export interface JntVipParcelProductRow {
   source: 'POS' | 'MANUAL'
   updatedAt: string
 }
+
+/**
+ * Whether a returned parcel physically arrived back.
+ *
+ * The courier export cannot answer this. Its date on a RETURNED parcel is when
+ * the parcel was marked returned at the far end, not when it reached the
+ * sender's hands, and no later field records the handover. So arrival is
+ * recorded here, by the person who took delivery of it.
+ *
+ * A row exists only once somebody has said something about that waybill.
+ * Absence means "not yet confirmed", never "lost" — the two have very
+ * different costs and must not be allowed to blur.
+ */
+export interface JntVipRtsHomecomingRow {
+  id?: number
+  awb: string
+  /**
+   * RECEIVED — the parcel came back and is in hand.
+   * MISSING — chased and established as not coming back. This is the only
+   * state that turns stock into a real loss, so it is never inferred from
+   * age; somebody has to assert it.
+   */
+  status: 'RECEIVED' | 'MISSING'
+  /** The day it arrived, or the day it was written off, as YYYY-MM-DD. */
+  settledOn: string
+  /** Who recorded it. Free text — this app has no user accounts. */
+  recordedBy: string
+  note?: string
+  updatedAt: string
+}

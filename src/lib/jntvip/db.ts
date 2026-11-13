@@ -19,6 +19,7 @@ import type {
   JntVipOperatingExpenseRow,
   JntVipProductRow,
   JntVipParcelProductRow,
+  JntVipRtsHomecomingRow,
 } from './types'
 
 export interface JntVipMetaRow {
@@ -38,6 +39,7 @@ class JntVipDB extends Dexie {
   operatingExpenses!: Table<JntVipOperatingExpenseRow, number>
   products!: Table<JntVipProductRow, number>
   parcelProducts!: Table<JntVipParcelProductRow, number>
+  rtsHomecoming!: Table<JntVipRtsHomecomingRow, number>
 
   constructor() {
     super('jnt-vip-reconciliation')
@@ -111,6 +113,23 @@ class JntVipDB extends Dexie {
     this.version(6).stores({
       products: '++id, &name',
       parcelProducts: '++id, &awb, product',
+    })
+    // v7 records whether a returned parcel actually came back.
+    //
+    // Everything here had treated a return as a parcel that costs its freight
+    // and gives its bottles back, because the courier export says a parcel went
+    // back to sender and the profit model takes that at face value. Nothing
+    // ever checked that the box arrived. If it did not, the bottles are not on
+    // the shelf, and a cost counted as recovered was not recovered.
+    //
+    // `awb` is unique: confirming the same waybill twice corrects the record
+    // rather than stacking a second arrival for one parcel.
+    //
+    // `status` is a string, not a boolean, because IndexedDB keys may only be
+    // numbers, strings, Dates or Arrays — indexing a boolean makes every read
+    // of the table throw.
+    this.version(7).stores({
+      rtsHomecoming: '++id, &awb, status, settledOn',
     })
   }
 }

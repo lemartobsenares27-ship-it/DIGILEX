@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { UploadCloud, AlertOctagon, Boxes, ShieldCheck, Wallet, BookOpen, Target, Coins, Boxes as BoxesIcon, Waves, Lightbulb, CalendarRange, Layers, Gauge, Sun, Moon, Menu } from 'lucide-react'
+import { UploadCloud, AlertOctagon, Boxes, ShieldCheck, Wallet, BookOpen, Target, Coins, Boxes as BoxesIcon, Waves, Lightbulb, CalendarRange, Layers, Gauge, Sun, Moon, Menu, PackageX } from 'lucide-react'
 import { useTheme } from '../hooks/useTheme'
 import AppSwitcher from '../components/AppSwitcher'
 
@@ -36,6 +36,7 @@ const NAV: { heading: string; items: { to: string; label: string; icon: typeof T
     items: [
       { to: '/product-performance', label: 'Product Performance', icon: Layers },
       { to: '/products', label: 'Products', icon: BoxesIcon },
+      { to: '/returns-home', label: 'Returns Home', icon: PackageX },
       { to: '/soa-check', label: 'SOA Check', icon: ShieldCheck },
       { to: '/batches', label: 'Statements', icon: Boxes },
       { to: '/issues', label: 'Issues to fix', icon: AlertOctagon },

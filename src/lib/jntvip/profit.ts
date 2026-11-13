@@ -137,7 +137,7 @@ const QTY = /^\s*(\d+)\s*Pc/i
  * only ever flatters the profit, which is the worst direction for a number
  * someone is deciding whether to keep trading on.
  */
-function bottlesIn(p: JntVipParcelRow): number {
+export function bottlesIn(p: JntVipParcelRow): number {
   const stated = QTY.exec(p.remarks ?? '')
   if (stated) {
     const n = Number(stated[1])
