@@ -295,3 +295,102 @@ export function returnsHome(
     asOf,
   }
 }
+
+// ---------------------------------------------------------------------------
+// What has no proof of handover at all
+// ---------------------------------------------------------------------------
+//
+// Separate from the monitoring window on purpose. Monitoring starts in November
+// because that is what can still be acted on; finding the missing paperwork
+// reaches back over everything, because the forms for September and October
+// either exist in the group chat and have not been collected, or were never
+// issued. Those are very different problems and the first step is the same:
+// know exactly which waybills have no form behind them.
+//
+// This is the gap that matters most. The courier issues an E-RPOD at every
+// handover, so a return with no form is a return nobody has evidence arrived.
+
+export interface ProofGapWeek {
+  /** Monday of the week the return was marked, YYYY-MM-DD. */
+  week: string
+  parcels: number
+  bottles: number
+  stockValue: number
+  /** COD on these parcels, which was never collected. */
+  cod: number
+  awbs: string[]
+}
+
+export interface ProofGaps {
+  /**
+   * Every return on record over all time: parcels the export puts on a return
+   * leg, plus ones a form proves came back that the export still shows as out
+   * for delivery. Waybills the export does not carry at all are excluded —
+   * they are proven arrivals by definition, so they are never a proof gap.
+   */
+  returnStage: number
+  /** How many of those a form proves arrived. */
+  withForm: number
+  /** How many have no form and no typed record either. */
+  withoutAnyRecord: number
+  bottles: number
+  stockValue: number
+  cod: number
+  weeks: ProofGapWeek[]
+  rows: ReturnRow[]
+  /** Earliest and latest date in the gap, for saying what to search for. */
+  span: { from: string; to: string } | null
+}
+
+/** Monday of the week containing `day`. */
+function weekStart(day: string): string {
+  const d = new Date(day + 'T00:00:00Z')
+  const back = (d.getUTCDay() + 6) % 7
+  d.setUTCDate(d.getUTCDate() - back)
+  return d.toISOString().slice(0, 10)
+}
+
+export function proofGaps(
+  parcels: JntVipParcelRow[],
+  homecoming: JntVipRtsHomecomingRow[],
+  productOf: ProductResolver,
+  asOf: string,
+): ProofGaps {
+  // Reuse the one builder so a gap row carries exactly the same product,
+  // bottle count and stock value the worklist shows. Two codepaths computing
+  // the same parcel differently is how a dashboard starts disagreeing with
+  // itself.
+  const all = returnsHome(parcels, homecoming, productOf, asOf)
+  const gaps = all.rows.filter((r) => r.evidence === 'NONE' && r.stage !== 'NOT_IN_EXPORT')
+
+  const byWeek = new Map<string, ReturnRow[]>()
+  for (const r of gaps) {
+    const key = weekStart(r.markedOn)
+    const list = byWeek.get(key)
+    if (list) list.push(r)
+    else byWeek.set(key, [r])
+  }
+
+  const dates = gaps.map((r) => r.markedOn).sort()
+
+  return {
+    returnStage: all.rows.filter((r) => r.stage !== 'NOT_IN_EXPORT').length,
+    withForm: all.provenByForm,
+    withoutAnyRecord: gaps.length,
+    bottles: gaps.reduce((t, r) => t + r.bottles, 0),
+    stockValue: gaps.reduce((t, r) => t + r.stockValue, 0),
+    cod: gaps.reduce((t, r) => t + r.cod, 0),
+    weeks: [...byWeek.entries()]
+      .map(([week, rows]) => ({
+        week,
+        parcels: rows.length,
+        bottles: rows.reduce((t, r) => t + r.bottles, 0),
+        stockValue: rows.reduce((t, r) => t + r.stockValue, 0),
+        cod: rows.reduce((t, r) => t + r.cod, 0),
+        awbs: rows.map((r) => r.awb),
+      }))
+      .sort((a, b) => a.week.localeCompare(b.week)),
+    rows: gaps,
+    span: dates.length > 0 ? { from: dates[0], to: dates[dates.length - 1] } : null,
+  }
+}

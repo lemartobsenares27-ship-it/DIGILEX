@@ -81,3 +81,48 @@ export function exportAuditLog(entries: JntVipAuditLogRow[]) {
     'JntVip_Audit_Log',
   )
 }
+
+/**
+ * Returns with no handover form, as a sheet to match against the group chat.
+ *
+ * The point of the file is to be worked through: one row per waybill, with the
+ * date its return was marked so the right form can be looked for, and an empty
+ * column for the form's date once it is found.
+ */
+export function exportReturnsWithoutProof(
+  rows: {
+    awb: string
+    stage: string
+    markedOn: string
+    markedFrom: string
+    ageDays: number
+    province: string
+    city: string
+    product: string
+    bottles: number
+    stockValue: number
+    cod: number
+    reason: string | null
+  }[],
+) {
+  downloadSheet(
+    rows.map((r) => ({
+      'J&T Tracking Number': r.awb,
+      'Export status': r.stage,
+      'Return marked': r.markedOn,
+      'Date is': r.markedFrom,
+      'Days since': r.ageDays,
+      Province: r.province,
+      City: r.city,
+      Product: r.product,
+      Bottles: r.bottles,
+      'Stock value (PHP)': r.stockValue / 100,
+      'COD not collected (PHP)': r.cod / 100,
+      'RTS reason': r.reason ?? '',
+      'E-RPOD form date (fill in)': '',
+      'Received by (fill in)': '',
+    })),
+    'Returns without proof',
+    'JntVip_Returns_Without_Handover_Proof',
+  )
+}

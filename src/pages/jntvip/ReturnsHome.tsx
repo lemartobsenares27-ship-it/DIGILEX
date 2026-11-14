@@ -13,14 +13,15 @@
 // Nothing here changes a parcel, a statement or a profit figure.
 
 import { useEffect, useMemo, useState } from 'react'
-import { PackageX, Home, HelpCircle, Boxes } from 'lucide-react'
+import { PackageX, Home, HelpCircle, Boxes, Download } from 'lucide-react'
 import PageHeader from '../../components/PageHeader'
 import Card from '../../components/Card'
 import StatTile from '../../components/StatTile'
 import NeedsData from './NeedsData'
 import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
-import { returnsHome, TRANSIT_DAYS, type ReturnRow } from '../../lib/jntvip/returnsHome'
+import { returnsHome, proofGaps, TRANSIT_DAYS, type ReturnRow } from '../../lib/jntvip/returnsHome'
+import { exportReturnsWithoutProof } from '../../lib/jntvip/exportCsv'
 import { ERPOD_FORMS, ERPOD_SELLER, formsWithCountMismatch, duplicateAwbs } from '../../lib/jntvip/erpod'
 import { recordHomecoming, clearHomecoming, recordArrivals } from '../../lib/jntvip/returnsHomeOps'
 import { getReviewerName, setReviewerName } from '../../lib/jntvip/review'
@@ -88,6 +89,13 @@ export default function ReturnsHome() {
   const view = useMemo(
     () => returnsHome(parcels, homecoming, productOf, today(), from),
     [parcels, homecoming, productOf, from],
+  )
+
+  // Over all time, not the monitoring window: finding missing paperwork and
+  // watching this month's returns are different jobs.
+  const gaps = useMemo(
+    () => proofGaps(parcels, homecoming, productOf, today()),
+    [parcels, homecoming, productOf],
   )
 
   const shown = useMemo(() => {
@@ -232,6 +240,89 @@ export default function ReturnsHome() {
             {plural(view.missing, 'parcel')} {view.missing === 1 ? 'has' : 'have'} been chased and confirmed as
             never coming back — {plural(view.missingBottles, 'bottle')}, {peso(view.missingValue)} of stock. That is
             a real loss, on top of the freight and the RTS fee already paid on {view.missing === 1 ? 'it' : 'them'}.
+          </p>
+        </Card>
+      )}
+
+      {gaps.withoutAnyRecord > 0 && (
+        <Card
+          className="mt-4"
+          title="Returns with no proof of handover"
+          description="Over everything on file, not just the monitoring window — the forms for these either sit uncollected in the group chat, or were never issued."
+        >
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            The courier issues an E-RPOD at every handover. So a return with no form behind it is a return nobody
+            can show arrived.{' '}
+            <strong style={{ color: 'var(--series-orange)' }}>
+              {plural(gaps.withoutAnyRecord, 'parcel')} of the {formatNumber(gaps.returnStage)} returns on record
+              {gaps.withoutAnyRecord === 1 ? ' has' : ' have'} no form and no record
+            </strong>{' '}
+            — {plural(gaps.bottles, 'bottle')}, {peso(gaps.stockValue)} of stock, and {peso(gaps.cod)} of COD that
+            was never collected.
+          </p>
+          {gaps.span && (
+            <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+              They were marked for return between <strong>{gaps.span.from}</strong> and{' '}
+              <strong>{gaps.span.to}</strong>, so the forms to look for are the handovers from roughly a week after
+              each of those dates. Every form on file is from November; nothing from September or October has been
+              collected yet.
+            </p>
+          )}
+
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ color: 'var(--text-muted)' }}>
+                  <th className="px-2 pb-2 text-left font-medium">Week returns were marked</th>
+                  <th className="px-2 pb-2 text-right font-medium">Parcels</th>
+                  <th className="px-2 pb-2 text-right font-medium">Bottles</th>
+                  <th className="px-2 pb-2 text-right font-medium">Stock</th>
+                  <th className="px-2 pb-2 text-right font-medium">COD lost</th>
+                  <th className="px-2 pb-2 text-left font-medium">A waybill to search the chat for</th>
+                </tr>
+              </thead>
+              <tbody>
+                {gaps.weeks.map((w) => (
+                  <tr key={w.week} className="border-t" style={{ borderColor: 'var(--border-hairline)' }}>
+                    <td className="whitespace-nowrap px-2 py-1.5" style={{ color: 'var(--text-primary)' }}>
+                      {w.week}
+                    </td>
+                    <td
+                      className="px-2 py-1.5 text-right font-medium tabular-nums"
+                      style={{ color: w.parcels >= 40 ? 'var(--series-orange)' : 'var(--text-secondary)' }}
+                    >
+                      {formatNumber(w.parcels)}
+                    </td>
+                    <td className="px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                      {formatNumber(w.bottles)}
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                      {peso(w.stockValue)}
+                    </td>
+                    <td className="whitespace-nowrap px-2 py-1.5 text-right tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                      {peso(w.cod)}
+                    </td>
+                    <td className="px-2 py-1.5 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {w.awbs[0]}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => exportReturnsWithoutProof(gaps.rows)}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-white"
+            style={{ background: 'var(--series-blue)' }}
+          >
+            <Download size={14} /> Download all {formatNumber(gaps.withoutAnyRecord)} to match against the chat
+          </button>
+          <p className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+            One row per waybill, with the date its return was marked so the right form can be found, and empty
+            columns for the form's date and who received it. Send the forms back and they go on the register, where
+            the driver's name and the scan times are kept too.
           </p>
         </Card>
       )}
