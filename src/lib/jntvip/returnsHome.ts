@@ -2,36 +2,45 @@
 //
 // Every other page treats a return as settled business: the freight is spent,
 // the RTS fee is charged, and the bottles come back sellable, so they carry no
-// product cost. That last part is an assumption, and until now nothing checked
-// it. The courier's export says a parcel went back to sender. It does not say
-// the box reached the house.
+// product cost. That last part is an assumption, and until the E-RPOD forms
+// arrived nothing could check it.
 //
-// The distinction costs real money. A return whose bottles came home costs the
-// outbound freight, the RTS fee, the packing and the advertising. A return
-// whose bottles did not costs all of that AND the stock, and the shelf count is
-// wrong by that much, which is how a stock count ends up disagreeing with the
-// system for reasons nobody can trace months later.
+// THREE SOURCES, IN ORDER OF AUTHORITY.
 //
-// WHAT THE EXPORT CAN AND CANNOT TELL YOU. A RETURNED parcel's POD date is when
-// it was marked returned at the delivery end. No column records the handover
-// back to the sender, so arrival cannot be derived — it has to be recorded by
-// whoever took the boxes in. This module therefore reports three states and
-// never guesses between them:
+//   1. The E-RPOD Monitoring Form. The courier fills one in at the handover,
+//      listing every waybill with the second it was scanned, signed by both
+//      sides with a photograph attached. A waybill on one of these HAS come
+//      back. Nothing outranks it.
+//   2. A record somebody entered here, for a box that arrived without a form
+//      or a return chased and established as lost.
+//   3. The waybill export, which says a parcel is on its way back and cannot
+//      say whether it got there. Its date on a RETURNED parcel is the day it
+//      was marked returned at the delivery end.
 //
-//   RECEIVED    somebody confirmed the parcel arrived.
-//   MISSING     somebody chased it and established it is not coming.
-//   unconfirmed neither of those has happened yet.
+// WHICH PARCELS COUNT AS COMING BACK. Both RETURNED and FOR_RETURN. The export
+// moves a parcel to FOR_RETURN when the return is queued and to RETURNED when
+// the leg is done, and a box in either state is a box that should turn up. The
+// earlier version watched RETURNED alone, which missed the whole queue: of the
+// 16 parcels on the 2 November form, 15 were still sitting at FOR_RETURN in the
+// export and one was not in it at all.
 //
-// Age is NOT one of the states. An old unconfirmed parcel is a parcel to chase,
-// not a loss, and turning one into the other on a timer would book a loss that
-// may not exist and quietly reduce the stock on hand. Only MISSING does that,
-// and only a person can set it.
+// AND PARCELS THE EXPORT HAS NEVER HEARD OF. A form can name a waybill the
+// export does not carry, because the export is a snapshot and the handover
+// happened after it. Those are listed too, as arrived, rather than dropped for
+// not matching — a proven arrival that silently vanishes is the worst failure
+// this page could have.
+//
+// Age is NOT a status. An old unconfirmed parcel is one to ask about, not a
+// loss, and turning one into the other on a timer would book a loss that may
+// not exist and quietly take stock off the shelf. Only MISSING does that, and
+// only a person can set it.
 //
 // All amounts are integer centavos.
 
 import type { JntVipParcelRow, JntVipRtsHomecomingRow } from './types'
 import { bottlesIn } from './profit'
 import { bottleCost, PRUDENT_UNIT_COST } from './bottleCost'
+import { erpodArrivals, type ErpodArrival } from './erpod'
 import type { ProductResolver } from './rts'
 
 /**
@@ -43,13 +52,37 @@ import type { ProductResolver } from './rts'
  */
 export const TRANSIT_DAYS = 7
 
+/** Statuses that mean a box is on its way back to the sender. */
+export const RETURN_STAGES = ['RETURNED', 'FOR_RETURN'] as const
+
 export type Homecoming = 'RECEIVED' | 'MISSING' | 'UNCONFIRMED'
+export type Stage =
+  /** The export says the return leg is done. */
+  | 'RETURNED'
+  /** The export says the return is queued. */
+  | 'FOR_RETURN'
+  /**
+   * The export carries this waybill, but at a status that is not a return at
+   * all — IN_TRANSIT, DELIVERING — while a signed form says the box was handed
+   * back. J&T's own status feed contradicting J&T's own signed form is worth
+   * showing, not smoothing over.
+   */
+  | 'STATUS_STALE'
+  /** The export has never heard of this waybill. */
+  | 'NOT_IN_EXPORT'
+/** Where the arrival record came from. */
+export type Evidence = 'ERPOD' | 'MANUAL' | 'NONE'
 
 export interface ReturnRow {
   awb: string
-  /** When the courier marked it returned, as YYYY-MM-DD. */
-  returnedOn: string
-  /** Whole days between that and the as-of date. */
+  stage: Stage
+  /**
+   * The day the return clock starts: the POD date where the export has one,
+   * otherwise the dispatch date, otherwise the handover date from the form.
+   */
+  markedOn: string
+  /** What `markedOn` actually is, so the column can say rather than imply. */
+  markedFrom: 'returned' | 'dispatched' | 'handover'
   ageDays: number
   province: string
   city: string
@@ -61,7 +94,12 @@ export interface ReturnRow {
   cod: number
   reason: string | null
   status: Homecoming
+  evidence: Evidence
+  /** The day it arrived, or the day it was written off. */
   settledOn: string | null
+  /** Full scan timestamp, where an E-RPOD form proved it. */
+  arrivedAt: string | null
+  driver: string | null
   recordedBy: string | null
   note: string | null
 }
@@ -77,27 +115,29 @@ export interface ReturnsBand {
 
 export interface ReturnsHome {
   rows: ReturnRow[]
-  /** Every parcel the courier says went back, in the export loaded. */
   total: number
   received: number
+  /** Of those received, how many are backed by a courier form rather than a tick. */
+  provenByForm: number
   missing: number
   unconfirmed: number
-  /** Bottles and build cost sitting in parcels nobody has confirmed. */
   unconfirmedBottles: number
   unconfirmedValue: number
-  /** Bottles and build cost in parcels established as not coming back. */
   missingBottles: number
   missingValue: number
-  /** Unconfirmed parcels by age. Received and missing ones are not banded. */
+  /** Arrivals proved by a form for a waybill the export does not carry at all. */
+  aheadOfExport: number
+  /** Arrivals proved by a form that the export still shows as out for delivery. */
+  contradicted: number
   bands: ReturnsBand[]
-  /** The newest return date in the export — how current this worklist is. */
-  latestReturn: string | null
+  /** How far the export itself reaches — everything after it is unknown to it. */
+  exportThrough: string | null
+  from: string
   asOf: string
 }
 
 const day = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : '')
 
-/** What one parcel's bottles cost to build, by its own SKU where that is known. */
 function stockValueOf(product: string, bottles: number): number {
   return bottles * (bottleCost(product)?.total ?? PRUDENT_UNIT_COST)
 }
@@ -105,48 +145,110 @@ function stockValueOf(product: string, bottles: number): number {
 /**
  * Build the return worklist.
  *
+ * `from` starts the window; a parcel is in it when its return was marked on or
+ * after that day, OR a form proves it arrived on or after it. The second half
+ * matters: a parcel queued for return in late October and handed back in
+ * November is a November arrival, and dropping it would lose a handover there
+ * is signed proof of.
+ *
  * `asOf` is passed in rather than read from the clock so the result is
- * reproducible and testable; the page passes today.
+ * reproducible; the page passes today.
  */
 export function returnsHome(
   parcels: JntVipParcelRow[],
   homecoming: JntVipRtsHomecomingRow[],
   productOf: ProductResolver,
   asOf: string,
+  from = '0000-01-01',
 ): ReturnsHome {
-  const byAwb = new Map(homecoming.map((h) => [h.awb, h]))
+  const manual = new Map(homecoming.map((h) => [h.awb, h]))
+  const arrivals = erpodArrivals()
   const asOfMs = Date.parse(asOf + 'T00:00:00Z')
+  const ageOf = (d: string) =>
+    d ? Math.max(0, Math.round((asOfMs - Date.parse(d + 'T00:00:00Z')) / 86400000)) : 0
 
-  const rows: ReturnRow[] = parcels
-    .filter((p) => p.status === 'RETURNED' && p.podDate)
-    .map((p) => {
-      const returnedOn = day(p.podDate)
-      const record = byAwb.get(p.awb)
-      const product = productOf(p)
-      const bottles = bottlesIn(p)
-      return {
-        awb: p.awb,
-        returnedOn,
-        ageDays: Math.max(0, Math.round((asOfMs - Date.parse(returnedOn + 'T00:00:00Z')) / 86400000)),
-        province: p.province ?? '',
-        city: p.city ?? '',
-        product,
-        bottles,
-        stockValue: stockValueOf(product, bottles),
-        cod: p.cod,
-        reason: p.rtsReason ?? null,
-        status: record ? record.status : ('UNCONFIRMED' as const),
-        settledOn: record?.settledOn ?? null,
-        recordedBy: record?.recordedBy ?? null,
-        note: record?.note ?? null,
-      }
+  const seen = new Set<string>()
+  const rows: ReturnRow[] = []
+
+  const push = (
+    awb: string,
+    stage: Stage,
+    markedOn: string,
+    markedFrom: ReturnRow['markedFrom'],
+    p: JntVipParcelRow | null,
+    arrival: ErpodArrival | undefined,
+  ) => {
+    const record = manual.get(awb)
+    const product = p ? productOf(p) : 'Unclassified'
+    const bottles = p ? bottlesIn(p) : 1
+    // A form outranks a typed record; a typed record outranks nothing at all.
+    const status: Homecoming = arrival ? 'RECEIVED' : record ? record.status : 'UNCONFIRMED'
+    const evidence: Evidence = arrival ? 'ERPOD' : record ? 'MANUAL' : 'NONE'
+    rows.push({
+      awb,
+      stage,
+      markedOn,
+      markedFrom,
+      ageDays: ageOf(markedOn),
+      province: p?.province ?? '',
+      city: p?.city ?? '',
+      product,
+      bottles,
+      stockValue: stockValueOf(product, bottles),
+      cod: p?.cod ?? 0,
+      reason: p?.rtsReason ?? null,
+      status,
+      evidence,
+      settledOn: arrival ? arrival.date : (record?.settledOn ?? null),
+      arrivedAt: arrival?.at ?? null,
+      driver: arrival?.driver ?? null,
+      recordedBy: arrival ? null : (record?.recordedBy ?? null),
+      note: record?.note ?? null,
     })
-    // Oldest first: the parcel least likely to still be moving is the one to
-    // ask about, and a worklist sorted newest-first buries exactly that.
-    .sort((a, b) => a.returnedOn.localeCompare(b.returnedOn) || a.awb.localeCompare(b.awb))
+    seen.add(awb)
+  }
+
+  for (const p of parcels) {
+    if (p.status !== 'RETURNED' && p.status !== 'FOR_RETURN') continue
+    const arrival = arrivals.get(p.awb)
+    // FOR_RETURN parcels carry no POD date, so the clock starts at dispatch.
+    const pod = day(p.podDate)
+    const markedOn = pod || day(p.shipDate)
+    if (!markedOn) continue
+    const inWindow = markedOn >= from || (arrival ? arrival.date >= from : false)
+    if (!inWindow) continue
+    push(p.awb, p.status, markedOn, pod ? 'returned' : 'dispatched', p, arrival)
+  }
+
+  // Waybills a form proves arrived that loop one did not reach — either the
+  // export does not carry them, or it carries them at a status that is not a
+  // return. The second case is NOT the same as the first and must not be
+  // reported as it: the parcel's own city, product and COD are known, and the
+  // discrepancy is between two J&T records rather than a gap in one.
+  const byAwb = new Map(parcels.map((p) => [p.awb, p]))
+  for (const [awb, arrival] of arrivals) {
+    if (seen.has(awb)) continue
+    if (arrival.date < from) continue
+    const p = byAwb.get(awb) ?? null
+    const pod = day(p?.podDate)
+    const shipped = day(p?.shipDate)
+    push(
+      awb,
+      p ? 'STATUS_STALE' : 'NOT_IN_EXPORT',
+      pod || shipped || arrival.date,
+      pod ? 'returned' : shipped ? 'dispatched' : 'handover',
+      p,
+      arrival,
+    )
+  }
+
+  // Oldest first: the parcel least likely to still be moving is the one to ask
+  // about, and a worklist sorted newest-first buries exactly that.
+  rows.sort((a, b) => a.markedOn.localeCompare(b.markedOn) || a.awb.localeCompare(b.awb))
 
   const open = rows.filter((r) => r.status === 'UNCONFIRMED')
   const gone = rows.filter((r) => r.status === 'MISSING')
+  const home = rows.filter((r) => r.status === 'RECEIVED')
 
   const band = (
     key: ReturnsBand['key'],
@@ -165,37 +267,31 @@ export function returnsHome(
     }
   }
 
+  const exportDates = parcels
+    .map((p) => day(p.podDate) || day(p.shipDate))
+    .filter(Boolean)
+    .sort()
+
   return {
     rows,
     total: rows.length,
-    received: rows.filter((r) => r.status === 'RECEIVED').length,
+    received: home.length,
+    provenByForm: home.filter((r) => r.evidence === 'ERPOD').length,
     missing: gone.length,
     unconfirmed: open.length,
     unconfirmedBottles: open.reduce((t, r) => t + r.bottles, 0),
     unconfirmedValue: open.reduce((t, r) => t + r.stockValue, 0),
     missingBottles: gone.reduce((t, r) => t + r.bottles, 0),
     missingValue: gone.reduce((t, r) => t + r.stockValue, 0),
+    aheadOfExport: rows.filter((r) => r.stage === 'NOT_IN_EXPORT').length,
+    contradicted: rows.filter((r) => r.stage === 'STATUS_STALE').length,
     bands: [
-      band(
-        'transit',
-        'Probably still travelling',
-        `Marked returned within the last ${TRANSIT_DAYS} days`,
-        (r) => r.ageDays <= TRANSIT_DAYS,
-      ),
-      band(
-        'chase',
-        'Worth asking about',
-        `Between ${TRANSIT_DAYS + 1} and 21 days`,
-        (r) => r.ageDays > TRANSIT_DAYS && r.ageDays <= 21,
-      ),
-      band(
-        'overdue',
-        'Long overdue',
-        'More than 21 days with no confirmed arrival',
-        (r) => r.ageDays > 21,
-      ),
+      band('transit', 'Probably still travelling', `Marked within the last ${TRANSIT_DAYS} days`, (r) => r.ageDays <= TRANSIT_DAYS),
+      band('chase', 'Worth asking about', `Between ${TRANSIT_DAYS + 1} and 21 days`, (r) => r.ageDays > TRANSIT_DAYS && r.ageDays <= 21),
+      band('overdue', 'Long overdue', 'More than 21 days with no proof of arrival', (r) => r.ageDays > 21),
     ],
-    latestReturn: rows.length > 0 ? rows[rows.length - 1].returnedOn : null,
+    exportThrough: exportDates.length > 0 ? exportDates[exportDates.length - 1] : null,
+    from,
     asOf,
   }
 }

@@ -1,0 +1,73 @@
+{
+  "source": "J&T E-RPOD Monitoring Forms, sent by the courier in the seller group chat and provided as screenshots on 13-14 November 2026. Each form names the driver, the task's start and end time, a stated parcel count, and every waybill with the second it was scanned on handover. The seller's and courier's e-signatures and a handover photograph appear on the form; neither is reproduced here.",
+  "seller": { "name": "VITAL ESSENTIALS", "id": "179421", "rpodAddress": "bagumbayan" },
+  "forms": [
+    {
+      "date": "2026-11-13",
+      "driver": "CARRIZA ACOT",
+      "startedAt": "16:08:24",
+      "endedAt": "16:09:42",
+      "statedCount": 4,
+      "parcels": [
+        { "awb": "JT0026780124619", "at": "16:08:24" },
+        { "awb": "JT0027177003496", "at": "16:08:52" },
+        { "awb": "JT0026731003982", "at": "16:09:14" },
+        { "awb": "JT0026889518342", "at": "16:09:39" }
+      ]
+    },
+    {
+      "date": "2026-11-11",
+      "driver": "CARRIZA ACOT",
+      "startedAt": "15:56:18",
+      "endedAt": "15:57:03",
+      "statedCount": 4,
+      "parcels": [
+        { "awb": "JT0026761197202", "at": "15:56:18" },
+        { "awb": "JT0026757285395", "at": "15:56:31" },
+        { "awb": "JT0026689374668", "at": "15:56:47" },
+        { "awb": "JT0026758683656", "at": "15:57:02" }
+      ]
+    },
+    {
+      "date": "2026-11-10",
+      "driver": "CARRIZA ACOT",
+      "startedAt": "15:52:12",
+      "endedAt": "15:54:27",
+      "statedCount": 7,
+      "parcels": [
+        { "awb": "JT0026418880845", "at": "15:52:12" },
+        { "awb": "JT0027007950272", "at": "15:52:28" },
+        { "awb": "JT0026947144954", "at": "15:53:10" },
+        { "awb": "JT0026946939187", "at": "15:53:26" },
+        { "awb": "JT0026780397714", "at": "15:53:46" },
+        { "awb": "JT0026691979791", "at": "15:54:06" },
+        { "awb": "JT0026748911223", "at": "15:54:26" }
+      ]
+    },
+    {
+      "date": "2026-11-02",
+      "driver": "CARRIZA ACOT",
+      "startedAt": "16:37:47",
+      "endedAt": "16:42:54",
+      "statedCount": 16,
+      "parcels": [
+        { "awb": "JT0025953286866", "at": "16:37:47" },
+        { "awb": "JT0026147466502", "at": "16:38:03" },
+        { "awb": "JT0026260959388", "at": "16:38:18" },
+        { "awb": "JT0026368752562", "at": "16:38:37" },
+        { "awb": "JT0026357247142", "at": "16:38:54" },
+        { "awb": "JT0026253075367", "at": "16:39:38" },
+        { "awb": "JT0026752099043", "at": "16:39:55" },
+        { "awb": "JT0026362065688", "at": "16:40:15" },
+        { "awb": "JT0026750346454", "at": "16:40:41" },
+        { "awb": "JT0026675830526", "at": "16:41:00" },
+        { "awb": "JT0026207042107", "at": "16:41:21" },
+        { "awb": "JT0026300326259", "at": "16:41:39" },
+        { "awb": "JT0026740004483", "at": "16:42:00" },
+        { "awb": "JT0026155329896", "at": "16:42:19" },
+        { "awb": "JT0025966969206", "at": "16:42:36" },
+        { "awb": "JT0026298565270", "at": "16:42:51" }
+      ]
+    }
+  ]
+}
