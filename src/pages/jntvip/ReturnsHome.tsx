@@ -94,8 +94,8 @@ export default function ReturnsHome() {
   // Over all time, not the monitoring window: finding missing paperwork and
   // watching this month's returns are different jobs.
   const gaps = useMemo(
-    () => proofGaps(parcels, homecoming, productOf, today()),
-    [parcels, homecoming, productOf],
+    () => proofGaps(parcels, homecoming, productOf, today(), from),
+    [parcels, homecoming, productOf, from],
   )
 
   const shown = useMemo(() => {
@@ -248,7 +248,7 @@ export default function ReturnsHome() {
         <Card
           className="mt-4"
           title="Returns with no proof of handover"
-          description="Over everything on file, not just the monitoring window — the forms for these either sit uncollected in the group chat, or were never issued."
+          description="Returns in the window above with no handover form behind them — either the form sits uncollected in the group chat, or none was issued."
         >
           <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
             The courier issues an E-RPOD at every handover. So a return with no form behind it is a return nobody
@@ -264,8 +264,15 @@ export default function ReturnsHome() {
             <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
               They were marked for return between <strong>{gaps.span.from}</strong> and{' '}
               <strong>{gaps.span.to}</strong>, so the forms to look for are the handovers from roughly a week after
-              each of those dates. Every form on file is from November; nothing from September or October has been
-              collected yet.
+              each of those dates.
+            </p>
+          )}
+          {gaps.outsideWindow > 0 && (
+            <p className="mt-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+              A further {plural(gaps.outsideWindow, 'return')} before {view.from} also {gaps.outsideWindow === 1 ? 'has' : 'have'}{' '}
+              no proof. {gaps.outsideWindow === 1 ? 'It is' : 'They are'} out of scope while monitoring starts at{' '}
+              {view.from}, not resolved — switch to <em>Everything on file</em> to work through{' '}
+              {gaps.outsideWindow === 1 ? 'it' : 'them'}.
             </p>
           )}
 

@@ -340,6 +340,8 @@ export interface ProofGaps {
   rows: ReturnRow[]
   /** Earliest and latest date in the gap, for saying what to search for. */
   span: { from: string; to: string } | null
+  /** Returns outside the window that also have no proof, counted but not listed. */
+  outsideWindow: number
 }
 
 /** Monday of the week containing `day`. */
@@ -355,12 +357,13 @@ export function proofGaps(
   homecoming: JntVipRtsHomecomingRow[],
   productOf: ProductResolver,
   asOf: string,
+  from = '0000-01-01',
 ): ProofGaps {
   // Reuse the one builder so a gap row carries exactly the same product,
   // bottle count and stock value the worklist shows. Two codepaths computing
   // the same parcel differently is how a dashboard starts disagreeing with
   // itself.
-  const all = returnsHome(parcels, homecoming, productOf, asOf)
+  const all = returnsHome(parcels, homecoming, productOf, asOf, from)
   const gaps = all.rows.filter((r) => r.evidence === 'NONE' && r.stage !== 'NOT_IN_EXPORT')
 
   const byWeek = new Map<string, ReturnRow[]>()
@@ -392,5 +395,13 @@ export function proofGaps(
       .sort((a, b) => a.week.localeCompare(b.week)),
     rows: gaps,
     span: dates.length > 0 ? { from: dates[0], to: dates[dates.length - 1] } : null,
+    // Counted over everything so a narrowed window never implies the older
+    // backlog went away. It is out of scope, not resolved.
+    outsideWindow:
+      from === '0000-01-01'
+        ? 0
+        : returnsHome(parcels, homecoming, productOf, asOf).rows.filter(
+            (r) => r.evidence === 'NONE' && r.stage !== 'NOT_IN_EXPORT',
+          ).length - gaps.length,
   }
 }
