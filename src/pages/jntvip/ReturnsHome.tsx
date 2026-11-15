@@ -22,6 +22,7 @@ import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
 import { returnsHome, proofGaps, TRANSIT_DAYS, type ReturnRow } from '../../lib/jntvip/returnsHome'
 import { exportReturnsWithoutProof } from '../../lib/jntvip/exportCsv'
+import { matchReturns, type MatchRow } from '../../lib/jntvip/returnsMatch'
 import { ERPOD_FORMS, ERPOD_SELLER, formsWithCountMismatch, duplicateAwbs } from '../../lib/jntvip/erpod'
 import { recordHomecoming, clearHomecoming, recordArrivals } from '../../lib/jntvip/returnsHomeOps'
 import { getReviewerName, setReviewerName } from '../../lib/jntvip/review'
@@ -33,6 +34,7 @@ import type {
   JntVipProductRow,
   JntVipParcelProductRow,
   JntVipRtsHomecomingRow,
+  JntVipPosOrderRow,
 } from '../../lib/jntvip/types'
 
 /** Centavos to pesos. formatCurrency takes pesos, so centavos must be divided. */
@@ -67,6 +69,7 @@ export default function ReturnsHome() {
   const products = useLiveTable(jntVipDb.products) as JntVipProductRow[]
   const parcelProducts = useLiveTable(jntVipDb.parcelProducts) as JntVipParcelProductRow[]
   const homecoming = useLiveTable(jntVipDb.rtsHomecoming) as JntVipRtsHomecomingRow[]
+  const posOrders = useLiveTable(jntVipDb.posOrders) as JntVipPosOrderRow[]
 
   const [who, setWho] = useState('')
   const [filter, setFilter] = useState<Filter>('open')
@@ -97,6 +100,8 @@ export default function ReturnsHome() {
     () => proofGaps(parcels, homecoming, productOf, today(), from),
     [parcels, homecoming, productOf, from],
   )
+
+  const match = useMemo(() => matchReturns(parcels, posOrders, from), [parcels, posOrders, from])
 
   const shown = useMemo(() => {
     if (filter === 'all') return view.rows
@@ -243,6 +248,75 @@ export default function ReturnsHome() {
           </p>
         </Card>
       )}
+
+      <Card
+        className="mt-4"
+        title="J&T, your POS and the handover forms, side by side"
+        description={`Every waybill any of the three calls a return since ${view.from}. A return only one of them knows about is exactly what this is for.`}
+      >
+        {!match.hasPos && (
+          <p
+            className="mb-3 rounded-lg p-3 text-sm"
+            style={{ background: 'color-mix(in srgb, var(--series-orange) 10%, transparent)', color: 'var(--text-secondary)' }}
+          >
+            <strong style={{ color: 'var(--text-primary)' }}>No POS orders are loaded</strong>, so this is a
+            two-way comparison for now: J&amp;T against the forms. Import your POS export on the Import page and
+            the third column fills in.
+          </p>
+        )}
+        <div className="space-y-3">
+          {match.groups.map((g) => (
+            <div key={g.verdict} className="rounded-lg border p-3" style={{ borderColor: 'var(--border-hairline)' }}>
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <p className="text-sm font-semibold" style={{ color: g.verdict === 'AGREED' ? 'var(--status-good-ink)' : 'var(--text-primary)' }}>
+                  {g.label}
+                </p>
+                <p className="text-sm font-semibold tabular-nums" style={{ color: 'var(--text-secondary)' }}>
+                  {plural(g.rows.length, 'parcel')} · {peso(g.rows.reduce((t, r) => t + r.cod, 0))} of COD
+                </p>
+              </div>
+              <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                {g.meaning}
+              </p>
+              {g.verdict !== 'AGREED' && (
+                <p className="mt-1 text-xs">
+                  <strong style={{ color: 'var(--text-primary)' }}>To do: </strong>
+                  <span style={{ color: 'var(--text-secondary)' }}>{g.todo}</span>
+                </p>
+              )}
+              {g.verdict !== 'AGREED' && (
+                <div className="mt-2 overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr style={{ color: 'var(--text-muted)' }}>
+                        <th className="px-2 pb-1 text-left font-medium">Waybill</th>
+                        <th className="px-2 pb-1 text-left font-medium">J&amp;T says</th>
+                        <th className="px-2 pb-1 text-left font-medium">POS says</th>
+                        <th className="px-2 pb-1 text-left font-medium">Handed over</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {g.rows.slice(0, 12).map((r) => (
+                        <MatchLine key={r.awb} r={r} />
+                      ))}
+                    </tbody>
+                  </table>
+                  {g.rows.length > 12 && (
+                    <p className="mt-1 px-2 text-xs" style={{ color: 'var(--text-muted)' }}>
+                      and {formatNumber(g.rows.length - 12)} more.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs" style={{ color: 'var(--text-muted)' }}>
+          The form is never the one that is wrong. Where a signed handover says the box arrived and a system does
+          not, that system is behind.
+          {match.exportThrough ? ` The export reaches ${match.exportThrough}, so anything after that it simply cannot know.` : ''}
+        </p>
+      </Card>
 
       {gaps.withoutAnyRecord > 0 && (
         <Card
@@ -717,6 +791,28 @@ function Row({
             undo
           </button>
         )}
+      </td>
+    </tr>
+  )
+}
+
+function MatchLine({ r }: { r: MatchRow }) {
+  return (
+    <tr className="border-t" style={{ borderColor: 'var(--border-hairline)' }}>
+      <td className="px-2 py-1 font-mono" style={{ color: 'var(--text-primary)' }}>
+        {r.awb}
+      </td>
+      <td className="px-2 py-1" style={{ color: r.jntIsReturn ? 'var(--text-secondary)' : 'var(--series-orange)' }}>
+        {r.jnt ?? <span style={{ color: 'var(--text-muted)' }}>not in export</span>}
+      </td>
+      <td
+        className="px-2 py-1"
+        style={{ color: r.posState === 'OTHER' ? 'var(--series-orange)' : 'var(--text-secondary)' }}
+      >
+        {r.pos ?? <span style={{ color: 'var(--text-muted)' }}>no order</span>}
+      </td>
+      <td className="px-2 py-1" style={{ color: r.arrival ? 'var(--status-good-ink)' : 'var(--text-muted)' }}>
+        {r.arrival ? `${r.arrival.date} · ${r.arrival.driver}` : 'no form'}
       </td>
     </tr>
   )
