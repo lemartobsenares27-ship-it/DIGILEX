@@ -81,9 +81,39 @@ export const DAYS_PER_MONTH = 30.4375
  *                              right direction: stock is bought in batches
  *                              ahead of the month it ships in.
  *
- * So the only payroll on this statement is Marcian's. The CSR admin's
- * PHP17,050 leaves through GCash or cash, where no statement has been read.
- * Payroll is NOT lowered to what this one account shows.
+ * So the only payroll on that statement is Marcian's. The CSR admin's
+ * PHP17,050 leaves through GCash, and payroll is NOT lowered to what one
+ * account shows.
+ *
+ * GCASH IS A PAYMENT RAIL, NOT A HIDDEN POCKET. MariBank's transaction history
+ * for 1-16 November names every GCash transfer, and they go to people whose
+ * costs this model already carries:
+ *
+ *   Pk                      PHP 3,490.20   labels - inside the PHP40 bottle
+ *   Drew Marcian Abanez     PHP 7,250.00   wages - inside payroll
+ *   Ro****O B.              PHP 6,650.00   almost certainly the CSR admin
+ *   own GCash wallet        PHP 9,500.00   unclassified
+ *                           PHP26,890.20
+ *
+ * Marcian's 8 November transfer is PHP3,750.00, which is five days at PHP750
+ * exactly - the modelled rate, confirmed by a payment rather than stated. The
+ * Ro****O B. transfers of PHP3,250 and PHP3,400 sit either side of the
+ * PHP3,300 a week the CSR is modelled at (PHP550 x 6 days), which is why that
+ * identification is likely; it is an inference from the amounts, not a name
+ * anyone has confirmed.
+ *
+ * SO THE TRANSFERS MUST NOT BE CHARGED AS EXPENSES. The owner's instinct that
+ * money leaving MariBank for GCash is already spent is right about the cash and
+ * wrong about the accounting: it is spent, but on labels and wages this model
+ * charges at their own rates. Charging the transfer as well would count Pk and
+ * Marcian twice. Only the PHP9,500 to the owner's own wallet is genuinely
+ * unaccounted, and it is personal until something says otherwise.
+ *
+ * Two cross-checks from the same history, both exact: MariBank pays the RCBC
+ * card PHP57,277.96 on 3 November and RCBC's statement shows that payment on
+ * the same day; MariBank sends PHP30,000 to the owner's own account on
+ * 6 November and GoTyme's statement shows PHP30,000 arriving from MariBank
+ * that day. The funding chain is visible end to end.
  *
  * Everything else is already accounted for and must not be added again:
  * PHP251,803 of transfers to the owner's own accounts (which fund the GoTyme

@@ -117,20 +117,19 @@ export default function CostCoverage({ profit, days }: { profit: number; days: n
         </div>
 
         <p className="mt-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
-          <strong>GCash is spent money, not a gap.</strong> You have said that once it leaves
-          MariBank for GCash it is already an expense, and that is the right way to count it: it
-          does not come back. What is still missing is not the rule but the amount. MariBank's
-          October statement shows {peso(25180300)} of transfers to your own accounts as a single
-          bucket, and that bucket funds both the GoTyme ad card and GCash. The ad card half must
-          not be charged — the advertising it buys is already counted from the card statements,
-          and charging the transfer too would count it twice. So the GCash half needs splitting
-          out of that {peso(25180300)} before any of it can be charged.
+          <strong>GCash is a payment rail, not a hidden pocket.</strong> MariBank's history for 1&ndash;16
+          November names every GCash transfer, and they go to people this model already pays:{' '}
+          {peso(349020)} to Pk for labels, which sits inside the {peso(4000)} a bottle;{' '}
+          {peso(725000)} to Marcian, which sits inside payroll; and {peso(665000)} to a recipient whose weekly
+          amounts match the CSR admin almost exactly. Only the {peso(950000)} sent to your own GCash wallet is
+          unaccounted for.
         </p>
         <p className="mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
-          One thing to settle when it is: the CSR admin is already charged here at the stated daily
-          rate, and {peso(1360000)} of that is believed to be paid through GCash. If the GCash
-          transfer is charged as a lump as well, that {peso(1360000)} is charged twice. Whichever
-          way it is counted, it is counted once.
+          So the transfers are <strong style={{ color: 'var(--text-primary)' }}>not charged as expenses</strong>,
+          and that is not a refusal to count them. They are spent &mdash; but on labels and wages already charged
+          here at their own rates. Charging the transfer too would count Pk and Marcian twice. Marcian's
+          8 November transfer of {peso(375000)} is five days at {peso(75000)} exactly, which confirms the rate
+          this model uses rather than contradicting it.
         </p>
         <p className="mt-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
           These figures see UnionBank (J&amp;T money in), MariBank (suppliers and funding out),
