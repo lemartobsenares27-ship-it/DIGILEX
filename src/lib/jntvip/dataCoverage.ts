@@ -14,7 +14,7 @@
 // the reconciliation pages' job.
 
 import { ERPOD_FORMS } from './erpod'
-import { AD_CHARGES, RCBC_COMPLETE_THROUGH } from './adSpend'
+import { RCBC_COMPLETE_THROUGH, GOTYME_COMPLETE_THROUGH } from './adSpend'
 import { AD_PRODUCT_WINDOW } from './adByProduct'
 import type { JntVipParcelRow, JntVipSoaCheckRow, JntVipPosOrderRow } from './types'
 
@@ -120,19 +120,16 @@ export function dataCoverage(
   })
 
   for (const source of ['GOTYME', 'RCBC'] as const) {
-    const seen = maxOf(AD_CHARGES.filter((c) => c.source === source).map((c) => c.chargedOn))
-    // For RCBC the statements themselves have been read, so the cut-off proved
-    // complete is known and is a stronger claim than the last charge entered.
-    const through = source === 'RCBC' ? RCBC_COMPLETE_THROUGH : seen
+    // The statements themselves have been read, so the cut-off PROVED complete
+    // is known — a stronger claim than the date of the last charge entered,
+    // which only says when somebody last typed something in.
+    const through = source === 'RCBC' ? RCBC_COMPLETE_THROUGH : GOTYME_COMPLETE_THROUGH
     lines.push({
       key: `card-${source}`,
       label: `${source === 'GOTYME' ? 'GoTyme' : 'RCBC'} card statement`,
       feeds: 'Advertising, which is the largest cost in the business.',
       through,
-      upload:
-        source === 'RCBC'
-          ? 'nothing outstanding — the next statement is due about 8 December'
-          : 'the statement, or the unbilled/recent transactions if it has not arrived',
+      upload: 'the next statement when it arrives, or the recent transactions screen',
       where: `the ${source === 'GOTYME' ? 'GoTyme' : 'RCBC'} app`,
     })
   }

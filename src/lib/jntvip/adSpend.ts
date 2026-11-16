@@ -110,6 +110,16 @@ export const RCBC_STATEMENTS_READ = [
 /** The last RCBC statement cut-off proved complete, rather than merely seen. */
 export const RCBC_COMPLETE_THROUGH = '2026-11-07'
 
+/**
+ * GoTyme statements read in full.
+ *
+ * The 17 Oct - 10 Nov statement confirmed all 23 of its October charges were
+ * already recorded and added 14 November ones. One 30 October charge of
+ * PHP64.05 was refunded in full the same day and is deliberately NOT recorded:
+ * a charge and its own refund are not advertising, they are nothing.
+ */
+export const GOTYME_COMPLETE_THROUGH = '2026-11-10'
+
 export const COVERAGE_BY_SOURCE: Record<AdSource, string | null> = (() => {
   const out: Record<string, string | null> = { GOTYME: null, RCBC: null }
   for (const c of AD_CHARGES) {
@@ -147,28 +157,24 @@ export interface AccruedAdSpend {
 }
 
 export const ACCRUED_AD_SPEND: AccruedAdSpend[] = [
-  // The RCBC accrual that stood here is GONE: its statement arrived.
+  // EMPTY, and that is the point: October advertising is no longer estimated
+  // at all.
   //
-  // It estimated PHP41,570 of unbilled October RCBC spend across 8-31 October.
-  // The 8 November statement, read line by line and tying to its own balance
-  // exactly, shows PHP34,213.45 of Facebook charges on 8-12 October and then
-  // NOTHING until 5 November — RCBC went quiet for 23 days while GoTyme
-  // carried the advertising. Those 15 charges are now in jntAdCharges.json as
-  // verified, so the estimate has been replaced by the fact rather than
-  // adjusted towards it.
+  // An accrual stood here for PHP41,570 while RCBC had no statement past
+  // 7 October, then for PHP7,356 once that statement arrived and showed the
+  // spend had moved to GoTyme. The GoTyme statement for 17 October to
+  // 10 November has now been read too, and every one of its 23 October
+  // charges was already recorded — nothing was missing on that side either.
   //
-  // What the estimate got right is worth recording: October advertising was
-  // PHP277,777 by Meta and is PHP277,777 by the cards. The guess was out by
-  // PHP7,356 on WHICH CARD, not on the total, so no profit figure moves.
-  {
-    from: '2026-10-13',
-    to: '2026-10-31',
-    amount: 735576,
-    source: 'GOTYME',
-    basis:
-      'Meta Ads Manager reports PHP277,777 of October spend across all four accounts. Verified card charges for October now total PHP270,421.24 (GoTyme PHP204,367.78, RCBC PHP66,053.46). The residual falls in the window RCBC was not charging at all, so it belongs to GoTyme, and at PHP387 a day over 19 days it is consistent with Meta billing late-October delivery in early November.',
-    supersededBy: 'A GoTyme statement covering late October and early November.',
-  },
+  // So both cards are read end to end for October and they come to
+  // PHP270,421.24. The PHP277,777 the residual was measured against was never
+  // a statement: it was Meta's own 1 October to 4 November export with four
+  // days of November taken off at its own daily rate. Two complete statements
+  // beat an apportioned window, so the cards win and the accrual goes.
+  //
+  // The difference is PHP7,356, and it moves October profit UP by that much,
+  // because the estimate had been charging advertising that no card ever
+  // billed.
 ]
 
 /** Accrued spend overlapping a window, apportioned by day. */
