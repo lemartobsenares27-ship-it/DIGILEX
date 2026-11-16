@@ -10,6 +10,7 @@ import { useJntVipTables } from './hooks'
 import JntVipPosWizard from './import/JntVipPosWizard'
 import JntVipSoaWizard from './import/JntVipSoaWizard'
 import WaybillImport from './WaybillImport'
+import DataCoverage from './DataCoverage'
 
 type Mode = 'pos' | 'soa' | null
 
@@ -40,6 +41,8 @@ export default function JntVipImport() {
         title="J&T VIP — Import"
         description="Upload → Preview & Validate → Import → Reconcile. Nothing is committed until you confirm, and every import can be undone."
       />
+
+      <DataCoverage />
 
       <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <button
