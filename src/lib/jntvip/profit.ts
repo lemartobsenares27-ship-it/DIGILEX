@@ -137,6 +137,19 @@ const QTY = /^\s*(\d+)\s*Pc/i
  * only ever flatters the profit, which is the worst direction for a number
  * someone is deciding whether to keep trading on.
  */
+/**
+ * DO NOT "improve" this by reading the POS Quantity column. It is always 1.
+ *
+ * Checked across four POS exports covering 1,830 waybills: GOLDEN EAR sells at
+ * PHP398, PHP598, PHP798 and PHP950 and every one of those rows says Quantity 1;
+ * EYE CARE's unit price simply equals its COD at PHP399, PHP599 and PHP799. The
+ * column counts ORDER LINES, not bottles, and a bundle is one line. Trusting it
+ * would charge a three-bottle order for one bottle — the same class of error
+ * that cost PHP7,452 when COD was divided by the single-bottle price.
+ *
+ * The shipper's item text is the only source that states bottles, which is why
+ * it is read first and the price fallback exists only for parcels with no text.
+ */
 export function bottlesIn(p: JntVipParcelRow): number {
   const stated = QTY.exec(p.remarks ?? '')
   if (stated) {

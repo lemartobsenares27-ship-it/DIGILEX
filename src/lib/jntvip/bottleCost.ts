@@ -152,11 +152,10 @@ export const BOTTLE_COSTS: BottleCost[] = [
     price: 39800,
     statedAs: 'TESTOMAXX',
   }),
-  // BELLY SLIM PLUS is new in November and its build has NOT been stated. This
-  // copies TESTOMAXX's so the product costs something rather than nothing —
-  // a missing cost would show it as pure margin, which is the dangerous
-  // direction to be wrong in. It is the one SKU here whose cost nobody has
-  // confirmed, and its margin is provisional until they do.
+  // BELLY SLIM PLUS is new in November. Its build was stated as the same as
+  // GOLDEN EAR's and TESTOMAXX's, so it carries the same PHP40: same capsules,
+  // same bottle, foam, shrink and sticker. Stated rather than invoiced, like
+  // the other two — change Alingatong's bulk price and all four move together.
   build({
     sku: 'BELLY SLIM PLUS',
     capsuleName: 'Alingatong',
