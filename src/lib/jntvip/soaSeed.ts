@@ -117,7 +117,7 @@ export const SEED_STATEMENTS: SeedSoa[] = [
   { soaNumber: 'SOA202610271027MNL-V11913', periodFrom: '2026-10-27', periodTo: '2026-10-27', cod: 1236500, commission: 34003, vat: 4080, shipping: 228600, rtsFee: 30500, adjustments: 0, net: 939317, received: 939317, receivedOn: '2026-10-28', ref: 'UB767878' },
   { soaNumber: 'SOA202610281028MNL-V11913', periodFrom: '2026-10-28', periodTo: '2026-10-28', cod: 1714200, commission: 47146, vat: 5658, shipping: 284700, rtsFee: 30000, adjustments: 0, net: 1346696, received: 1346696, receivedOn: '2026-10-29', ref: 'UB974833' },
   { soaNumber: 'SOA202610291029MNL-V11913', periodFrom: '2026-10-29', periodTo: '2026-10-29', cod: 1675200, commission: 46066, vat: 5528, shipping: 352500, rtsFee: 48750, adjustments: 0, net: 1222356, received: 1222356, receivedOn: '2026-10-30', ref: 'UB1140612' },
-  { soaNumber: 'SOA202610301031MNL-V11913', periodFrom: '2026-10-30', periodTo: '2026-10-31', cod: 3368700, commission: 92648, vat: 11118, shipping: 670000, rtsFee: 56000, adjustments: 0, net: 2538934, received: null, receivedOn: null, ref: null },
+  { soaNumber: 'SOA202610301031MNL-V11913', periodFrom: '2026-10-30', periodTo: '2026-10-31', cod: 3368700, commission: 92648, vat: 11118, shipping: 670000, rtsFee: 56000, adjustments: 0, net: 2538934, received: 2538934, receivedOn: '2026-11-03', ref: 'UB2409867' },
 ]
 
 export interface SoaSeedResult {
