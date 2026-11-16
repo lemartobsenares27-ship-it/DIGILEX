@@ -48,7 +48,9 @@ export function isSettled(status: ParcelStatus): boolean {
 const HEADER_VARIANTS = [
   ['waybill number', 'waybill no', 'awb', 'awb no'],
   ['order status', 'status'],
-  ['cod', 'cod amount'],
+  // "Item value" is here so the header row is still found in exports J&T
+  // produces without a Cod column at all — see the note on codSource below.
+  ['cod', 'cod amount', 'item value'],
 ]
 
 /** Date-only, from either a Date cell or a "YYYY-MM-DD HH:mm:ss" string. */
@@ -88,6 +90,7 @@ export function parseWaybillSheet(sheet: RawSheet): ParsedWaybillFile {
     pod: findColumn(headers, ['signingtime', 'signing time', 'pod time', 'delivery time']),
     ship: findColumn(headers, ['submission time', 'pickup time', 'shipping date', 'order date']),
     cod: findColumn(headers, ['cod', 'cod amount']),
+    itemValue: findColumn(headers, ['item value', 'declared value']),
     shippingCost: findColumn(headers, ['total shipping cost', 'shipping cost']),
     freight: findColumn(headers, ['receivable freight', 'freight']),
     weight: findColumn(headers, ['settlement weight', 'weight']),
@@ -101,7 +104,27 @@ export function parseWaybillSheet(sheet: RawSheet): ParsedWaybillFile {
 
   if (!col.awb) throw new Error('No "Waybill Number" column found. Export from My Waybill without changing the columns.')
   if (!col.status) throw new Error('No "Order Status" column found. Export from My Waybill without changing the columns.')
-  if (!col.cod) throw new Error('No "Cod" column found. Export from My Waybill without changing the columns.')
+  // J&T REMOVED THE COD COLUMN. Newer exports carry only "Item Value".
+  //
+  // The two are not the same thing and the difference is where money hides.
+  // Cod is what was actually COLLECTED at the door; Item Value is what was
+  // meant to be. On the 595 waybills where an old and a new export overlap
+  // they agree on 590 and differ on five, and every one of those five is a
+  // collection failure — including a parcel marked delivered with nothing
+  // collected at all.
+  //
+  // So Item Value is accepted, because refusing it would make every newer
+  // export unimportable, but a parcel priced from it is marked DECLARED rather
+  // than passed off as collected. What cannot be done is detect a delivered
+  // parcel that collected nothing: with only this column that failure is
+  // invisible, which is why the Cod column is worth asking J&T to restore.
+  const codCol = col.cod ?? col.itemValue
+  const codSource: JntVipParcelRow['codSource'] = col.cod ? 'COLLECTED' : 'DECLARED'
+  if (!codCol) {
+    throw new Error(
+      'No "Cod" or "Item Value" column found. Export from My Waybill without changing the columns.',
+    )
+  }
 
   const parcels: JntVipParcelRow[] = []
   const skipped: ParsedWaybillFile['skipped'] = []
@@ -136,7 +159,8 @@ export function parseWaybillSheet(sheet: RawSheet): ParsedWaybillFile {
       // on the way in while productStats, profit and issues read them as if
       // they were already centavos, so the same parcel was worth PHP399 in one
       // place and PHP3.99 in another.
-      cod: toCentavos(col.cod ? rec[col.cod] : 0),
+      cod: toCentavos(rec[codCol]),
+      codSource,
       shippingCost: toCentavos(col.shippingCost ? rec[col.shippingCost] : 0),
       freight: toCentavos(col.freight ? rec[col.freight] : 0),
       weight: col.weight ? toNumber(rec[col.weight]) : 0,

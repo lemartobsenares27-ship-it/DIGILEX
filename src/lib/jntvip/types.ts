@@ -192,6 +192,16 @@ export interface JntVipPostSummary {
  * lost to a mapping decision made later.
  */
 export interface JntVipParcelRow {
+  /**
+   * Where `cod` came from.
+   *
+   * COLLECTED — J&T's "Cod" column: what was actually taken at the door.
+   * DECLARED  — their "Item Value": what SHOULD have been taken. Newer exports
+   *             carry only this, so a parcel delivered with nothing collected
+   *             reads at full value and cannot be told apart from one that
+   *             paid. Older rows have no flag at all, which means COLLECTED.
+   */
+  codSource?: 'COLLECTED' | 'DECLARED'
   id?: number
   awb: string
   status: 'DELIVERED' | 'RETURNED' | 'FOR_RETURN' | 'DELIVERING' | 'IN_TRANSIT' | 'OTHER'

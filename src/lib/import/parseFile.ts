@@ -105,12 +105,36 @@ export function findColumn(headers: string[], variants: string[]): string | null
   for (const h of headers) {
     if (upperVariants.includes(h.trim().toUpperCase())) return h
   }
-  // fall back to partial/contains match
+  // Fall back to a WHOLE-WORD contains match.
+  //
+  // A plain `includes` was wrong and silently so: looking for "COD" matched
+  // J&T's "Creator Code" column, because CODE contains COD. That column is
+  // empty, so every parcel imported at zero COD — no error, no warning, just a
+  // dashboard reporting a business with no revenue. It only surfaced when J&T
+  // dropped the real "Cod" column, because until then the exact-match pass
+  // above found the right one first and the bug could not bite.
+  //
+  // Requiring the variant to sit on word boundaries keeps "COD AMOUNT"
+  // matching "Cod" while refusing "Creator Code".
   for (const h of headers) {
     const upper = h.trim().toUpperCase()
-    if (upperVariants.some((v) => upper.includes(v))) return h
+    if (upperVariants.some((v) => wholeWord(upper, v))) return h
   }
   return null
+}
+
+/** True when `needle` appears in `haystack` bounded by non-alphanumerics. */
+function wholeWord(haystack: string, needle: string): boolean {
+  let from = 0
+  for (;;) {
+    const i = haystack.indexOf(needle, from)
+    if (i < 0) return false
+    const before = i === 0 ? '' : haystack[i - 1]
+    const after = haystack[i + needle.length] ?? ''
+    const alnum = (c: string) => c !== '' && /[A-Z0-9]/.test(c)
+    if (!alnum(before) && !alnum(after)) return true
+    from = i + 1
+  }
 }
 
 export function toNumber(value: unknown): number {
