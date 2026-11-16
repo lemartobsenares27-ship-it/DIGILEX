@@ -23,7 +23,7 @@ import type { JntVipParcelRow, JntVipProductRow } from './types'
 export const UNCLASSIFIED = 'Unclassified'
 
 /**
- * The four products currently shipping, with the names J&T echoes back.
+ * The products currently shipping, with the names J&T echoes back.
  *
  * ALMUTRIA and GOLDEN EAR were found in the October parcel export, not supplied
  * as a list — 91 and 100 parcels. Their prices are read from the COD actually
@@ -36,6 +36,13 @@ export const SEED_PRODUCTS: Omit<JntVipProductRow, 'id' | 'updatedAt'>[] = [
   { name: 'TESTOMAXX', aliases: ['TESTOMAXX', 'TSTMX'], unitCost: 4000, price: 39900, active: true },
   { name: 'GOLDEN EAR', aliases: ['GOLDEN EAR', 'GOLDENEAR'], unitCost: 4000, price: 39800, active: true },
   { name: 'ALMUTRIA', aliases: ['ALMUTRIA'], unitCost: 4000, price: 39800, active: true },
+  // Added from a POS export of 71 orders, all of it after the parcel export
+  // ends, so not one of its waybills could be checked against J&T the way the
+  // other four were. The price is read from the COD actually collected: PHP398
+  // on 51 of 70 shipped orders. The unit cost is TESTOMAXX's PHP40 because
+  // nothing else has been given for it — it is a placeholder, not a quote, and
+  // every BELLY SLIM margin moves when the real build cost arrives.
+  { name: 'BELLY SLIM PLUS', aliases: ['BELLY SLIM PLUS', 'BELLYSLIM PLUS', 'BELLY SLIM', 'BELLYSLIM', 'BLLYSLM'], unitCost: 4000, price: 39800, active: true },
 ]
 
 /** The text J&T carries back for a parcel, normalised for matching. */

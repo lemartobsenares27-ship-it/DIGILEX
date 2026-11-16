@@ -6,12 +6,19 @@
 // it is inference. A POS export covers exactly one product, so every tracking
 // number in it is KNOWN, and that is what these pins record.
 //
-// 890 tracking numbers from four exports: TESTOMAXX 325, EYE CARE 377,
+// 890 tracking numbers came from four exports: TESTOMAXX 325, EYE CARE 377,
 // ALMUTRIA 91, GOLDEN EAR 96. Checked against the parcel export before being
 // written down — 889 of 890 match a known waybill, and exactly one parcel
 // disagreed with its file: JT0024536854197 sat in the EYE CARE export, but its
 // own POS product text and J&T's item text both say TESTOMAXX, so it is pinned
 // as TESTOMAXX. A pin is only better than a guess when it is checked.
+//
+// 70 BELLY SLIM PLUS waybills were added later and COULD NOT be checked that
+// way: every one of them is newer than the parcel export, which stops on
+// 2 November, so none appears in it yet. They are pinned on the POS export's
+// word alone. That is still far better than guessing from item text, but it is
+// a weaker claim than the 890 above, and the next parcel export is what
+// confirms them.
 
 import raw from '../../data/jntPosProducts.json'
 

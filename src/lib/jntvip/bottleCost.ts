@@ -152,6 +152,21 @@ export const BOTTLE_COSTS: BottleCost[] = [
     price: 39800,
     statedAs: 'TESTOMAXX',
   }),
+  // BELLY SLIM PLUS is new in November and its build has NOT been stated. This
+  // copies TESTOMAXX's so the product costs something rather than nothing —
+  // a missing cost would show it as pure margin, which is the dangerous
+  // direction to be wrong in. It is the one SKU here whose cost nobody has
+  // confirmed, and its margin is provisional until they do.
+  build({
+    sku: 'BELLY SLIM PLUS',
+    capsuleName: 'Alingatong',
+    bulkPrice: 8000,
+    bulkCapsules: 100,
+    capsulesPerBottle: 30,
+    packaging: [BOTTLE, FOAM, SHRINK, STICKER],
+    price: 39800,
+    statedAs: 'TESTOMAXX',
+  }),
 ]
 
 export const bottleCost = (sku: string) => BOTTLE_COSTS.find((b) => b.sku === sku) ?? null
