@@ -11,6 +11,7 @@ import Card from '../../components/Card'
 import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
 import { dataCoverage, needsAttention, type CoverageLine, type Freshness } from '../../lib/jntvip/dataCoverage'
+import { UNREGISTERED_SOURCES } from '../../lib/jntvip/adSpend'
 import { formatNumber } from '../../lib/format'
 import type { JntVipParcelRow, JntVipSoaCheckRow, JntVipPosOrderRow } from '../../lib/jntvip/types'
 
@@ -38,6 +39,17 @@ export default function DataCoverage() {
       title="What is current, and what to send next"
       description="Every date below is read from the rows actually loaded, so this goes stale on its own rather than being kept up to date by hand."
     >
+      {UNREGISTERED_SOURCES.length > 0 && (
+        <p
+          className="mb-3 rounded-lg p-3 text-sm"
+          style={{ background: 'color-mix(in srgb, var(--series-orange) 12%, transparent)', color: 'var(--text-primary)' }}
+        >
+          <strong>Advertising charges exist on a card nobody registered:</strong>{' '}
+          {UNREGISTERED_SOURCES.join(', ')}. Its spend is counted, but it is missing from the completeness check
+          below, so a period can look fully costed while that card has not been read. Add it to AD_CARDS.
+        </p>
+      )}
+
       {chase.length === 0 ? (
         <p className="text-sm" style={{ color: 'var(--status-good-ink)' }}>
           Everything is current. Nothing to upload.

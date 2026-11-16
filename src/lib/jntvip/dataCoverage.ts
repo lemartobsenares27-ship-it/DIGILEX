@@ -14,7 +14,7 @@
 // the reconciliation pages' job.
 
 import { ERPOD_FORMS } from './erpod'
-import { RCBC_COMPLETE_THROUGH, GOTYME_COMPLETE_THROUGH } from './adSpend'
+import { AD_CARDS } from './adSpend'
 import { AD_PRODUCT_WINDOW } from './adByProduct'
 import type { JntVipParcelRow, JntVipSoaCheckRow, JntVipPosOrderRow } from './types'
 
@@ -119,18 +119,19 @@ export function dataCoverage(
     where: 'the J&T seller group chat',
   })
 
-  for (const source of ['GOTYME', 'RCBC'] as const) {
-    // The statements themselves have been read, so the cut-off PROVED complete
-    // is known — a stronger claim than the date of the last charge entered,
-    // which only says when somebody last typed something in.
-    const through = source === 'RCBC' ? RCBC_COMPLETE_THROUGH : GOTYME_COMPLETE_THROUGH
+  // Every registered card, so a new one appears here the moment it is added
+  // rather than being quietly left out of the one check that matters.
+  for (const card of AD_CARDS) {
     lines.push({
-      key: `card-${source}`,
-      label: `${source === 'GOTYME' ? 'GoTyme' : 'RCBC'} card statement`,
+      key: `card-${card.id}`,
+      label: `${card.label} statement`,
       feeds: 'Advertising, which is the largest cost in the business.',
-      through,
+      // The statement read END TO END, not the last charge entered: a card with
+      // no charges for a week is either quiet or unread, and only a statement
+      // says which.
+      through: card.completeThrough,
       upload: 'the next statement when it arrives, or the recent transactions screen',
-      where: `the ${source === 'GOTYME' ? 'GoTyme' : 'RCBC'} app`,
+      where: card.where,
     })
   }
 

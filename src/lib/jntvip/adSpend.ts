@@ -46,7 +46,39 @@
 
 import raw from '../../data/jntAdCharges.json'
 
-export type AdSource = 'GOTYME' | 'RCBC'
+/**
+ * The cards advertising is paid with.
+ *
+ * A LIST, not a hard-coded pair, because the pair was a trap. Every coverage
+ * figure used to branch on the two names by hand, so adding a third card would
+ * have widened the type, compiled cleanly, and then been left out of the
+ * completeness check — which is the one place a missing card does real damage.
+ * A card absent from that check makes a period look fully costed when part of
+ * its advertising has not been read at all.
+ *
+ * To add a card: one entry here, its charges in jntAdCharges.json, and nothing
+ * else. Everything downstream is derived.
+ */
+export interface AdCard {
+  id: string
+  /** As a person would say it. */
+  label: string
+  /** Where to go to get the charges. */
+  where: string
+  /**
+   * The last day a statement has been read END TO END for this card. Not the
+   * date of its last charge: a card with no charges for a week is either quiet
+   * or unread, and only a statement tells you which.
+   */
+  completeThrough: string
+}
+
+export const AD_CARDS: AdCard[] = [
+  { id: 'GOTYME', label: 'GoTyme card', where: 'the GoTyme app', completeThrough: '2026-11-10' },
+  { id: 'RCBC', label: 'RCBC Airmiles card', where: 'the RCBC app', completeThrough: '2026-11-07' },
+]
+
+export type AdSource = string
 
 export interface AdCharge {
   /** The day the card was charged. */
@@ -108,7 +140,7 @@ export const RCBC_STATEMENTS_READ = [
 ] as const
 
 /** The last RCBC statement cut-off proved complete, rather than merely seen. */
-export const RCBC_COMPLETE_THROUGH = '2026-11-07'
+export const RCBC_COMPLETE_THROUGH = cardThrough('RCBC')
 
 /**
  * GoTyme statements read in full.
@@ -118,31 +150,49 @@ export const RCBC_COMPLETE_THROUGH = '2026-11-07'
  * PHP64.05 was refunded in full the same day and is deliberately NOT recorded:
  * a charge and its own refund are not advertising, they are nothing.
  */
-export const GOTYME_COMPLETE_THROUGH = '2026-11-10'
+export const GOTYME_COMPLETE_THROUGH = cardThrough('GOTYME')
 
+/** A card's read-through date, or a loud failure if it is not registered. */
+function cardThrough(id: string): string {
+  const card = AD_CARDS.find((c) => c.id === id)
+  if (!card) throw new Error(`Unknown ad card "${id}" — add it to AD_CARDS.`)
+  return card.completeThrough
+}
+
+/** The last charge SEEN per card, which is not the same as read-through. */
 export const COVERAGE_BY_SOURCE: Record<AdSource, string | null> = (() => {
-  const out: Record<string, string | null> = { GOTYME: null, RCBC: null }
+  const out: Record<string, string | null> = {}
+  for (const c of AD_CARDS) out[c.id] = null
   for (const c of AD_CHARGES) {
     const seen = out[c.source]
-    if (seen == null || c.chargedOn > seen) out[c.source] = c.chargedOn
+    if (seen === undefined || seen == null || c.chargedOn > seen) out[c.source] = c.chargedOn
   }
-  return out as Record<AdSource, string | null>
+  return out
 })()
+
+/** Charges on a card whose id is not in AD_CARDS — always a mistake. */
+export const UNREGISTERED_SOURCES: string[] = [
+  ...new Set(AD_CHARGES.map((c) => c.source).filter((s) => !AD_CARDS.some((c) => c.id === s))),
+].sort()
 
 /**
  * The last day advertising is known in full.
  *
- * The EARLIER of the two cards, not the later: a period is only fully costed
- * once BOTH have been read through it. GoTyme running to 10 November while
- * RCBC stops at 7 means 8-10 November has one card's spend and not the other's,
- * and a total built from that understates advertising without looking wrong.
+ * The EARLIEST read-through across EVERY registered card, not the latest: a
+ * period is only fully costed once all of them have been read through it. One
+ * card running to 10 November while another stops at the 7th means 8-10
+ * November has some cards' spend and not others', and a total built from that
+ * understates advertising without looking wrong.
  *
- * This is what stops November repeating October's PHP41,570 problem, where a
- * month was reported PHP39,000 too profitable for weeks because the gap was
- * real but invisible.
+ * This is what stops a month repeating October's PHP41,570 problem, where a
+ * month was reported far too profitable for weeks because the gap was real and
+ * invisible. A new card added to AD_CARDS pulls this date back automatically,
+ * which is the whole reason the cards are a list.
  */
-export const AD_COMPLETE_THROUGH =
-  RCBC_COMPLETE_THROUGH < GOTYME_COMPLETE_THROUGH ? RCBC_COMPLETE_THROUGH : GOTYME_COMPLETE_THROUGH
+export const AD_COMPLETE_THROUGH = AD_CARDS.reduce(
+  (earliest, c) => (c.completeThrough < earliest ? c.completeThrough : earliest),
+  AD_CARDS[0]?.completeThrough ?? '9999-12-31',
+)
 
 /** Ad spend charged within [from, to] inclusive. */
 /**
