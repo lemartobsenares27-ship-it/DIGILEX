@@ -77,6 +77,39 @@ export const AD_COVERAGE_TO = AD_CHARGES.length > 0 ? AD_CHARGES[AD_CHARGES.leng
  * whole of a PHP63,828 discrepancy against Meta's own figures that otherwise
  * looks like money appearing from nowhere.
  */
+/**
+ * RCBC statements that have been read in full, by statement date.
+ *
+ * The last charge SEEN is not the same as the last charge THERE. A statement
+ * read end to end proves nothing is missing up to its cut-off; a list of
+ * charges only proves what someone happened to enter. These are the ones
+ * checked line by line.
+ *
+ * UNLI 0% INSTALMENTS ARE NOT AD SPEND. RCBC converts a Facebook charge to a
+ * 0% instalment plan by CREDITING the original in full and posting the
+ * instalments in its place — the 8 October statement shows GJMY28NHG4 reversed
+ * at PHP5,264.67 and reposted as 1/03 at PHP1,754.89, which is the same money
+ * three times over. The July PHP16,376.00 charge became XBR75XZPS at
+ * PHP5,458.67 x 3 the same way.
+ *
+ * So only the ORIGINAL dated charge is advertising, and every "UNLI 0%" line,
+ * every 00/03 reversal and every processing fee is deliberately excluded.
+ * Entering the instalments as well would count the same advertising twice and
+ * date it to the wrong month on top.
+ */
+export const RCBC_STATEMENTS_READ = [
+  { statementDate: '2026-09-08', covers: 'instalment postings only — no new advertising on it' },
+  { statementDate: '2026-10-08', covers: '23 Sep to 7 Oct, 15 Facebook charges totalling PHP59,137.08, all recorded' },
+  {
+    statementDate: '2026-11-08',
+    covers:
+      '8 Oct to 7 Nov. 15 Facebook charges on 8-12 Oct totalling PHP34,213.45, then nothing for 23 days, then PHP14,593.17 on 5 Nov. Additions tie to its own BALANCE END of PHP52,565.51 exactly.',
+  },
+] as const
+
+/** The last RCBC statement cut-off proved complete, rather than merely seen. */
+export const RCBC_COMPLETE_THROUGH = '2026-11-07'
+
 export const COVERAGE_BY_SOURCE: Record<AdSource, string | null> = (() => {
   const out: Record<string, string | null> = { GOTYME: null, RCBC: null }
   for (const c of AD_CHARGES) {
@@ -114,14 +147,27 @@ export interface AccruedAdSpend {
 }
 
 export const ACCRUED_AD_SPEND: AccruedAdSpend[] = [
+  // The RCBC accrual that stood here is GONE: its statement arrived.
+  //
+  // It estimated PHP41,570 of unbilled October RCBC spend across 8-31 October.
+  // The 8 November statement, read line by line and tying to its own balance
+  // exactly, shows PHP34,213.45 of Facebook charges on 8-12 October and then
+  // NOTHING until 5 November — RCBC went quiet for 23 days while GoTyme
+  // carried the advertising. Those 15 charges are now in jntAdCharges.json as
+  // verified, so the estimate has been replaced by the fact rather than
+  // adjusted towards it.
+  //
+  // What the estimate got right is worth recording: October advertising was
+  // PHP277,777 by Meta and is PHP277,777 by the cards. The guess was out by
+  // PHP7,356 on WHICH CARD, not on the total, so no profit figure moves.
   {
-    from: '2026-10-08',
+    from: '2026-10-13',
     to: '2026-10-31',
-    amount: 4156967,
-    source: 'RCBC',
+    amount: 735576,
+    source: 'GOTYME',
     basis:
-      "Meta Ads Manager reports PHP277,777 of October spend across all four accounts (1 Oct-4 Nov export, less four days of November at its own daily rate). Card charges for October total PHP236,208. The difference falls entirely in the window RCBC has no statement for, and works out at PHP1,732 a day against the PHP3,942 it ran before 8 October.",
-    supersededBy: 'The RCBC Airmiles statement dated about 8 Nov 2026, covering 8 Oct to 7 Nov.',
+      'Meta Ads Manager reports PHP277,777 of October spend across all four accounts. Verified card charges for October now total PHP270,421.24 (GoTyme PHP204,367.78, RCBC PHP66,053.46). The residual falls in the window RCBC was not charging at all, so it belongs to GoTyme, and at PHP387 a day over 19 days it is consistent with Meta billing late-October delivery in early November.',
+    supersededBy: 'A GoTyme statement covering late October and early November.',
   },
 ]
 
