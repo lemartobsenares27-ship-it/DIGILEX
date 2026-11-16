@@ -129,6 +129,21 @@ export const COVERAGE_BY_SOURCE: Record<AdSource, string | null> = (() => {
   return out as Record<AdSource, string | null>
 })()
 
+/**
+ * The last day advertising is known in full.
+ *
+ * The EARLIER of the two cards, not the later: a period is only fully costed
+ * once BOTH have been read through it. GoTyme running to 10 November while
+ * RCBC stops at 7 means 8-10 November has one card's spend and not the other's,
+ * and a total built from that understates advertising without looking wrong.
+ *
+ * This is what stops November repeating October's PHP41,570 problem, where a
+ * month was reported PHP39,000 too profitable for weeks because the gap was
+ * real but invisible.
+ */
+export const AD_COMPLETE_THROUGH =
+  RCBC_COMPLETE_THROUGH < GOTYME_COMPLETE_THROUGH ? RCBC_COMPLETE_THROUGH : GOTYME_COMPLETE_THROUGH
+
 /** Ad spend charged within [from, to] inclusive. */
 /**
  * Advertising that Meta's own reports show but no statement has billed yet.

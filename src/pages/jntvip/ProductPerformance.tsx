@@ -20,6 +20,7 @@ import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
 import { productPnl, type ProductCell, type ProductPeriod } from '../../lib/jntvip/productPnl'
 import { AD_PRODUCT_WINDOW, AD_SHARES, unattributedSpend } from '../../lib/jntvip/adByProduct'
+import { AD_COMPLETE_THROUGH } from '../../lib/jntvip/adSpend'
 import { makeResolver } from '../../lib/jntvip/rts'
 import { pinnedMap } from '../../lib/jntvip/products'
 import { toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
@@ -249,12 +250,36 @@ function PeriodCard({ period, picked }: { period: ProductPeriod; picked: string 
   // stand-in where they do not. The two are not the same claim, so the header
   // says which one this period's ad column is.
   const adsMeasured = period.cells.some((c) => c.adMeasured)
+  // A period running past the last day BOTH cards are read is undercosted, and
+  // silently: the revenue is all there and some of the advertising is not, so
+  // the margin reads high and nothing about the number looks wrong. October
+  // was reported tens of thousands too profitable for weeks for exactly this.
+  const adDaysMissing =
+    period.to > AD_COMPLETE_THROUGH
+      ? Math.round(
+          (Date.parse(period.to + 'T00:00:00Z') -
+            Date.parse((period.from > AD_COMPLETE_THROUGH ? period.from : AD_COMPLETE_THROUGH) + 'T00:00:00Z')) /
+            86400000,
+        )
+      : 0
 
   return (
     <Card
       title={period.label}
       description={`${period.days} day${period.days === 1 ? '' : 's'} · ${peso(period.adSpend)} of advertising${adsMeasured ? '' : ' · ads split by parcels, not measured'}${period.partial ? ' · PART PERIOD — a full week of fixed costs against fewer days of parcels, and its returns have not all happened yet' : ''}`}
     >
+      {adDaysMissing > 0 && (
+        <div
+          className="mb-3 rounded-lg p-3 text-sm"
+          style={{ background: 'color-mix(in srgb, var(--series-orange) 12%, transparent)', color: 'var(--text-primary)' }}
+        >
+          <strong>These profits are too high.</strong> Advertising is only read through {AD_COMPLETE_THROUGH}, and
+          this period runs {adDaysMissing} day{adDaysMissing === 1 ? '' : 's'} past it. Every peso of revenue for
+          those days is counted and some of the advertising is not, so the margin below is flattered by whatever
+          was spent in the gap. Import the newer card statements before trusting it.
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
