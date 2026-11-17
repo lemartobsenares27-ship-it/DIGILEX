@@ -219,11 +219,9 @@ export const OPERATING_EXPENSES: OperatingExpense[] = [
   // month — but a cost that exists is charged whether or not it is large, and
   // leaving it out would have every past month slightly too profitable.
   //
-  // LUNCH IS NOT IN HERE AND SHOULD BE. The owner feeds both staff lunch free
-  // every working day. Nobody has put a figure on what that costs, and a meal
-  // for two is plainly worth more than the PHP50 merienda, so running costs
-  // are understated by whatever it is. This row is deliberately merienda only
-  // rather than a guess at the pair.
+  // One row for the pair because that is how it was stated: PHP50 a day
+  // BETWEEN them, not each. Lunch below is the opposite — stated per head —
+  // and is charged that way.
   {
     key: 'staff-merienda',
     basis: 'PER_DAY',
@@ -231,6 +229,47 @@ export const OPERATING_EXPENSES: OperatingExpense[] = [
     rate: 5000,
     daysPerWeek: 5,
     detail: 'PHP50 a day between the two of them, on working days',
+  },
+  // LUNCH. PHP150 each, stated 17 Nov 2026, and free every working day for as
+  // long as both have worked here — so, like merienda, charged from the start
+  // and not from the day it was named. This was the largest cost the model
+  // knew it was missing: about PHP1,650 a week, roughly PHP7,150 a month,
+  // which is more than thirty times the merienda it sat next to.
+  //
+  // Charged PER HEAD, on each person's own rota, rather than as a flat pair
+  // rate. The two did not work the same week until 17 November: Marcian five
+  // days, the CSR six. A flat PHP300 a day across five days would miss the
+  // CSR's sixth lunch every week — PHP150 a week, nearer PHP650 a month —
+  // and it would miss it in the flattering direction. The same reason payroll
+  // itself is per person here.
+  {
+    key: 'staff-lunch-marcian',
+    basis: 'PER_DAY',
+    label: 'Lunch (Marcian)',
+    rate: 15000,
+    daysPerWeek: 5,
+    detail: 'PHP150 a day, five days a week — stated 17 Nov 2026',
+  },
+  // The CSR's lunch follows the CSR's rota, so it is split at the same date
+  // their pay was, and for the same reason: closing the old row rather than
+  // editing it keeps every month already closed at the days actually worked.
+  {
+    key: 'staff-lunch-csr-stated',
+    basis: 'PER_DAY',
+    label: 'Lunch (CSR admin, to 16 Nov)',
+    rate: 15000,
+    daysPerWeek: 6,
+    effectiveTo: CSR_NEW_RATE_FROM,
+    detail: 'PHP150 a day, six days a week (the rota stated for that period)',
+  },
+  {
+    key: 'staff-lunch-csr-nov17',
+    basis: 'PER_DAY',
+    label: 'Lunch (CSR admin)',
+    rate: 15000,
+    daysPerWeek: 5,
+    effectiveFrom: CSR_NEW_RATE_FROM,
+    detail: 'PHP150 a day, five days a week — stated 17 Nov 2026',
   },
   {
     key: 'staff-csr-probation',
