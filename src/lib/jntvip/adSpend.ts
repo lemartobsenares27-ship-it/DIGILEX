@@ -222,6 +222,16 @@ export interface AccruedAdSpend {
 }
 
 export const ACCRUED_AD_SPEND: AccruedAdSpend[] = [
+  {
+    from: '2026-11-08',
+    to: '2026-11-17',
+    amount: 4258748,
+    source: 'UNKNOWN',
+    basis:
+      "Meta Ads Manager reports PHP177,548.06 across five accounts for 25 Oct to 17 Nov. Verified card charges for 25-31 October are PHP62,798.87, leaving PHP114,749.19 of November spend; the cards carry PHP72,161.71 of it. The PHP42,587.48 difference falls after 7 November, the last day both cards are read, and runs at about PHP4,259 a day over the ten days from the 8th. The source is deliberately UNKNOWN: the owner has said new cards are in use and none has been registered yet, so attributing this to GoTyme or RCBC would assert something nobody has checked.",
+    supersededBy:
+      'Recent transactions for GoTyme from 11 Nov, RCBC from 8 Nov, and whatever new cards are in use.',
+  },
   // EMPTY, and that is the point: October advertising is no longer estimated
   // at all.
   //

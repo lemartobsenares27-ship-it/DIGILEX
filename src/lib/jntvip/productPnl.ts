@@ -249,7 +249,7 @@ export function productPnl(
       // used; where it does not, the fallback is flagged rather than passed off
       // as the same thing.
       const measured = windowCovers(from, to)
-      const shares = cells.map((c) => (measured ? shareOf(c.product) : null))
+      const shares = cells.map((c) => (measured ? shareOf(c.product, from, to) : null))
       const haveAll = shares.every((v) => v != null)
 
       cells.forEach((c, i) => {

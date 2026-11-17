@@ -1,12 +1,85 @@
 {
-  "window": { "from": "2026-10-01", "to": "2026-11-04" },
-  "source": "Meta Ads Manager campaign exports, 4 accounts (alas1, Lee-Ecom-Vntrs-3, -4, -5), 165 campaigns",
-  "totalSpend": 30785401,
-  "products": [
-    { "name": "EYE CARE",   "spend": 8770525, "purchases": 484, "campaigns": 49 },
-    { "name": "TESTOMAXX",  "spend": 8237545, "purchases": 431, "campaigns": 62 },
-    { "name": "GOLDEN EAR", "spend": 7732430, "purchases": 389, "campaigns": 17 },
-    { "name": "ALMUTRIA",   "spend": 5594083, "purchases": 209, "campaigns": 17 }
-  ],
-  "unattributed": { "spend": 450818, "purchases": 27, "campaigns": 20 }
+  "source": "Meta Ads Manager campaign exports. Each window is one export covering all active ad accounts; a period is split by the window that contains it.",
+  "windows": [
+    {
+      "from": "2026-10-01",
+      "to": "2026-11-04",
+      "source": "Meta Ads Manager campaign exports, 4 accounts (alas1, Lee-Ecom-Vntrs-3, -4, -5), 165 campaigns",
+      "totalSpend": 30785401,
+      "products": [
+        {
+          "name": "EYE CARE",
+          "spend": 8770525,
+          "purchases": 484,
+          "campaigns": 49
+        },
+        {
+          "name": "TESTOMAXX",
+          "spend": 8237545,
+          "purchases": 431,
+          "campaigns": 62
+        },
+        {
+          "name": "GOLDEN EAR",
+          "spend": 7732430,
+          "purchases": 389,
+          "campaigns": 17
+        },
+        {
+          "name": "ALMUTRIA",
+          "spend": 5594083,
+          "purchases": 209,
+          "campaigns": 17
+        }
+      ],
+      "unattributed": {
+        "spend": 450818,
+        "purchases": 27,
+        "campaigns": 20
+      }
+    },
+    {
+      "from": "2026-10-25",
+      "to": "2026-11-17",
+      "source": "Meta Ads Manager campaign exports, 5 accounts (alas1, Lee-ad-acct-1, Lee-Ecom-Vntrs-2, Lee-Ecom-Vntrs-3, NimfsAct1), 171 campaigns of which 78 spent. NimfsAct1 is new and carries BELLY SLIM PLUS alone.",
+      "totalSpend": 17754806,
+      "products": [
+        {
+          "name": "GOLDEN EAR",
+          "spend": 6919155,
+          "purchases": 286,
+          "campaigns": 19
+        },
+        {
+          "name": "TESTOMAXX",
+          "spend": 5550189,
+          "purchases": 363,
+          "campaigns": 77
+        },
+        {
+          "name": "ALMUTRIA",
+          "spend": 2079115,
+          "purchases": 62,
+          "campaigns": 19
+        },
+        {
+          "name": "BELLY SLIM PLUS",
+          "spend": 1674909,
+          "purchases": 71,
+          "campaigns": 14
+        },
+        {
+          "name": "EYE CARE",
+          "spend": 814604,
+          "purchases": 43,
+          "campaigns": 7
+        }
+      ],
+      "unattributed": {
+        "spend": 716834,
+        "purchases": 35,
+        "campaigns": 35
+      }
+    }
+  ]
 }

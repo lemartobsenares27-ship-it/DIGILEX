@@ -44,22 +44,51 @@ interface ProductSpend {
   campaigns: number
 }
 
-interface AdByProductFile {
-  window: { from: string; to: string }
+interface AdWindow {
+  from: string
+  to: string
   source: string
   totalSpend: number
   products: ProductSpend[]
   unattributed: { spend: number; purchases: number; campaigns: number }
 }
 
+interface AdByProductFile {
+  source: string
+  /** One entry per Ads Manager export. They may overlap. */
+  windows: AdWindow[]
+}
+
 const file = raw as AdByProductFile
 
-export const AD_PRODUCT_WINDOW = file.window
+/**
+ * The windows, newest-ending first.
+ *
+ * MORE THAN ONE, and that is the point. Replacing the single window with each
+ * new export would have silently dropped October's measured split the moment a
+ * November export arrived — the period would no longer fit the window, every
+ * product would fall back to parcel share, and a closed month's per-product
+ * figures would change for no reason anyone could see. A period keeps the
+ * window it was measured in.
+ */
+export const AD_WINDOWS: AdWindow[] = [...file.windows].sort((a, b) => b.to.localeCompare(a.to))
+
+/** The window that contains [from, to] entirely, or null. Narrowest wins. */
+export function windowFor(from: string, to: string): AdWindow | null {
+  const fits = AD_WINDOWS.filter((w) => from >= w.from && to <= w.to)
+  if (fits.length === 0) return null
+  return fits.reduce((best, w) =>
+    Date.parse(w.to) - Date.parse(w.from) < Date.parse(best.to) - Date.parse(best.from) ? w : best,
+  )
+}
+
+/** The newest export, for describing what is on file. */
+export const AD_PRODUCT_WINDOW = { from: AD_WINDOWS[0].from, to: AD_WINDOWS[0].to }
 export const AD_PRODUCT_SOURCE = file.source
 
 export interface ProductAdShare {
   product: string
-  /** Share of all attributed spend, 0–1. */
+  /** Share of all attributed spend, 0-1. */
   share: number
   spend: number
   purchases: number
@@ -69,17 +98,18 @@ export interface ProductAdShare {
 }
 
 /**
- * Share of advertising per product, normalised across the four that are named.
+ * Share of advertising per product within one window, normalised across the
+ * products that are named.
  *
- * The PHP4,508 in campaigns whose names carry no product is spread across them
- * pro rata rather than held back. It is 1.5% of spend; holding it out would
- * leave every product's share slightly low and the page would not add up,
- * which costs more in confusion than the precision is worth. The figure is
- * reported by `unattributedSpend()` so it stays visible.
+ * Spend in campaigns whose names carry no product is spread across them pro
+ * rata rather than held back. It is a few per cent; holding it out would leave
+ * every product's share slightly low and the page would not add up, which
+ * costs more in confusion than the precision is worth. It stays visible
+ * through `unattributedSpend()`.
  */
-export const AD_SHARES: ProductAdShare[] = (() => {
-  const attributed = file.products.reduce((t, p) => t + p.spend, 0)
-  return file.products.map((p) => ({
+export function sharesIn(w: AdWindow): ProductAdShare[] {
+  const attributed = w.products.reduce((t, p) => t + p.spend, 0)
+  return w.products.map((p) => ({
     product: p.name,
     share: attributed > 0 ? p.spend / attributed : 0,
     spend: p.spend,
@@ -87,13 +117,20 @@ export const AD_SHARES: ProductAdShare[] = (() => {
     campaigns: p.campaigns,
     costPerPurchase: p.purchases > 0 ? Math.round(p.spend / p.purchases) : 0,
   }))
-})()
+}
 
-export const unattributedSpend = () => file.unattributed
+/** Shares from the newest export, for display. */
+export const AD_SHARES: ProductAdShare[] = sharesIn(AD_WINDOWS[0])
 
-/** The measured share for a product, or null where no campaign named it. */
-export function shareOf(product: string): number | null {
-  const hit = AD_SHARES.find((s) => s.product.toUpperCase() === product.toUpperCase())
+export const unattributedSpend = () => AD_WINDOWS[0].unattributed
+
+export function shareOf(product: string, from?: string, to?: string): number | null {
+  // Without a period this answers from the newest export, which is what the
+  // display cards want. With one, it answers from the window that period was
+  // actually measured in — the only correct source for a historical month.
+  const shares = from && to ? (windowFor(from, to) ? sharesIn(windowFor(from, to)!) : null) : AD_SHARES
+  if (!shares) return null
+  const hit = shares.find((s) => s.product.toUpperCase() === product.toUpperCase())
   return hit ? hit.share : null
 }
 
@@ -105,5 +142,5 @@ export function shareOf(product: string): number | null {
  * quietly standing in for a measurement.
  */
 export function windowCovers(from: string, to: string): boolean {
-  return from >= file.window.from && to <= file.window.to
+  return windowFor(from, to) !== null
 }
