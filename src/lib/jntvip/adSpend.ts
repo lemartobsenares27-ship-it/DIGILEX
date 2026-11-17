@@ -74,7 +74,7 @@ export interface AdCard {
 }
 
 export const AD_CARDS: AdCard[] = [
-  { id: 'GOTYME', label: 'GoTyme card', where: 'the GoTyme app', completeThrough: '2026-11-10' },
+  { id: 'GOTYME', label: 'GoTyme card', where: 'the GoTyme app', completeThrough: '2026-11-16' },
   { id: 'RCBC', label: 'RCBC Airmiles card', where: 'the RCBC app', completeThrough: '2026-11-07' },
 ]
 
@@ -225,12 +225,12 @@ export const ACCRUED_AD_SPEND: AccruedAdSpend[] = [
   {
     from: '2026-11-08',
     to: '2026-11-17',
-    amount: 4258748,
+    amount: 2674116,
     source: 'UNKNOWN',
     basis:
-      "Meta Ads Manager reports PHP177,548.06 across five accounts for 25 Oct to 17 Nov. Verified card charges for 25-31 October are PHP62,798.87, leaving PHP114,749.19 of November spend; the cards carry PHP72,161.71 of it. The PHP42,587.48 difference falls after 7 November, the last day both cards are read, and runs at about PHP4,259 a day over the ten days from the 8th. The source is deliberately UNKNOWN: the owner has said new cards are in use and none has been registered yet, so attributing this to GoTyme or RCBC would assert something nobody has checked.",
+      "Meta Ads Manager reports PHP177,548.06 across five accounts for 25 Oct to 17 Nov. Verified card charges for 25-31 October are PHP62,798.87, leaving PHP114,749.19 of November spend; the cards now carry PHP88,008.03 of it. The GoTyme account was read in the app to 16 November, which added one charge of PHP15,846.32 on the 16th and confirmed 11-15 November was genuinely quiet rather than unread, cutting this accrual from PHP42,587.48. What remains falls after 7 November, the last day RCBC is read. The source stays UNKNOWN: new cards are in use and none is registered, so attributing this to GoTyme or RCBC would assert something nobody has checked.",
     supersededBy:
-      'Recent transactions for GoTyme from 11 Nov, RCBC from 8 Nov, and whatever new cards are in use.',
+      'RCBC recent transactions from 8 Nov, and whatever new cards are in use. GoTyme is now read through.',
   },
   // EMPTY, and that is the point: October advertising is no longer estimated
   // at all.

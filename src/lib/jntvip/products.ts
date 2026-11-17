@@ -40,8 +40,9 @@ export const SEED_PRODUCTS: Omit<JntVipProductRow, 'id' | 'updatedAt'>[] = [
   // ends, so not one of its waybills could be checked against J&T the way the
   // other four were. The price is read from the COD actually collected: PHP398
   // on 51 of 70 shipped orders, with one at PHP550, stated as a promo discount.
-  // The PHP40 build is stated as the same as GOLDEN EAR's and TESTOMAXX's.
-  { name: 'BELLY SLIM PLUS', aliases: ['BELLY SLIM PLUS', 'BELLYSLIM PLUS', 'BELLY SLIM', 'BELLYSLIM', 'BLLYSLM'], unitCost: 4000, price: 39800, active: true },
+  // The build is EYE CARE's, not TESTOMAXX's: 60 capsules a bottle and the
+  // printed wrap label rather than the sticker, so PHP34.60 and not PHP40.
+  { name: 'BELLY SLIM PLUS', aliases: ['BELLY SLIM PLUS', 'BELLYSLIM PLUS', 'BELLY SLIM', 'BELLYSLIM', 'BLLYSLM'], unitCost: 3460, price: 39800, active: true },
 ]
 
 /** The text J&T carries back for a parcel, normalised for matching. */

@@ -27,6 +27,7 @@
 // All amounts are integer centavos.
 
 import type { JntVipSoaCheckRow, JntVipParcelRow } from './types'
+import { directPaymentsBetween } from './directPayments'
 import { adSpendBetween, AD_CHARGES } from './adSpend'
 import { BOTTLE_COSTS, PRUDENT_UNIT_COST } from './bottleCost'
 import {
@@ -174,7 +175,11 @@ export function profitAndLoss(
   const days = Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1
 
   const sum = (f: (s: JntVipSoaCheckRow) => number) => rows.reduce((t, s) => t + f(s), 0)
-  const revenue = sum((s) => val(s.statedCod, s.computedCod))
+  // COD from the statements, plus the handful of parcels J&T delivered and
+  // collected nothing on where the customer later paid the owner direct. The
+  // sale happened and the money arrived; it just never touched J&T's books, so
+  // leaving it out would understate revenue and overstate the loss on returns.
+  const revenue = sum((s) => val(s.statedCod, s.computedCod)) + directPaymentsBetween(from, to)
   const shipping = sum((s) => val(s.statedShipping, s.computedShipping))
   const commission = sum((s) => val(s.statedCommission, s.computedCommission))
   const vat = sum((s) => val(s.statedVat, s.computedVat))
@@ -404,7 +409,9 @@ export function profitByMonth(
       const days = Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1
 
       const sum = (f: (s: JntVipSoaCheckRow) => number) => group.reduce((t, s) => t + f(s), 0)
-      const revenue = sum((s) => val(s.statedCod, s.computedCod))
+      // Same rule as the period total above: statement COD plus the parcels
+      // J&T collected nothing on where the customer paid the owner direct.
+      const revenue = sum((s) => val(s.statedCod, s.computedCod)) + directPaymentsBetween(from, to)
       const courier =
         sum((s) => val(s.statedShipping, s.computedShipping)) +
         sum((s) => val(s.statedCommission, s.computedCommission)) +

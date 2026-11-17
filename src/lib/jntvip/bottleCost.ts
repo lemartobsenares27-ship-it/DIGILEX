@@ -152,19 +152,26 @@ export const BOTTLE_COSTS: BottleCost[] = [
     price: 39800,
     statedAs: 'TESTOMAXX',
   }),
-  // BELLY SLIM PLUS is new in November. Its build was stated as the same as
-  // GOLDEN EAR's and TESTOMAXX's, so it carries the same PHP40: same capsules,
-  // same bottle, foam, shrink and sticker. Stated rather than invoiced, like
-  // the other two — change Alingatong's bulk price and all four move together.
+  // BELLY SLIM PLUS is built like EYE CARE, not like TESTOMAXX.
+  //
+  // It was first recorded as a PHP40 TESTOMAXX-style build on the owner's
+  // word. They then corrected it: BELLY SLIM carries 60 capsules a bottle and
+  // takes EYE CARE's printed wrap label, not the sticker. That is EYE CARE's
+  // build exactly, so it carries EYE CARE's cost.
+  //
+  // The correction REDUCES its cost, which is the uncomfortable direction —
+  // a cheaper build makes a product look better, so it is worth being explicit
+  // that this came from the owner describing the physical bottle rather than
+  // from anything that flatters the number.
   build({
     sku: 'BELLY SLIM PLUS',
-    capsuleName: 'Alingatong',
-    bulkPrice: 8000,
-    bulkCapsules: 100,
-    capsulesPerBottle: 30,
-    packaging: [BOTTLE, FOAM, SHRINK, STICKER],
+    capsuleName: 'Alaska Garlic',
+    bulkPrice: 15500,
+    bulkCapsules: 500,
+    capsulesPerBottle: 60,
+    packaging: [BOTTLE, FOAM, SHRINK, { label: 'Label', amount: 300, detail: 'Printed wrap label' }],
     price: 39800,
-    statedAs: 'TESTOMAXX',
+    statedAs: 'EYE CARE',
   }),
 ]
 

@@ -213,6 +213,25 @@ export const OPERATING_EXPENSES: OperatingExpense[] = [
     effectiveFrom: CSR_NEW_RATE_FROM,
     detail: 'PHP875 a day, five days a week, 8am-6pm — stated 17 Nov 2026',
   },
+  // Merienda for both staff: PHP50 a day between them, stated 17 Nov 2026 and
+  // described as how it has always worked, so it is charged from the start
+  // rather than from the day it was mentioned. It is small — about PHP217 a
+  // month — but a cost that exists is charged whether or not it is large, and
+  // leaving it out would have every past month slightly too profitable.
+  //
+  // LUNCH IS NOT IN HERE AND SHOULD BE. The owner feeds both staff lunch free
+  // every working day. Nobody has put a figure on what that costs, and a meal
+  // for two is plainly worth more than the PHP50 merienda, so running costs
+  // are understated by whatever it is. This row is deliberately merienda only
+  // rather than a guess at the pair.
+  {
+    key: 'staff-merienda',
+    basis: 'PER_DAY',
+    label: 'Merienda (both staff)',
+    rate: 5000,
+    daysPerWeek: 5,
+    detail: 'PHP50 a day between the two of them, on working days',
+  },
   {
     key: 'staff-csr-probation',
     label: 'CSR admin (probation rate, retired)',
