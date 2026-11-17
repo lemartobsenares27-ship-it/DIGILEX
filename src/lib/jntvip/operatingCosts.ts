@@ -42,6 +42,15 @@ export interface OperatingExpense {
  */
 export const CSR_RATE_CHANGES_ON = '2026-10-01'
 
+/**
+ * The day the CSR admin moved to PHP875 a day, five days a week, 8am-6pm.
+ *
+ * Stated by the owner on 17 November 2026. The earlier PHP550 x 6 row is closed
+ * at this date rather than rewritten, so September to mid-November stay costed
+ * at what was actually paid then.
+ */
+export const CSR_NEW_RATE_FROM = '2026-11-17'
+
 /** An average calendar month, used to pro-rate monthly bills across a statement period. */
 export const DAYS_PER_MONTH = 30.4375
 
@@ -119,6 +128,27 @@ export const DAYS_PER_MONTH = 30.4375
  * PHP251,803 of transfers to the owner's own accounts (which fund the GoTyme
  * ad card) and PHP51,101.36 of RCBC card bills (those cards ARE the ad spend).
  *
+ * THE MARICARD. A third card, MariBank's own MariCard Credit (529416****6272),
+ * came to light in November. Its 16 Oct - 15 Nov statement is PHP23,137.00 and
+ * every line on it is a Shopee purchase. The merchants are now identified:
+ *
+ *   Villas Budgetarian Store  PHP11,924  7 purchases  Jessel Villas, the
+ *                                                     bottle supplier -
+ *                                                     CONFIRMED by the owner,
+ *                                                     so this is stock and is
+ *                                                     already inside the PHP40
+ *                                                     a bottle. Not deducted
+ *                                                     again.
+ *   Packaging Empire          PHP   355                packaging - same
+ *   SKINTIFIC, KCREN-Sport    PHP   791                stated personal:
+ *                                                     skincare and sportswear
+ *
+ * The rest - Greenmanna Avenue, tbmax, NOVEMSHOP, Dawn Light, Deli Office,
+ * ELEGANCE, ecomart_888 - are unclassified, and about PHP6,353 of the
+ * statement's rows have not been seen at all. So the card is NOT charged
+ * anywhere yet: a third of it unread is not a basis for moving money either
+ * way, and the largest known line is stock that is already counted.
+ *
  * The PHP19,043.87 Shopee payment of 3 Oct is a SUPPLIER payment: mostly
  * business stock, as stated. That puts it with Majestic Line, Jessel, Pk and
  * Germike, inside the PHP40 a bottle, and it must not be deducted again.
@@ -151,19 +181,37 @@ export const OPERATING_EXPENSES: OperatingExpense[] = [
   // a description and never confirmed. Those rows are retired, not deleted —
   // they are what the earlier figures were built on, and deleting them would
   // make past numbers impossible to explain.
+  // The CSR admin is paid through GCash, and MariBank's history names the
+  // recipient: Ro****O B., confirmed by the owner. Two payments of PHP3,250 and
+  // PHP3,400 sat either side of the PHP3,300 this row charged, which is what
+  // identified them.
   {
     key: 'staff-csr-stated',
-    label: 'CSR admin',
+    label: 'CSR admin (to 16 Nov)',
     basis: 'PER_DAY',
     rate: 55000,
     // Six, not seven. Stated as "6 or 5 days", and six is the dearer of the
     // two — an unsettled rota should overstate payroll rather than flatter
-    // profit. Seven was never stated and was simply the default; it charged
-    // five days a month nobody worked, PHP2,750 of payroll that did not
-    // happen. If the rota is really five days, change this to 5 and another
-    // PHP2,200 a month comes back.
+    // profit.
     daysPerWeek: 6,
+    effectiveTo: CSR_NEW_RATE_FROM,
     detail: 'PHP550 a day, six days a week (stated as six or five)',
+  },
+  // From 17 November the terms changed: PHP875 a day, five days a week, 8am to
+  // 6pm. Dearer per day and fewer days, so the week goes from PHP3,300 to
+  // PHP4,375 — PHP1,075 a week, about PHP4,660 a month, more payroll.
+  //
+  // The old row is CLOSED at this date rather than edited. Editing it would
+  // restate every month already closed at a rate nobody was paid then, which
+  // is the one thing a cost model must never do.
+  {
+    key: 'staff-csr-nov17',
+    label: 'CSR admin',
+    basis: 'PER_DAY',
+    rate: 87500,
+    daysPerWeek: 5,
+    effectiveFrom: CSR_NEW_RATE_FROM,
+    detail: 'PHP875 a day, five days a week, 8am-6pm — stated 17 Nov 2026',
   },
   {
     key: 'staff-csr-probation',
