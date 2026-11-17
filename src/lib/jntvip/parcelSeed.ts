@@ -6,25 +6,31 @@
 // so the file never got in. That is fixed, but a fresh browser is still an
 // empty table, and the statements are seeded for exactly this reason.
 //
-// So the export is seeded too: 1,876 parcels dispatched 2026-09-15 to
-// 2026-11-01, from two exports, checked before being written down. No
+// So the export is seeded too: 2,665 parcels dispatched 2026-09-15 to
+// 2026-11-16, from three exports, checked before being written down. No
 // duplicate waybills, no negative amounts, no parcel delivered before it
 // shipped, every row dated. Shipping reconciles to the centavo against every
-// statement that overlaps them, and RTS against all twelve of the late-October
-// ones.
+// statement that overlaps them, and RTS against all the late-October ones.
 //
-// One caveat carried by the November export only. J&T dropped the "Cod" column
-// from it, so for parcels after 14 October the `cod` field here holds ITEM
-// VALUE instead. On the 595 waybills the two exports share, item value equals
-// the old COD column on 590 — and differs on exactly the five where collection
-// went wrong, including the parcel delivered with nothing collected and the one
-// that came up PHP50 short. Item value is therefore what SHOULD have been
-// collected, not what was. It is close enough to count bottles and far too
-// weak to audit a remittance with, which is why the COD column is worth asking
-// J&T to restore.
+// The November 16 export has the "Cod" column back, so `cod` here is now what
+// J&T ACTUALLY COLLECTED, not what should have been. That is the column an
+// earlier export dropped, and getting it back is the only reason a parcel
+// delivered and signed for with PHP0 collected can be seen at all.
 //
-// Stored as a positional array rather than objects: at 963 rows the key names
-// would be most of the file, and this keeps it to 167 KB.
+// Four parcels sit at cod 0. Three are delivered — JT0024762590797 (PHP798),
+// JT0025487836984 (PHP399) and JT0027182011676 (PHP399) — and none of them is
+// a loss: the customer paid the owner directly by GCash, PHP1,596 in all,
+// recorded in directPayments.ts so the money is counted once and not through
+// a statement that never carried it. The fourth is still in transit.
+//
+// Because an older seed stored ITEM VALUE in this field, a browser that
+// loaded the app before 2026-11-17 holds the should-have-been figure on the
+// waybills the exports share. correctSeededMoney below repairs exactly those
+// rows, and only those: a parcel the owner imported from a file themselves
+// carries its `raw` record and is never touched.
+//
+// Stored as a positional array rather than objects: at 2,665 rows the key
+// names would be most of the file, and this keeps it to 474 KB.
 
 import raw from '../../data/jntParcels.json'
 import type { JntVipParcelRow } from './types'
@@ -73,6 +79,8 @@ function unpack(p: Packed): JntVipParcelRow {
 export interface ParcelSeedResult {
   added: number
   skipped: number
+  /** Seed-fed rows whose money fields were repaired from the newer export. */
+  corrected: number
   advanced: number
 }
 
@@ -141,9 +149,49 @@ export async function seedParcels(): Promise<ParcelSeedResult> {
     advanced++
   }
 
+  // Money fields: repair the rows an older seed wrote, and nothing else.
+  //
+  // The status pass above cannot do this. A status has a direction, so
+  // "only ever forward" makes it safe; an amount has none, and the first
+  // version of this seed stored ITEM VALUE in `cod` because the export it
+  // came from had no "Cod" column. The November 16 export restored that
+  // column, so for the waybills the exports share the stored figure is what
+  // SHOULD have been collected while the seed now holds what WAS. Left
+  // alone, a browser that opened the app earlier keeps reading the wrong
+  // one, and the parcel delivered with nothing collected goes on looking
+  // like it paid in full.
+  //
+  // The guard is `raw`. A parcel the owner imported from a file themselves
+  // keeps that file's record on the row; a seeded parcel has raw === null.
+  // So this only ever overwrites figures this seed itself put there, and a
+  // fresh import through the Import page always wins. Nothing is deleted,
+  // no row is removed, and the count comes back in the result rather than
+  // being applied in silence.
+  let corrected = 0
+  for (const packed of raw as Packed[]) {
+    const stored = byAwb.get(packed[0])
+    if (!stored?.id) continue
+    if (stored.raw != null) continue // imported by hand — leave it alone
+    const next = unpack(packed)
+    if (
+      stored.cod === next.cod &&
+      stored.shippingCost === next.shippingCost &&
+      stored.freight === next.freight
+    )
+      continue
+    await jntVipDb.parcels.update(stored.id, {
+      cod: next.cod,
+      shippingCost: next.shippingCost,
+      freight: next.freight,
+      updatedAt: next.updatedAt,
+    })
+    corrected++
+  }
+
   return {
     added: missing.length,
     skipped: (raw as Packed[]).length - missing.length - advanced,
     advanced,
+    corrected,
   }
 }

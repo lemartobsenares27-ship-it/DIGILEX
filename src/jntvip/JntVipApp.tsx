@@ -92,7 +92,18 @@ export default function JntVipApp() {
       .then(() => seedKnownStatements().catch((e) => console.warn('Statement seed skipped:', e)))
       .then(() => seedOperatingExpenses().catch((e) => console.warn('Expense seed skipped:', e)))
       .then(() => seedProducts().catch((e) => console.warn('Product seed skipped:', e)))
-      .then(() => seedParcels().catch((e) => console.warn('Parcel seed skipped:', e)))
+      .then(() =>
+        seedParcels()
+          .then((r) => {
+            // Say so when an older browser's figures get repaired, rather
+            // than changing stored amounts without a word.
+            if (r.corrected > 0)
+              console.info(
+                `Parcel seed: repaired COD/shipping on ${r.corrected} seeded parcel(s) from the newer export.`,
+              )
+          })
+          .catch((e) => console.warn('Parcel seed skipped:', e)),
+      )
       .then(() => seedPosProductPins().catch((e) => console.warn('POS pin seed skipped:', e)))
       .then(() => {
         done = true
