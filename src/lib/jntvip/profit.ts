@@ -388,14 +388,57 @@ export interface ProfitPeriod {
   hasParcels: boolean
 }
 
-export function profitByMonth(
+/** How finely the statements are grouped before the same sum is run over them. */
+export type ProfitGrain = 'month' | 'week'
+
+/**
+ * The Monday of the week containing `iso`, as YYYY-MM-DD.
+ *
+ * Monday rather than Sunday because the business runs a Monday-to-Friday
+ * rota with a sixth day on Saturday, so a Sunday-start week would cut the
+ * working week in half and put two different rotas in every bucket.
+ */
+function weekStart(iso: string): string {
+  const d = new Date(iso + 'T00:00:00Z')
+  const mondayOffset = (d.getUTCDay() + 6) % 7
+  d.setUTCDate(d.getUTCDate() - mondayOffset)
+  return d.toISOString().slice(0, 10)
+}
+
+const SHORT_MONTH = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** "6–12 Nov", or "27 Oct – 2 Nov" when the range crosses a month. */
+function rangeLabel(from: string, to: string): string {
+  const [, fm, fd] = from.split('-')
+  const [, tm, td] = to.split('-')
+  const f = `${Number(fd)} ${SHORT_MONTH[Number(fm) - 1]}`
+  const t = `${Number(td)} ${SHORT_MONTH[Number(tm) - 1]}`
+  if (from === to) return f
+  return fm === tm ? `${Number(fd)}–${t}` : `${f} – ${t}`
+}
+
+/**
+ * The same profit calculation, run over a slice of the statements.
+ *
+ * Grouping by the statement's CLOSING date is what keeps revenue from being
+ * counted twice: a statement spanning a boundary lands in exactly one bucket.
+ *
+ * Every figure here is a rate or a total for its own bucket, and none of them
+ * may be averaged across buckets afterwards. Margin and ROAS especially: the
+ * blended 77-day figure is the average of a September that lost ₱120,380 and
+ * an October that made ₱55,866, and it describes neither month. That is the
+ * whole reason this function exists, and the reason the page shows the
+ * buckets above the total rather than below it.
+ */
+export function profitByPeriod(
   rows: JntVipSoaCheckRow[],
   parcels: JntVipParcelRow[],
   expenses: OperatingExpense[] = OPERATING_EXPENSES,
+  grain: ProfitGrain = 'month',
 ): ProfitPeriod[] {
   const months = new Map<string, JntVipSoaCheckRow[]>()
   for (const r of rows) {
-    const k = r.periodTo.slice(0, 7)
+    const k = grain === 'month' ? r.periodTo.slice(0, 7) : weekStart(r.periodTo)
     if (!months.has(k)) months.set(k, [])
     months.get(k)!.push(r)
   }
@@ -436,7 +479,14 @@ export function profitByMonth(
 
       return {
         key,
-        label: new Date(key + '-01T00:00:00Z').toLocaleString('en-PH', { month: 'long', year: 'numeric', timeZone: 'UTC' }),
+        label:
+          grain === 'month'
+            ? new Date(key + '-01T00:00:00Z').toLocaleString('en-PH', {
+                month: 'long',
+                year: 'numeric',
+                timeZone: 'UTC',
+              })
+            : rangeLabel(from, to),
         days,
         statements: group.length,
         revenue,
@@ -450,6 +500,22 @@ export function profitByMonth(
         hasParcels,
       }
     })
+}
+
+/**
+ * Month-by-month, the original entry point.
+ *
+ * Kept as a wrapper rather than replaced at every call site: several pages
+ * reason specifically in months (the take-home page pays a monthly wage, the
+ * levers page rebuilds a month's fixed costs), and a rename would have made
+ * those read as though they accepted any grain.
+ */
+export function profitByMonth(
+  rows: JntVipSoaCheckRow[],
+  parcels: JntVipParcelRow[],
+  expenses: OperatingExpense[] = OPERATING_EXPENSES,
+): ProfitPeriod[] {
+  return profitByPeriod(rows, parcels, expenses, 'month')
 }
 
 export interface CostLine {

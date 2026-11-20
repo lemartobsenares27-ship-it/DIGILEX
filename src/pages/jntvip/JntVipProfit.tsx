@@ -6,14 +6,14 @@
 // is the whole statement — COD in, four costs out, one number at the bottom — and
 // the break-even it implies, so a bad month is visible before it finishes.
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { TrendingUp, TrendingDown, Target, AlertTriangle, Undo2, Info, FlaskConical, Building2, Gauge, ArrowUpRight } from 'lucide-react'
 import PageHeader from '../../components/PageHeader'
 import Card from '../../components/Card'
 import { formatNumber, formatPercent } from '../../lib/format'
 import { useLiveTable } from '../../hooks/useLiveTable'
 import { jntVipDb } from '../../lib/jntvip/db'
-import { profitAndLoss, costStack, unitEconomics, bottlesForProfit, atPrice, profitByMonth } from '../../lib/jntvip/profit'
+import { profitAndLoss, costStack, unitEconomics, bottlesForProfit, atPrice, profitByMonth, profitByPeriod } from '../../lib/jntvip/profit'
 import { BOTTLE_COSTS } from '../../lib/jntvip/bottleCost'
 import { fixedCostPerDay, toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
 import OperatingExpenseEditor from './OperatingExpenseEditor'
@@ -56,6 +56,8 @@ export default function JntVipProfit() {
   const expenseRows = useLiveTable(jntVipDb.operatingExpenses) as JntVipOperatingExpenseRow[]
   const expenses = useMemo(() => toOperatingExpenses(expenseRows), [expenseRows])
 
+  const [grain, setGrain] = useState<'month' | 'week'>('month')
+
   const p = useMemo(
     () => (expenses.length > 0 ? profitAndLoss(rows, parcels, expenses) : null),
     [rows, parcels, expenses],
@@ -68,10 +70,25 @@ export default function JntVipProfit() {
   const adBySource = useMemo(() => (p ? adSpendBySource(p.from, p.to) : { GOTYME: 0, RCBC: 0 }), [p])
   const u = useMemo(() => (p ? unitEconomics(p, expenses) : null), [p, expenses])
   // The blended total is the single most misleading number this page can show,
-  // so the months sit above it.
+  // so the periods sit above it.
+  //
+  // Months are kept separate from whatever grain is on screen. The "it turned"
+  // note compares one period against the one before, and at week grain a
+  // single quiet week either side would flip that claim back and forth. A
+  // month is the shortest span that statement reliably holds for.
   const months = useMemo(() => profitByMonth(rows, parcels, expenses), [rows, parcels, expenses])
+  const periods = useMemo(
+    () => (grain === 'month' ? months : profitByPeriod(rows, parcels, expenses, 'week')),
+    [grain, months, rows, parcels, expenses],
+  )
   const latest = months.length > 0 ? months[months.length - 1] : null
   const turned = months.length >= 2 && months[months.length - 2].profit < 0 && latest != null && latest.profit > 0
+  // The first period that made money, at whatever grain is showing. Where the
+  // line was crossed is the question the blended total cannot answer at all.
+  const crossed = useMemo(() => {
+    const i = periods.findIndex((x) => x.profit > 0)
+    return i > 0 ? periods[i] : null
+  }, [periods])
 
   if (!p) {
     return (
@@ -103,16 +120,42 @@ export default function JntVipProfit() {
           heavily and the most recent month makes money. Someone could shut a
           working business over the blended number. */}
       {months.length > 1 && (
-        <Card
-          title="Month by month"
-          description="The same calculation run per month. The total underneath blends these together, which hides whichever direction things are moving."
-          className="mb-4"
-        >
+        <Card className="mb-4">
+          <div className="mb-3 flex flex-wrap items-center gap-3">
+            <div>
+              <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {grain === 'month' ? 'Month by month' : 'Week by week'}
+              </h2>
+              <p className="mt-0.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                The same calculation run per {grain}. The total underneath blends these together,
+                which hides whichever direction things are moving.
+              </p>
+            </div>
+            <div className="ml-auto flex gap-1.5">
+              {(['month', 'week'] as const).map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setGrain(g)}
+                  className="rounded-lg border px-2.5 py-1 text-xs font-medium capitalize"
+                  style={{
+                    borderColor: grain === g ? 'var(--series-orange)' : 'var(--border-hairline)',
+                    color: grain === g ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    background:
+                      grain === g
+                        ? 'color-mix(in srgb, var(--series-orange) 12%, transparent)'
+                        : 'transparent',
+                  }}
+                >
+                  By {g}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-xs uppercase tracking-wide" style={{ borderColor: 'var(--border-hairline)', color: 'var(--text-muted)' }}>
-                  <th className="py-2 pr-4 font-semibold">Month</th>
+                  <th className="py-2 pr-4 font-semibold">{grain === 'month' ? 'Month' : 'Week'}</th>
                   <th className="py-2 pr-4 text-right font-semibold">COD collected</th>
                   <th className="py-2 pr-4 text-right font-semibold">J&amp;T</th>
                   <th className="py-2 pr-4 text-right font-semibold">Product</th>
@@ -124,7 +167,7 @@ export default function JntVipProfit() {
                 </tr>
               </thead>
               <tbody>
-                {months.map((m) => (
+                {periods.map((m) => (
                   <tr key={m.key} className="border-b last:border-0" style={{ borderColor: 'var(--border-hairline)' }}>
                     <td className="whitespace-nowrap py-2 pr-4 font-medium" style={{ color: 'var(--text-primary)' }}>
                       {m.label}
@@ -165,11 +208,29 @@ export default function JntVipProfit() {
             </p>
           )}
 
+          {crossed && (
+            <p
+              className="mt-3 rounded-lg p-3 text-sm"
+              style={{
+                background: 'color-mix(in srgb, var(--series-orange) 10%, transparent)',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <strong>The line was crossed in {crossed.label}.</strong> That is the first{' '}
+              {grain} that kept money, at {crossed.roas.toFixed(2)}x. Every {grain} before it
+              bought customers for more than they paid. Nothing about the product changed on that
+              date — the cost of finding a buyer did.
+            </p>
+          )}
+
           <p className="mt-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
-            A month is cut on the statement&rsquo;s closing date, so a statement spanning a boundary
-            lands in one month only and no revenue is counted twice. &ldquo;est&rdquo; marks a month
-            with no parcel export behind it, where bottles are inferred from revenue rather than
-            counted.
+            A {grain} is cut on the statement&rsquo;s closing date, so a statement spanning a
+            boundary lands in one {grain} only and no revenue is counted twice.{' '}
+            {grain === 'week'
+              ? 'Weeks run Monday to Sunday, and the first and last may be part weeks — the day count beside each label says how much it actually covers. '
+              : ''}
+            &ldquo;est&rdquo; marks a {grain} with no parcel export behind it, where bottles are
+            inferred from revenue rather than counted.
           </p>
         </Card>
       )}
