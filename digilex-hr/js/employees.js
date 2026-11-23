@@ -16,12 +16,13 @@
   };
 
   function fullName(e) { return e.firstName + " " + e.lastName; }
-  // Weekly-paid staff (e.g. a trainee on a per-week ramp) use /6 (a 6-day work
-  // week), consistent with the /26 divisor used for monthly-paid staff (6 days
-  // x ~4.33 weeks/month ≈ 26).
-  function dailyRate(e) { return e.payFrequency === "Weekly" ? (e.weeklyRate || 0) / 6 : (e.monthlySalary || 0) / 26; }
+  // payFrequency "Weekly" employees (despite the internal name, kept as-is so
+  // existing stored records don't break) are entered as a direct DAILY rate —
+  // no division. Monthly-salary staff still derive their daily rate from a
+  // monthly figure (/26 working days).
+  function dailyRate(e) { return e.payFrequency === "Weekly" ? (e.weeklyRate || 0) : (e.monthlySalary || 0) / 26; }
   function hourlyRate(e) { return dailyRate(e) / 8; }
-  function payRateLabel(e) { return e.payFrequency === "Weekly" ? X.peso(e.weeklyRate || 0) + "/wk" : X.peso(e.monthlySalary || 0) + "/mo"; }
+  function payRateLabel(e) { return e.payFrequency === "Weekly" ? X.peso(e.weeklyRate || 0) + "/day" : X.peso(e.monthlySalary || 0) + "/mo"; }
 
   function statusBadge(status) {
     var map = { Active: "green", "On Leave": "blue", Resigned: "gray", Terminated: "red" };
@@ -166,8 +167,8 @@
         ["Gov't Deductions", e.noGovernmentDeductions ? "Exempt (per agreement)" : "Standard"],
       ]) +
       profileSection("Compensation", [
-        ["Pay Frequency", e.payFrequency === "Weekly" ? "Weekly" : "Monthly"],
-        e.payFrequency === "Weekly" ? ["Weekly Rate", X.peso(e.weeklyRate || 0)] : ["Basic Monthly Salary", X.peso(e.monthlySalary)],
+        ["Pay Frequency", e.payFrequency === "Weekly" ? "Daily Rate" : "Monthly"],
+        e.payFrequency === "Weekly" ? ["Daily Rate", X.peso(e.weeklyRate || 0)] : ["Basic Monthly Salary", X.peso(e.monthlySalary)],
         ["Daily Rate", X.peso(dailyRate(e))],
         ["Hourly Rate", X.peso(hourlyRate(e))],
         ["Bank", (e.bankName || "—") + " / " + (e.bankAccount || "—")],

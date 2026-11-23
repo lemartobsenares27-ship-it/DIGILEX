@@ -67,7 +67,7 @@
     return days;
   }
 
-  function currentWeeklyRate(e, entry) {
+  function currentDailyRateOverride(e, entry) {
     return entry.weeklyRateOverride !== "" && entry.weeklyRateOverride !== undefined && entry.weeklyRateOverride !== null
       ? Number(entry.weeklyRateOverride) || 0
       : (e.weeklyRate || 0);
@@ -77,12 +77,12 @@
     var entry = entryFor(run, e.id);
     var daysWorked = daysWorkedInPeriod(e.id);
     var isWeekly = e.payFrequency === "Weekly";
-    // Weekly-paid staff (e.g. a trainee on a per-week ramp) use /6 (a 6-day
-    // work week) instead of the /26 monthly divisor. The rate can be bumped
-    // per payroll run via the Weekly Rate override column, so a ramp (e.g.
-    // ₱350 -> ₱450 -> ₱550/week) is entered as it progresses.
-    var weeklyRate = isWeekly ? currentWeeklyRate(e, entry) : 0;
-    var dailyRate = isWeekly ? weeklyRate / 6 : (e.monthlySalary || 0) / 26;
+    // "Weekly" staff (e.g. a trainee on a per-day ramp) are paid a direct
+    // daily rate — no division. The rate can be bumped per payroll run via
+    // the Daily Pay Rates tab, so a ramp (e.g. ₱350 -> ₱450 -> ₱550/day) is
+    // entered as it progresses.
+    var dailyRateValue = isWeekly ? currentDailyRateOverride(e, entry) : 0;
+    var dailyRate = isWeekly ? dailyRateValue : (e.monthlySalary || 0) / 26;
     var basicPay = dailyRate * daysWorked;
     var otPay = (Number(entry.otHours) || 0) * (Number(entry.otRate) || 0);
     var holidayPay = Number(entry.holidayPay) || 0;
@@ -92,9 +92,9 @@
     var grossPay = basicPay + otPay + holidayPay + transport + meal + otherAllow;
 
     // Government contribution tables are keyed off a monthly salary; a
-    // weekly-paid employee's equivalent monthly figure is estimated at
-    // weeklyRate x (52 weeks / 12 months).
-    var monthlyEquivalent = isWeekly ? weeklyRate * (52 / 12) : (e.monthlySalary || 0);
+    // daily-rate employee's equivalent monthly figure uses the same /26
+    // working-days convention as monthly-salary staff.
+    var monthlyEquivalent = isWeekly ? dailyRate * 26 : (e.monthlySalary || 0);
 
     // No statutory deductions when there's nothing earned this period
     // (e.g. an owner on ₱0 draw, or a new hire with no attendance logged yet),
@@ -123,7 +123,7 @@
       transport: transport, meal: meal, otherAllow: otherAllow, grossPay: grossPay,
       sssDeduction: sssDeduction, philhealthDeduction: philhealthDeduction, pagibigDeduction: pagibigDeduction, tax: tax,
       otherDeductions: otherDeductions, totalDeductions: totalDeductions, netPay: netPay, entry: entry,
-      isWeekly: isWeekly, weeklyRate: weeklyRate,
+      isWeekly: isWeekly, weeklyRate: dailyRateValue,
     };
   }
 
@@ -235,7 +235,7 @@
       "</div>" +
       '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:14px">' +
       "<tr><td colspan='2' style='font-weight:700;padding:6px 0'>Earnings</td></tr>" +
-      payslipRow(line.isWeekly ? "Basic Pay (₱" + line.weeklyRate.toFixed(2) + "/wk, " + line.daysWorked + " days)" : "Basic Pay (" + line.daysWorked + " days)", line.basicPay) +
+      payslipRow(line.isWeekly ? "Basic Pay (₱" + line.weeklyRate.toFixed(2) + "/day, " + line.daysWorked + " days)" : "Basic Pay (" + line.daysWorked + " days)", line.basicPay) +
       payslipRow("Overtime Pay", line.otPay) +
       payslipRow("Holiday Pay", line.holidayPay) +
       payslipRow("Transportation Allowance", line.transport) +
@@ -291,7 +291,7 @@
   }
 
   // ---------------------------------------------------------------------
-  // "Weekly Pay Rates" tab — a dedicated, legible home for the weekly-rate
+  // "Daily Pay Rates" tab — a dedicated, legible home for the daily-rate
   // control, which used to be a tiny input buried inside the Basic Pay
   // column of the dense payroll table (easy to miss, hard to use on
   // mobile). Reuses the exact same computePayrollLine()/entryFor() engine
@@ -307,8 +307,8 @@
       container.innerHTML =
         '<div class="dlx-card" style="grid-column:1/-1;text-align:center;padding:40px 20px">' +
         '<i class="fa-solid fa-calendar-week" style="font-size:1.8rem;color:#CBD5E1;margin-bottom:12px"></i>' +
-        '<div style="font-weight:700;margin-bottom:6px">No weekly-paid staff yet</div>' +
-        '<div style="font-size:.85rem;color:#94A3B8;max-width:420px;margin:0 auto">Open an employee\'s profile and set <strong>Pay Frequency</strong> to <strong>Weekly</strong> to see them here.</div>' +
+        '<div style="font-weight:700;margin-bottom:6px">No daily-rate staff yet</div>' +
+        '<div style="font-size:.85rem;color:#94A3B8;max-width:420px;margin:0 auto">Open an employee\'s profile and set <strong>Pay Frequency</strong> to <strong>Daily Rate</strong> to see them here.</div>' +
         "</div>";
       return;
     }
@@ -316,7 +316,6 @@
     container.innerHTML = employees.map(function (e) {
       var line = computePayrollLine(e, run);
       var disabled = run.processed ? "disabled" : "";
-      var standingDaily = (e.weeklyRate || 0) / 6;
       var hasOverride = line.entry.weeklyRateOverride !== "" && line.entry.weeklyRateOverride !== undefined && line.entry.weeklyRateOverride !== null;
       return (
         '<div class="dlx-card" data-wp-card="' + e.id + '">' +
@@ -326,9 +325,9 @@
         "</div>" +
 
         '<div style="font-size:.72rem;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Standing Rate (Employee Profile)</div>' +
-        '<div style="font-size:.9rem;color:#475569;margin-bottom:18px">' + X.peso(e.weeklyRate || 0) + "/week &nbsp;·&nbsp; " + X.peso(standingDaily) + "/day</div>" +
+        '<div style="font-size:.9rem;color:#475569;margin-bottom:18px">' + X.peso(e.weeklyRate || 0) + "/day</div>" +
 
-        '<label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--dlx-primary);display:block;margin-bottom:6px">This Period\'s Weekly Rate</label>' +
+        '<label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--dlx-primary);display:block;margin-bottom:6px">This Period\'s Daily Rate</label>' +
         '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">' +
         '<input ' + disabled + ' type="number" min="0" step="0.01" class="field-input wp-rate-input" data-id="' + e.id + '" value="' + line.entry.weeklyRateOverride + '" placeholder="' + (e.weeklyRate || 0) + '" style="font-size:1.1rem;font-weight:700">' +
         (hasOverride && !run.processed ? '<button type="button" class="btn btn-secondary btn-sm wp-reset-btn" data-id="' + e.id + '" title="Clear override — use the standing rate instead"><i class="fa-solid fa-rotate-left"></i></button>' : "") +
@@ -337,7 +336,7 @@
 
         '<div style="background:#F8FAFC;border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">' +
         '<div><div style="font-size:.7rem;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em">' + line.daysWorked + " day(s) this period</div>" +
-        '<div style="font-size:.78rem;color:#64748B;margin-top:2px">' + X.peso(line.weeklyRate / 6) + "/day" + "</div></div>" +
+        '<div style="font-size:.78rem;color:#64748B;margin-top:2px">' + X.peso(line.weeklyRate) + "/day" + "</div></div>" +
         '<div style="text-align:right"><div style="font-size:.7rem;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em">Basic Pay</div><div style="font-size:1.3rem;font-weight:800;color:var(--dlx-primary)">' + X.peso(line.basicPay) + "</div></div>" +
         "</div>" +
         "</div>"
