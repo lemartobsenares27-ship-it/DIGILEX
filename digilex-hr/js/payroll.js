@@ -58,13 +58,45 @@
 
   function daysWorkedInPeriod(employeeId) {
     var r = periodRange();
-    var attendance = Store.getAttendance().filter(function (a) { return a.employeeId === employeeId && a.date >= r.fromIso && a.date <= r.toIso; });
+    return daysWorkedInRange(employeeId, r.fromIso, r.toIso);
+  }
+
+  function daysWorkedInRange(employeeId, fromIso, toIso) {
+    var attendance = Store.getAttendance().filter(function (a) { return a.employeeId === employeeId && a.date >= fromIso && a.date <= toIso; });
     var days = 0;
     attendance.forEach(function (a) {
       if (a.status === "Present" || a.status === "Late") days += 1;
       else if (a.status === "Half Day") days += 0.5;
     });
     return days;
+  }
+
+  // Splits the current (semi-monthly) payroll period into calendar weeks
+  // (Monday-Sunday, clipped to the period's own start/end) so daily-rate
+  // staff — who think and get paid in weekly chunks — can be handed one
+  // total per week instead of one lump sum covering up to half a month.
+  function isoOfDate(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
+  function mondayOnOrBefore(d) {
+    var nd = new Date(d);
+    var day = nd.getDay();
+    nd.setDate(nd.getDate() + (day === 0 ? -6 : 1 - day));
+    return nd;
+  }
+  function weeksWithinPeriod() {
+    var r = periodRange();
+    var periodStart = new Date(r.fromIso + "T00:00:00");
+    var periodEnd = new Date(r.toIso + "T00:00:00");
+    var weeks = [];
+    var cur = mondayOnOrBefore(periodStart);
+    while (cur <= periodEnd) {
+      var weekStart = cur < periodStart ? periodStart : cur;
+      var weekEndFull = new Date(cur);
+      weekEndFull.setDate(weekEndFull.getDate() + 6);
+      var weekEnd = weekEndFull > periodEnd ? periodEnd : weekEndFull;
+      weeks.push({ fromIso: isoOfDate(weekStart), toIso: isoOfDate(weekEnd) });
+      cur.setDate(cur.getDate() + 7);
+    }
+    return weeks;
   }
 
   function currentDailyRateOverride(e, entry) {
@@ -308,15 +340,32 @@
         '<div class="dlx-card" style="grid-column:1/-1;text-align:center;padding:40px 20px">' +
         '<i class="fa-solid fa-calendar-week" style="font-size:1.8rem;color:#CBD5E1;margin-bottom:12px"></i>' +
         '<div style="font-weight:700;margin-bottom:6px">No daily-rate staff yet</div>' +
-        '<div style="font-size:.85rem;color:#94A3B8;max-width:420px;margin:0 auto">Open an employee\'s profile and set <strong>Pay Frequency</strong> to <strong>Daily Rate</strong> to see them here.</div>' +
+        '<div style="font-size:.85rem;color:#94A3B8;max-width:420px;margin:0 auto 16px">Add someone, or open an existing employee\'s profile and set <strong>Pay Frequency</strong> to <strong>Daily Rate</strong>, to see them here.</div>' +
+        '<a href="employees.html?add=1&payFrequency=Weekly" class="btn btn-primary btn-sm"><i class="fa-solid fa-user-plus"></i> Add Daily-Rate Employee</a>' +
         "</div>";
       return;
     }
+
+    var weeks = weeksWithinPeriod();
 
     container.innerHTML = employees.map(function (e) {
       var line = computePayrollLine(e, run);
       var disabled = run.processed ? "disabled" : "";
       var hasOverride = line.entry.weeklyRateOverride !== "" && line.entry.weeklyRateOverride !== undefined && line.entry.weeklyRateOverride !== null;
+      var rateNow = currentDailyRateOverride(e, line.entry);
+
+      var weekRows = weeks.map(function (wk) {
+        var wkDays = daysWorkedInRange(e.id, wk.fromIso, wk.toIso);
+        var wkPay = rateNow * wkDays;
+        return (
+          '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F5F9;font-size:.82rem">' +
+          '<div><div style="font-weight:600">' + X.fmtDate(wk.fromIso) + " – " + X.fmtDate(wk.toIso) + "</div>" +
+          '<div style="font-size:.72rem;color:#94A3B8">' + wkDays + " day(s) × " + X.peso(rateNow) + "</div></div>" +
+          '<div style="font-weight:700;color:var(--dlx-primary)">' + X.peso(wkPay) + "</div>" +
+          "</div>"
+        );
+      }).join("");
+
       return (
         '<div class="dlx-card" data-wp-card="' + e.id + '">' +
         '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">' +
@@ -332,12 +381,14 @@
         '<input ' + disabled + ' type="number" min="0" step="0.01" class="field-input wp-rate-input" data-id="' + e.id + '" value="' + line.entry.weeklyRateOverride + '" placeholder="' + (e.weeklyRate || 0) + '" style="font-size:1.1rem;font-weight:700">' +
         (hasOverride && !run.processed ? '<button type="button" class="btn btn-secondary btn-sm wp-reset-btn" data-id="' + e.id + '" title="Clear override — use the standing rate instead"><i class="fa-solid fa-rotate-left"></i></button>' : "") +
         "</div>" +
-        '<div style="font-size:.72rem;color:#94A3B8;margin-bottom:18px">' + (hasOverride ? "Overridden for " + periodLabel() + " only — standing rate is unchanged." : "Using the standing rate. Type a number above to override just this period.") + "</div>" +
+        '<div style="font-size:.72rem;color:#94A3B8;margin-bottom:20px">' + (hasOverride ? "Overridden for " + periodLabel() + " only — standing rate is unchanged." : "Using the standing rate. Type a number above to override just this period.") + "</div>" +
+
+        '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--dlx-primary);margin-bottom:4px">Per-Week Total — ready to send</div>' +
+        '<div style="margin-bottom:12px">' + weekRows + "</div>" +
 
         '<div style="background:#F8FAFC;border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">' +
-        '<div><div style="font-size:.7rem;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em">' + line.daysWorked + " day(s) this period</div>" +
-        '<div style="font-size:.78rem;color:#64748B;margin-top:2px">' + X.peso(line.weeklyRate) + "/day" + "</div></div>" +
-        '<div style="text-align:right"><div style="font-size:.7rem;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em">Basic Pay</div><div style="font-size:1.3rem;font-weight:800;color:var(--dlx-primary)">' + X.peso(line.basicPay) + "</div></div>" +
+        '<div style="font-size:.78rem;color:#64748B">' + line.daysWorked + " day(s) total this period</div>" +
+        '<div style="text-align:right"><div style="font-size:.7rem;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em">Period Total</div><div style="font-size:1.3rem;font-weight:800;color:var(--dlx-primary)">' + X.peso(line.basicPay) + "</div></div>" +
         "</div>" +
         "</div>"
       );

@@ -217,7 +217,7 @@
   // ---------------------------------------------------------------------
   // Add / Edit modal
   // ---------------------------------------------------------------------
-  function openEmployeeModal(id) {
+  function openEmployeeModal(id, defaultPayFrequency) {
     var e = id ? Store.getEmployees().find(function (x) { return x.id === id; }) : null;
     document.getElementById("emp-modal-title").textContent = e ? "Edit Employee" : "Add Employee";
     var f = document.getElementById("emp-form");
@@ -232,7 +232,7 @@
       document.getElementById("emp-f-noGovernmentDeductions").checked = !!e.noGovernmentDeductions;
       document.getElementById("emp-f-payFrequency").value = e.payFrequency === "Weekly" ? "Weekly" : "Monthly";
     } else {
-      document.getElementById("emp-f-payFrequency").value = "Monthly";
+      document.getElementById("emp-f-payFrequency").value = defaultPayFrequency === "Weekly" ? "Weekly" : "Monthly";
     }
     togglePayFrequencyFields();
     X.openModal("emp-modal");
@@ -351,6 +351,6 @@
       document.getElementById("filter-department").value = deptParam;
     }
     renderMain();
-    if (params.get("add")) openEmployeeModal(null);
+    if (params.get("add")) openEmployeeModal(null, params.get("payFrequency"));
   });
 })();
