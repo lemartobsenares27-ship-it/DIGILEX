@@ -149,9 +149,8 @@
         '<td data-label="Employee"><div style="font-weight:600">' + X.escapeHtml(fullName(e)) + '</div><div style="font-size:.7rem;color:#94A3B8">' + e.id + "</div></td>" +
         '<td data-label="Days" style="text-align:center">' + line.daysWorked + "</td>" +
         '<td data-label="Basic Pay" style="text-align:right">' +
-        (line.isWeekly ?
-          '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><input ' + disabled + ' type="number" min="0" step="0.01" class="field-input pr-weeklyrate" data-id="' + e.id + '" value="' + line.entry.weeklyRateOverride + '" placeholder="' + (e.weeklyRate || 0) + '" style="width:90px;text-align:right" title="Weekly rate for this pay period (e.g. training ramp)"><span style="font-size:.72rem;color:#94A3B8">' + X.peso(line.basicPay) + '</span></div>'
-          : X.peso(line.basicPay)) +
+        X.peso(line.basicPay) +
+        (line.isWeekly ? '<div style="font-size:.68rem;color:#94A3B8">weekly rate — see tab</div>' : "") +
         "</td>" +
         '<td data-label="OT (hrs x rate)"><div style="display:flex;gap:4px"><input ' + disabled + ' type="number" min="0" step="0.5" class="field-input pr-ot-hours" data-id="' + e.id + '" value="' + line.entry.otHours + '" style="width:60px" placeholder="hrs"><input ' + disabled + ' type="number" min="0" class="field-input pr-ot-rate" data-id="' + e.id + '" value="' + line.entry.otRate + '" style="width:70px" placeholder="₱/hr"></div></td>' +
         '<td data-label="Holiday Pay"><input ' + disabled + ' type="number" min="0" class="field-input pr-holiday" data-id="' + e.id + '" value="' + line.entry.holidayPay + '" style="width:80px"></td>' +
@@ -196,17 +195,8 @@
           var entry = entryFor(run, id);
           entry[map[cls]] = Number(input.value) || 0;
           saveRun(run);
-          renderTable();
+          setTimeout(renderAll, 0); // deferred — see note in bindWeeklyPayInputs
         });
-      });
-    });
-    document.querySelectorAll(".pr-weeklyrate").forEach(function (input) {
-      input.addEventListener("change", function () {
-        var id = input.getAttribute("data-id");
-        var entry = entryFor(run, id);
-        entry.weeklyRateOverride = input.value === "" ? "" : (Number(input.value) || 0);
-        saveRun(run);
-        renderTable();
       });
     });
     document.querySelectorAll("[data-payslip]").forEach(function (btn) {
@@ -220,7 +210,7 @@
     if (!confirm("Process payroll for " + periodLabel() + "? This will lock the period from further edits.")) return;
     run.processed = true;
     saveRun(run);
-    renderTable();
+    renderAll();
     X.toast("Payroll processed and locked for " + periodLabel() + ".", "success");
   }
 
@@ -288,11 +278,109 @@
   }
 
   function bindControls() {
-    document.getElementById("pr-month").addEventListener("change", function (e) { state.month = Number(e.target.value); renderTable(); });
-    document.getElementById("pr-year").addEventListener("change", function (e) { state.year = Number(e.target.value); renderTable(); });
-    document.getElementById("pr-half").addEventListener("change", function (e) { state.half = Number(e.target.value); renderTable(); });
+    document.getElementById("pr-month").addEventListener("change", function (e) { state.month = Number(e.target.value); renderAll(); });
+    document.getElementById("pr-year").addEventListener("change", function (e) { state.year = Number(e.target.value); renderAll(); });
+    document.getElementById("pr-half").addEventListener("change", function (e) { state.half = Number(e.target.value); renderAll(); });
     document.getElementById("btn-process-payroll").addEventListener("click", processPayroll);
     document.getElementById("btn-print-payslip").addEventListener("click", function () { window.print(); });
+  }
+
+  function renderAll() {
+    renderTable();
+    renderWeeklyPayCards();
+  }
+
+  // ---------------------------------------------------------------------
+  // "Weekly Pay Rates" tab — a dedicated, legible home for the weekly-rate
+  // control, which used to be a tiny input buried inside the Basic Pay
+  // column of the dense payroll table (easy to miss, hard to use on
+  // mobile). Reuses the exact same computePayrollLine()/entryFor() engine
+  // as the main table, so there is only one source of truth for the math.
+  // ---------------------------------------------------------------------
+  function renderWeeklyPayCards() {
+    var container = document.getElementById("weekly-pay-cards");
+    if (!container) return;
+    var run = getRun();
+    var employees = activeEmployees().filter(function (e) { return e.payFrequency === "Weekly"; });
+
+    if (!employees.length) {
+      container.innerHTML =
+        '<div class="dlx-card" style="grid-column:1/-1;text-align:center;padding:40px 20px">' +
+        '<i class="fa-solid fa-calendar-week" style="font-size:1.8rem;color:#CBD5E1;margin-bottom:12px"></i>' +
+        '<div style="font-weight:700;margin-bottom:6px">No weekly-paid staff yet</div>' +
+        '<div style="font-size:.85rem;color:#94A3B8;max-width:420px;margin:0 auto">Open an employee\'s profile and set <strong>Pay Frequency</strong> to <strong>Weekly</strong> to see them here.</div>' +
+        "</div>";
+      return;
+    }
+
+    container.innerHTML = employees.map(function (e) {
+      var line = computePayrollLine(e, run);
+      var disabled = run.processed ? "disabled" : "";
+      var standingDaily = (e.weeklyRate || 0) / 6;
+      var hasOverride = line.entry.weeklyRateOverride !== "" && line.entry.weeklyRateOverride !== undefined && line.entry.weeklyRateOverride !== null;
+      return (
+        '<div class="dlx-card" data-wp-card="' + e.id + '">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">' +
+        '<div class="avatar avatar-sm" style="background:' + X.avatarColor(e.id) + '">' + X.initials(e.firstName, e.lastName) + "</div>" +
+        '<div><div style="font-weight:700">' + X.escapeHtml(fullName(e)) + '</div><div style="font-size:.72rem;color:#94A3B8">' + X.escapeHtml(e.position || "") + "</div></div>" +
+        "</div>" +
+
+        '<div style="font-size:.72rem;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Standing Rate (Employee Profile)</div>' +
+        '<div style="font-size:.9rem;color:#475569;margin-bottom:18px">' + X.peso(e.weeklyRate || 0) + "/week &nbsp;·&nbsp; " + X.peso(standingDaily) + "/day</div>" +
+
+        '<label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--dlx-primary);display:block;margin-bottom:6px">This Period\'s Weekly Rate</label>' +
+        '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">' +
+        '<input ' + disabled + ' type="number" min="0" step="0.01" class="field-input wp-rate-input" data-id="' + e.id + '" value="' + line.entry.weeklyRateOverride + '" placeholder="' + (e.weeklyRate || 0) + '" style="font-size:1.1rem;font-weight:700">' +
+        (hasOverride && !run.processed ? '<button type="button" class="btn btn-secondary btn-sm wp-reset-btn" data-id="' + e.id + '" title="Clear override — use the standing rate instead"><i class="fa-solid fa-rotate-left"></i></button>' : "") +
+        "</div>" +
+        '<div style="font-size:.72rem;color:#94A3B8;margin-bottom:18px">' + (hasOverride ? "Overridden for " + periodLabel() + " only — standing rate is unchanged." : "Using the standing rate. Type a number above to override just this period.") + "</div>" +
+
+        '<div style="background:#F8FAFC;border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">' +
+        '<div><div style="font-size:.7rem;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em">' + line.daysWorked + " day(s) this period</div>" +
+        '<div style="font-size:.78rem;color:#64748B;margin-top:2px">' + X.peso(line.weeklyRate / 6) + "/day" + "</div></div>" +
+        '<div style="text-align:right"><div style="font-size:.7rem;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em">Basic Pay</div><div style="font-size:1.3rem;font-weight:800;color:var(--dlx-primary)">' + X.peso(line.basicPay) + "</div></div>" +
+        "</div>" +
+        "</div>"
+      );
+    }).join("");
+
+    bindWeeklyPayInputs(run);
+  }
+
+  function bindWeeklyPayInputs(run) {
+    document.querySelectorAll(".wp-rate-input").forEach(function (input) {
+      input.addEventListener("change", function () {
+        var id = input.getAttribute("data-id");
+        var entry = entryFor(run, id);
+        entry.weeklyRateOverride = input.value === "" ? "" : (Number(input.value) || 0);
+        saveRun(run);
+        // Deferred: this fires on blur, so rebuilding (and removing) this
+        // same input's card synchronously races the browser's own
+        // in-flight focus/blur bookkeeping ("node ... no longer a child").
+        setTimeout(renderAll, 0);
+      });
+    });
+    document.querySelectorAll(".wp-reset-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-id");
+        var entry = entryFor(run, id);
+        entry.weeklyRateOverride = "";
+        saveRun(run);
+        setTimeout(renderAll, 0);
+      });
+    });
+  }
+
+  function setView(view) {
+    document.getElementById("payroll-table-view").style.display = view === "table" ? "block" : "none";
+    document.getElementById("payroll-weekly-view").style.display = view === "weekly" ? "block" : "none";
+    document.getElementById("btn-view-table").classList.toggle("active", view === "table");
+    document.getElementById("btn-view-weekly").classList.toggle("active", view === "weekly");
+  }
+
+  function bindViewToggle() {
+    document.getElementById("btn-view-table").addEventListener("click", function () { setView("table"); });
+    document.getElementById("btn-view-weekly").addEventListener("click", function () { setView("weekly"); });
   }
 
   // Exposed so other pages (e.g. the Dashboard) can show payroll totals
@@ -322,6 +410,7 @@
     X.renderChrome("payroll", "Payroll & Payslips");
     populatePeriodControls();
     bindControls();
-    renderTable();
+    bindViewToggle();
+    renderAll();
   });
 })();

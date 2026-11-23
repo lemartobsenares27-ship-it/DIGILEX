@@ -31,16 +31,37 @@
         </div>
       </div>
 
-      <div id="payroll-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px" class="no-print"></div>
+      <div class="no-print" style="margin-bottom:16px">
+        <div class="view-toggle">
+          <button id="btn-view-table" class="active">Payroll Table</button>
+          <button id="btn-view-weekly">Weekly Pay Rates</button>
+        </div>
+      </div>
 
-      <div class="dlx-card no-print" style="padding:0;overflow-x:auto">
-        <table class="dlx-table">
-          <thead><tr>
-            <th>Employee</th><th>Days</th><th>Basic Pay</th><th>OT (hrs × rate)</th><th>Holiday Pay</th><th>Transport</th><th>Meal</th><th>Other Allow</th>
-            <th>Gross Pay</th><th>SSS</th><th>PhilHealth</th><th>Pag-IBIG</th><th>Tax</th><th>Other Ded.</th><th>Total Ded.</th><th>Net Pay</th><th>Payslip</th>
-          </tr></thead>
-          <tbody id="payroll-body"></tbody>
-        </table>
+      <div id="payroll-table-view">
+        <div id="payroll-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px" class="no-print"></div>
+
+        <div class="dlx-card no-print" style="padding:0;overflow-x:auto">
+          <table class="dlx-table">
+            <thead><tr>
+              <th>Employee</th><th>Days</th><th>Basic Pay</th><th>OT (hrs × rate)</th><th>Holiday Pay</th><th>Transport</th><th>Meal</th><th>Other Allow</th>
+              <th>Gross Pay</th><th>SSS</th><th>PhilHealth</th><th>Pag-IBIG</th><th>Tax</th><th>Other Ded.</th><th>Total Ded.</th><th>Net Pay</th><th>Payslip</th>
+            </tr></thead>
+            <tbody id="payroll-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="payroll-weekly-view" class="no-print" style="display:none">
+        <div class="dlx-card" style="margin-bottom:16px;background:#FFF7ED;border-color:#FDE4C8">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <i class="fa-solid fa-circle-info" style="color:var(--dlx-accent);font-size:1.1rem;margin-top:2px"></i>
+            <div style="font-size:.85rem;color:#7C4A12">
+              <strong>Weekly-paid staff</strong> (Pay Frequency = Weekly on their Employee profile) are paid by the day at <code>weekly rate ÷ 6</code>. Set each person's <strong>standing rate</strong> on their Employee profile — it applies every period automatically. Use <strong>this period only</strong> here just for a one-off change (a ramp-up week, a temporary adjustment) without touching their standing rate.
+            </div>
+          </div>
+        </div>
+        <div id="weekly-pay-cards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px"></div>
       </div>
 
     </div>
