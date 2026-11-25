@@ -16,6 +16,7 @@ const JntVipFinance = lazy(() => import('../pages/jntvip/JntVipFinance'))
 const JntVipBookkeeping = lazy(() => import('../pages/jntvip/JntVipBookkeeping'))
 const JntVipExecutive = lazy(() => import('../pages/jntvip/JntVipExecutive'))
 const JntVipProfit = lazy(() => import('../pages/jntvip/JntVipProfit'))
+const JntVipExpenses = lazy(() => import('../pages/jntvip/JntVipExpenses'))
 const JntVipCashFlow = lazy(() => import('../pages/jntvip/JntVipCashFlow'))
 const JntVipDecisions = lazy(() => import('../pages/jntvip/JntVipDecisions'))
 const JntVipDaily = lazy(() => import('../pages/jntvip/JntVipDaily'))
@@ -198,6 +199,7 @@ export default function JntVipApp() {
           <Route path="/reconciliation" element={<JntVipReconciliation />} />
           <Route path="/soa-check" element={<JntVipSoaCheck />} />
           <Route path="/profit" element={<JntVipProfit />} />
+          <Route path="/expenses" element={<JntVipExpenses />} />
           <Route path="/cash-flow" element={<JntVipCashFlow />} />
           <Route path="/decisions" element={<JntVipDecisions />} />
           <Route path="/daily" element={<JntVipDaily />} />

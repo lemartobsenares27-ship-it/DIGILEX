@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { UploadCloud, AlertOctagon, Boxes, ShieldCheck, Wallet, BookOpen, Target, Coins, Boxes as BoxesIcon, Waves, Lightbulb, CalendarRange, Layers, Gauge, Sun, Moon, Menu, PackageX } from 'lucide-react'
+import { UploadCloud, AlertOctagon, Boxes, ShieldCheck, Wallet, BookOpen, Target, Coins, Boxes as BoxesIcon, Waves, Lightbulb, CalendarRange, Layers, Gauge, Sun, Moon, Menu, PackageX, Receipt } from 'lucide-react'
 import { useTheme } from '../hooks/useTheme'
 import AppSwitcher from '../components/AppSwitcher'
 
@@ -26,6 +26,7 @@ const NAV: { heading: string; items: { to: string; label: string; icon: typeof T
       { to: '/take-home', label: 'My Take Home', icon: Wallet },
       { to: '/ad-check', label: 'Am I profitable?', icon: ShieldCheck },
       { to: '/profit', label: 'Profit & Loss', icon: Coins },
+      { to: '/expenses', label: 'Expenses', icon: Receipt },
       { to: '/cash-flow', label: 'Cash Position', icon: Waves },
       { to: '/finance', label: 'Finance', icon: Wallet },
       { to: '/bookkeeping', label: 'Monthly Bookkeeping', icon: BookOpen },

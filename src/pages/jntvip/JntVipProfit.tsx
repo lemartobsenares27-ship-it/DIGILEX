@@ -7,6 +7,7 @@
 // the break-even it implies, so a bad month is visible before it finishes.
 
 import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { TrendingUp, TrendingDown, Target, AlertTriangle, Undo2, Info, FlaskConical, Building2, Gauge, ArrowUpRight } from 'lucide-react'
 import PageHeader from '../../components/PageHeader'
 import Card from '../../components/Card'
@@ -17,7 +18,6 @@ import { profitAndLoss, costStack, unitEconomics, bottlesForProfit, atPrice, pro
 import { BOTTLE_COSTS } from '../../lib/jntvip/bottleCost'
 import { fixedCostPerDay, toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
 import OperatingExpenseEditor from './OperatingExpenseEditor'
-import CostCoverage from './CostCoverage'
 import { adChargesBetween, adSpendBySource, accruedBetween, ACCRUED_AD_SPEND } from '../../lib/jntvip/adSpend'
 import type { JntVipSoaCheckRow, JntVipParcelRow, JntVipOperatingExpenseRow } from '../../lib/jntvip/types'
 
@@ -790,8 +790,17 @@ export default function JntVipProfit() {
         </p>
       </Card>
 
-      {/* The boundary of what these figures can see. */}
-      <CostCoverage profit={latest ? latest.profit : p.profit} days={latest ? latest.days : p.days} />
+      {/* The boundary of what these figures can see now lives on Expenses, built
+          from the live cost rows. The old block here was hardcoded and had gone
+          stale — it still claimed 34 statements against 56, and CSR rates that
+          were retired — so it is removed rather than left to mislead. */}
+      <Card className="mt-4">
+        <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+          Every cost above, where each one came from, what is deliberately not charged, and
+          anything the app cannot see:{' '}
+          <Link to="/expenses" style={{ color: 'var(--series-orange)' }}>Expenses</Link>.
+        </p>
+      </Card>
 
       {/* Where the ad figure comes from — now a statement like everything else. */}
       <Card title="How the ad figure was built" className="mt-4">
