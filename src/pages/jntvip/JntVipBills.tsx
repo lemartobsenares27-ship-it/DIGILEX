@@ -183,6 +183,11 @@ export default function JntVipBills() {
   )
 
   // AUTO leaves on its own; it is not money the owner has to remember to move.
+  // Closed cards are shown, not hidden. A card that vanishes leaves the owner
+  // wondering whether it was dropped or forgotten, and its past charges are
+  // still in the ad figures.
+  const retired = useMemo(() => bills.filter((b) => !b.active), [bills])
+
   const unpaid = statuses.filter((s) => s.state !== 'PAID' && s.state !== 'AUTO')
   const totalBusiness = unpaid.filter((s) => s.bill.scope === 'BUSINESS').reduce((t, s) => t + s.bill.amount, 0)
   const totalPersonal = unpaid.filter((s) => s.bill.scope === 'PERSONAL').reduce((t, s) => t + s.bill.amount, 0)
@@ -286,6 +291,27 @@ export default function JntVipBills() {
             <BillCard key={s.bill.key} s={s} />
           ))}
         </div>
+      )}
+
+      {retired.length > 0 && (
+        <Card className="mt-4" title="Closed">
+          <div className="space-y-2">
+            {retired.map((b) => (
+              <div key={b.key} className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <span className="text-sm font-medium line-through" style={{ color: 'var(--text-muted)' }}>
+                  {b.label}
+                </span>
+                <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{b.note}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            Closing a card does not remove what was already charged to it. Any advertising it paid
+            for stays in the figures on{' '}
+            <Link to="/expenses" style={{ color: 'var(--series-orange)' }}>Expenses</Link>, and any
+            balance left on it is still owed.
+          </p>
+        </Card>
       )}
 
       <Card className="mt-4">

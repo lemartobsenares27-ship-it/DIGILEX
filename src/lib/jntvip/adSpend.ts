@@ -76,7 +76,29 @@ export interface AdCard {
 export const AD_CARDS: AdCard[] = [
   { id: 'GOTYME', label: 'GoTyme card', where: 'the GoTyme app', completeThrough: '2026-11-16' },
   { id: 'RCBC', label: 'RCBC Airmiles card', where: 'the RCBC app', completeThrough: '2026-11-07' },
+  // Three cards the owner confirmed on 25 Nov 2026 are ALL used for ads, with
+  // not one statement read. Their balances that day came to PHP127,674.51:
+  // Metrobank PHP34,613.86, PNB PHP44,006.14, Maya PHP49,054.51.
+  //
+  // completeThrough is the day before the first statement period, which is
+  // this model's way of saying NOTHING has been read for them. It is not a
+  // claim about when each card started running ads — nobody has said, and
+  // guessing a start date would be inventing the one fact that decides how
+  // much of the ad figure is missing.
+  //
+  // The effect is deliberate and is what the comment above this list warns
+  // about: with an unread ad card in play, no period can be called fully
+  // costed. AD_COMPLETE_THROUGH drops to 2026-08-27 and every margin in the
+  // app reads as a best case until these statements arrive. That is the
+  // truthful state. It was already true yesterday; the app just could not say
+  // so, because it did not know these cards existed.
+  { id: 'METROBANK', label: 'Metrobank card (…7297)', where: 'the Metrobank app', completeThrough: '2026-08-27' },
+  { id: 'PNB', label: 'PNB Travel Club card (…9771)', where: 'the PNB app', completeThrough: '2026-08-27' },
+  { id: 'MAYA', label: 'Maya Black card', where: 'the Maya app', completeThrough: '2026-08-27' },
 ]
+
+/** Ad cards with no statement read at all, so their spend is entirely missing. */
+export const UNREAD_AD_CARDS = AD_CARDS.filter((c) => c.completeThrough <= '2026-08-27')
 
 export type AdSource = string
 

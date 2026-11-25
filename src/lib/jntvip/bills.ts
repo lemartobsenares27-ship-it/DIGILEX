@@ -107,19 +107,6 @@ export function sortByUrgency(list: BillStatus[]): BillStatus[] {
  */
 export const SEED_BILLS: Omit<JntVipBillRow, 'id' | 'updatedAt'>[] = [
   {
-    key: 'bpi-card',
-    label: 'BPI Credit Card (…1710222)',
-    dueDay: 10,
-    amount: 0,
-    category: 'Credit card — Facebook Ads',
-    account: 'BPI',
-    scope: 'BUSINESS',
-    autoDebit: false,
-    note: 'Ask BPI for a higher credit limit, per your note.',
-    paidThrough: '',
-    active: true,
-  },
-  {
     // Due on the 2nd, not the 12th. The first seed read 07/12/2026 off the old
     // tracker and took it as the 12th; the Maya app itself says the payment is
     // due 2 December. The app wins — the tracker's date was stale anyway.
@@ -173,11 +160,11 @@ export const SEED_BILLS: Omit<JntVipBillRow, 'id' | 'updatedAt'>[] = [
     label: 'PNB Travel Club Platinum (…9771)',
     dueDay: 25,
     amount: 0,
-    category: 'Credit card',
+    category: 'Credit card — Facebook Ads',
     account: 'PNB',
     scope: 'BUSINESS',
     autoDebit: false,
-    note: 'Statement 3 Nov 2026 closed with nothing due. Confirm whether this card runs ads.',
+    note: 'Statement 3 Nov 2026 closed with nothing due. Used for ads, confirmed 25 Nov 2026.',
     // Total and minimum due both read PHP0.00, so there is nothing to pay for
     // November. The PHP44,006.14 outstanding lands on the next statement.
     paidThrough: '2026-11',
@@ -194,7 +181,7 @@ export const SEED_BILLS: Omit<JntVipBillRow, 'id' | 'updatedAt'>[] = [
     label: 'Metrobank Credit Card (…7297)',
     dueDay: 0,
     amount: 0,
-    category: 'Credit card',
+    category: 'Credit card — Facebook Ads',
     account: 'Metrobank',
     scope: 'BUSINESS',
     autoDebit: false,
@@ -258,6 +245,16 @@ interface BillCorrection {
 
 const CORRECTIONS: BillCorrection[] = [
   {
+    key: 'pnb-card',
+    was: { category: 'Credit card' },
+    set: { category: 'Credit card — Facebook Ads', note: 'Statement 3 Nov 2026 closed with nothing due. Used for ads, confirmed 25 Nov 2026.' },
+  },
+  {
+    key: 'metrobank-card',
+    was: { category: 'Credit card' },
+    set: { category: 'Credit card — Facebook Ads' },
+  },
+  {
     key: 'maya-card',
     was: { dueDay: 12, amount: 0, label: 'Maya Credit Card (…1012)' },
     set: {
@@ -268,6 +265,35 @@ const CORRECTIONS: BillCorrection[] = [
       note: 'Online payments only, card not yet activated — so the balance on it is all online spend.',
     },
   },
+]
+
+/**
+ * A change the OWNER asked for, applied exactly once.
+ *
+ * Different from a CORRECTION above, and the difference matters. A correction
+ * repairs a value this seed itself got wrong, and guards on the wrong value
+ * still being there. This applies a decision the owner stated — closing a card
+ * — which no equality check can verify.
+ *
+ * So it is recorded in `meta` once it has run. Without that marker a seed that
+ * runs on every page load would re-retire a card the owner later reopened,
+ * and they would have no way to make it stick.
+ */
+interface BillOnceOp {
+  id: string
+  key: string
+  set?: Partial<JntVipBillRow>
+  /** Deletes the row outright. Only for a bill the owner has asked to remove. */
+  remove?: boolean
+}
+
+const ONCE_OPS: BillOnceOp[] = [
+  // BPI is closed and the owner asked for it to be removed outright, not
+  // retired. Deleting it loses nothing: a bill row is a reminder, and no
+  // financial figure is built from this table — the P&L is costed from
+  // operatingExpenses, and advertising from the card statements. Whatever BPI
+  // paid for before it closed is still in those figures and is untouched here.
+  { id: 'bills.bpi-removed.2026-11-25', key: 'bpi-card', remove: true },
 ]
 
 /**
@@ -310,6 +336,22 @@ export async function seedBills(): Promise<BillSeedResult> {
       updatedAt: new Date().toISOString(),
     })
     corrected++
+  }
+
+  // Owner-stated changes, each applied at most once ever.
+  for (const op of ONCE_OPS) {
+    const done = await jntVipDb.meta.get(op.id)
+    if (done) continue
+    const row = byKey.get(op.key)
+    if (row?.id) {
+      if (op.remove) await jntVipDb.bills.delete(row.id)
+      else if (op.set) await jntVipDb.bills.update(row.id, { ...op.set, updatedAt: new Date().toISOString() })
+      corrected++
+    }
+    // Marked done even when the row was absent: it was just seeded with the
+    // change already in it, and leaving the marker unset would make this run
+    // again on every load forever.
+    await jntVipDb.meta.put({ key: op.id, value: new Date().toISOString() })
   }
 
   return { added: missing.length, corrected }

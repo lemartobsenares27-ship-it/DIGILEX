@@ -21,7 +21,7 @@ import { jntVipDb } from '../../lib/jntvip/db'
 import type { JntVipOperatingExpenseRow, JntVipSoaCheckRow, JntVipParcelRow } from '../../lib/jntvip/types'
 import { OPERATING_EXPENSES, toOperatingExpenses } from '../../lib/jntvip/operatingCosts'
 import { profitAndLoss } from '../../lib/jntvip/profit'
-import { AD_CARDS, AD_COMPLETE_THROUGH, adSpendBySource, accruedBetween } from '../../lib/jntvip/adSpend'
+import { AD_CARDS, AD_COMPLETE_THROUGH, UNREAD_AD_CARDS, adSpendBySource, accruedBetween } from '../../lib/jntvip/adSpend'
 import OperatingExpenseEditor from './OperatingExpenseEditor'
 
 const peso = (c: number) =>
@@ -220,6 +220,21 @@ export default function JntVipExpenses() {
             )}
           </tbody>
         </table>
+        {UNREAD_AD_CARDS.length > 0 && (
+          <p className="mt-3 rounded-lg p-3 text-sm" style={{ background: 'color-mix(in srgb, var(--status-critical) 12%, transparent)', color: 'var(--text-primary)' }}>
+            <strong>
+              {UNREAD_AD_CARDS.length} card{UNREAD_AD_CARDS.length === 1 ? '' : 's'} used for ads
+              {UNREAD_AD_CARDS.length === 1 ? ' has' : ' have'} no statement read at all:{' '}
+              {UNREAD_AD_CARDS.map((c) => c.label).join(', ')}.
+            </strong>{' '}
+            Not one peso charged to {UNREAD_AD_CARDS.length === 1 ? 'it' : 'them'} is in the figure
+            above, so the real ad spend is higher than anything this app shows and every margin
+            here is an upper bound. How much higher is not guessable from a balance — a balance is
+            what is owed today, not what was spent in a period — so no estimate is made.
+            Get {UNREAD_AD_CARDS.map((c) => c.where).join(', ')} and this closes.
+          </p>
+        )}
+
         <p className="mt-3 rounded-lg p-3 text-sm" style={{ background: 'color-mix(in srgb, var(--status-warning-ink) 10%, transparent)', color: 'var(--text-primary)' }}>
           <strong>Ad spend is only fully read to {AD_COMPLETE_THROUGH}.</strong> That is the earliest
           date any one card runs out, and a total is only as complete as its least-read card. Anything
