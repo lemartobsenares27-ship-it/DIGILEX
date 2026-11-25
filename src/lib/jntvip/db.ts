@@ -20,6 +20,7 @@ import type {
   JntVipProductRow,
   JntVipParcelProductRow,
   JntVipRtsHomecomingRow,
+  JntVipBillRow,
 } from './types'
 
 export interface JntVipMetaRow {
@@ -40,6 +41,7 @@ class JntVipDB extends Dexie {
   products!: Table<JntVipProductRow, number>
   parcelProducts!: Table<JntVipParcelProductRow, number>
   rtsHomecoming!: Table<JntVipRtsHomecomingRow, number>
+  bills!: Table<JntVipBillRow, number>
 
   constructor() {
     super('jnt-vip-reconciliation')
@@ -130,6 +132,23 @@ class JntVipDB extends Dexie {
     // of the table throw.
     this.version(7).stores({
       rtsHomecoming: '++id, &awb, status, settledOn',
+    })
+    // v8 stores the recurring bills — cards, loan, utilities — with the day of
+    // the month each falls due.
+    //
+    // They were tracked outside this app, which is how six of them ended up
+    // reading "overdue 136 days": a bill was recorded once with a fixed date
+    // and never rolled forward, so a monthly bill that had been paid all along
+    // looked months late. Here a bill carries a due DAY and the last month it
+    // was settled, and the next due date is computed from today.
+    //
+    // `key` is unique so seeding is idempotent and an edit updates in place.
+    // `dueDay` is indexed for ordering. `autoDebit` and `active` are NOT
+    // indexed: IndexedDB keys may only be numbers, strings, Dates or Arrays,
+    // and indexing a boolean makes every read of the table throw — the same
+    // trap documented on operatingExpenses above.
+    this.version(8).stores({
+      bills: '++id, &key, dueDay, category',
     })
   }
 }

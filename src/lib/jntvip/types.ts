@@ -380,3 +380,37 @@ export interface JntVipRtsHomecomingRow {
   note?: string
   updatedAt: string
 }
+
+/**
+ * A recurring bill with a due day each month.
+ *
+ * Stored rather than hard-coded because bills arrive and change constantly, and
+ * one that needs a code change to record is one that gets paid late.
+ *
+ * `paidThrough` is the last month settled, as YYYY-MM. Marking a bill paid
+ * advances it rather than flipping a boolean: a bill is not "paid", it is paid
+ * FOR A MONTH, and next month it is due again. A boolean would also be
+ * unusable as an IndexedDB index, which this schema cannot have.
+ */
+export interface JntVipBillRow {
+  id?: number
+  /** Stable identifier, so seeding and editing never duplicate a row. */
+  key: string
+  label: string
+  /** Day of the month it falls due, 1-31. Clamped to the month's last day. */
+  dueDay: number
+  /** Integer centavos. 0 means the amount is not known yet, not that it is free. */
+  amount: number
+  category: string
+  /** Which account or card it is paid from. */
+  account: string
+  /** 'BUSINESS' or 'PERSONAL' — kept apart so business totals stay honest. */
+  scope: 'BUSINESS' | 'PERSONAL'
+  autoDebit: boolean
+  note: string
+  /** Last month settled, 'YYYY-MM'. Empty means never recorded as paid. */
+  paidThrough: string
+  /** False retires a bill without erasing that it existed. */
+  active: boolean
+  updatedAt: string
+}

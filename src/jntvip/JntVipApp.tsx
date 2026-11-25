@@ -7,6 +7,7 @@ import { seedOperatingExpenses } from '../lib/jntvip/operatingCosts'
 import { seedProducts } from '../lib/jntvip/products'
 import { seedParcels } from '../lib/jntvip/parcelSeed'
 import { seedPosProductPins } from '../lib/jntvip/posProductSeed'
+import { seedBills } from '../lib/jntvip/bills'
 
 const JntVipDashboard = lazy(() => import('../pages/jntvip/JntVipDashboard'))
 const JntVipImport = lazy(() => import('../pages/jntvip/JntVipImport'))
@@ -17,6 +18,7 @@ const JntVipBookkeeping = lazy(() => import('../pages/jntvip/JntVipBookkeeping')
 const JntVipExecutive = lazy(() => import('../pages/jntvip/JntVipExecutive'))
 const JntVipProfit = lazy(() => import('../pages/jntvip/JntVipProfit'))
 const JntVipExpenses = lazy(() => import('../pages/jntvip/JntVipExpenses'))
+const JntVipBills = lazy(() => import('../pages/jntvip/JntVipBills'))
 const JntVipCashFlow = lazy(() => import('../pages/jntvip/JntVipCashFlow'))
 const JntVipDecisions = lazy(() => import('../pages/jntvip/JntVipDecisions'))
 const JntVipDaily = lazy(() => import('../pages/jntvip/JntVipDaily'))
@@ -106,6 +108,7 @@ export default function JntVipApp() {
           .catch((e) => console.warn('Parcel seed skipped:', e)),
       )
       .then(() => seedPosProductPins().catch((e) => console.warn('POS pin seed skipped:', e)))
+      .then(() => seedBills().catch((e) => console.warn('Bill seed skipped:', e)))
       .then(() => {
         done = true
         setPhase('ready')
@@ -200,6 +203,7 @@ export default function JntVipApp() {
           <Route path="/soa-check" element={<JntVipSoaCheck />} />
           <Route path="/profit" element={<JntVipProfit />} />
           <Route path="/expenses" element={<JntVipExpenses />} />
+          <Route path="/bills" element={<JntVipBills />} />
           <Route path="/cash-flow" element={<JntVipCashFlow />} />
           <Route path="/decisions" element={<JntVipDecisions />} />
           <Route path="/daily" element={<JntVipDaily />} />
