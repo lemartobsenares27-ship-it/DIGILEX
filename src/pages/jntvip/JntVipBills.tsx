@@ -26,6 +26,7 @@ const STATE_STYLE: Record<BillState, { label: (d: number) => string; ink: string
   DUE_SOON: { label: (d) => (d === 0 ? 'Due today' : `Due in ${d}d`), ink: 'var(--status-warning-ink)' },
   UPCOMING: { label: (d) => `Due in ${d}d`, ink: 'var(--status-good-ink)' },
   AUTO: { label: () => 'Auto-debited', ink: 'var(--text-secondary)' },
+  NO_DATE: { label: () => 'Due day not set', ink: 'var(--text-secondary)' },
   PAID: { label: () => 'Paid', ink: 'var(--text-muted)' },
 }
 
@@ -37,6 +38,7 @@ function BillCard({ s }: { s: BillStatus }) {
   const style = STATE_STYLE[state]
   const paid = state === 'PAID'
   const auto = state === 'AUTO'
+  const noDate = state === 'NO_DATE'
 
   const save = (patch: Partial<JntVipBillRow>) =>
     jntVipDb.bills.update(bill.id!, { ...patch, updatedAt: new Date().toISOString() })
@@ -65,7 +67,7 @@ function BillCard({ s }: { s: BillStatus }) {
       <dl className="space-y-1.5 text-sm">
         <div className="flex items-center justify-between gap-3">
           <dt style={{ color: 'var(--text-secondary)' }}>Due date</dt>
-          <dd className="tabular" style={{ color: 'var(--text-primary)' }}>{DATE(due)}</dd>
+          <dd className="tabular" style={{ color: noDate ? 'var(--text-muted)' : 'var(--text-primary)' }}>{noDate ? 'not known' : DATE(due)}</dd>
         </div>
         <div className="flex items-center justify-between gap-3">
           <dt style={{ color: 'var(--text-secondary)' }}>Amount due</dt>
@@ -92,7 +94,8 @@ function BillCard({ s }: { s: BillStatus }) {
               type="number"
               min={1}
               max={31}
-              defaultValue={bill.dueDay}
+              defaultValue={bill.dueDay > 0 ? bill.dueDay : ''}
+              placeholder="set it"
               onBlur={(e) => {
                 const n = Math.min(31, Math.max(1, Math.round(Number(e.target.value))))
                 if (Number.isFinite(n) && n !== bill.dueDay) save({ dueDay: n })
@@ -117,6 +120,39 @@ function BillCard({ s }: { s: BillStatus }) {
           <dd style={{ color: 'var(--text-primary)' }}>{bill.autoDebit ? 'Yes' : 'No'}</dd>
         </div>
       </dl>
+
+      {bill.outstanding != null && (
+        <div className="mt-2.5 border-t pt-2.5" style={{ borderColor: 'var(--border-hairline)' }}>
+          <div className="flex items-baseline justify-between gap-3 text-sm">
+            <span style={{ color: 'var(--text-secondary)' }}>Total owed on the card</span>
+            <span className="tabular font-semibold" style={{ color: 'var(--text-primary)' }}>
+              {peso(bill.outstanding)}
+            </span>
+          </div>
+          {bill.creditLimit != null && bill.creditLimit > 0 && (
+            <>
+              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full" style={{ background: 'var(--border-hairline)' }}>
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${Math.min(100, (bill.outstanding / bill.creditLimit) * 100)}%`,
+                    background:
+                      bill.outstanding / bill.creditLimit >= 0.7
+                        ? 'var(--status-critical)'
+                        : bill.outstanding / bill.creditLimit >= 0.4
+                          ? 'var(--status-warning-ink)'
+                          : 'var(--status-good-ink)',
+                  }}
+                />
+              </div>
+              <div className="mt-1 flex justify-between text-xs" style={{ color: 'var(--text-muted)' }}>
+                <span>{((bill.outstanding / bill.creditLimit) * 100).toFixed(0)}% of {peso(bill.creditLimit)}</span>
+                {bill.balanceAsOf && <span>read {bill.balanceAsOf}</span>}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {bill.note && (
         <p className="mt-2 text-xs italic" style={{ color: 'var(--text-muted)' }}>{bill.note}</p>
@@ -151,7 +187,14 @@ export default function JntVipBills() {
   const totalBusiness = unpaid.filter((s) => s.bill.scope === 'BUSINESS').reduce((t, s) => t + s.bill.amount, 0)
   const totalPersonal = unpaid.filter((s) => s.bill.scope === 'PERSONAL').reduce((t, s) => t + s.bill.amount, 0)
   const unknownAmounts = unpaid.filter((s) => s.bill.amount === 0).length
+  // Card debt is not "unpaid this month" — it is what the cards carry in total,
+  // and it is the number that decides whether there is room to keep advertising.
+  const cards = bills.filter((b) => b.active && /card/i.test(b.category))
+  const cardDebt = cards.reduce((t, b) => t + (b.outstanding ?? 0), 0)
+  const cardsWithBalance = cards.filter((b) => b.outstanding != null).length
+  const cardsWithoutBalance = cards.length - cardsWithBalance
   const overdue = statuses.filter((s) => s.state === 'OVERDUE')
+  const undated = statuses.filter((s) => s.state === 'NO_DATE')
 
   // Cards that pay for advertising but are not registered as ad sources. This
   // is the gap that left November's ad spend attributed to nobody.
@@ -174,7 +217,7 @@ export default function JntVipBills() {
         description="Every recurring bill, when it next falls due, and what is still unpaid this month. Marking one paid settles it for this month only — next month it comes back."
       />
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Card>
           <div className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Unpaid this month — business</div>
           <div className="mt-1 text-2xl font-semibold tabular" style={{ color: 'var(--text-primary)' }}>{peso(totalBusiness)}</div>
@@ -190,12 +233,21 @@ export default function JntVipBills() {
           <div className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>Kept apart so the business total stays honest</div>
         </Card>
         <Card>
+          <div className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Owed on cards</div>
+          <div className="mt-1 text-2xl font-semibold tabular" style={{ color: 'var(--text-primary)' }}>{peso(cardDebt)}</div>
+          <div className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+            {cardsWithBalance} card{cardsWithBalance === 1 ? '' : 's'} read
+            {cardsWithoutBalance > 0 ? `, ${cardsWithoutBalance} not yet — the real total is higher` : ''}
+          </div>
+        </Card>
+        <Card>
           <div className="text-xs uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>Overdue</div>
           <div className="mt-1 text-2xl font-semibold tabular" style={{ color: overdue.length > 0 ? 'var(--status-critical)' : 'var(--status-good-ink)' }}>
             {overdue.length}
           </div>
           <div className="mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
             {overdue.length > 0 ? overdue.map((s) => s.bill.label.split(' (')[0]).join(', ') : 'Nothing past its due date'}
+            {undated.length > 0 && ` · ${undated.length} with no due day set, so not counted`}
           </div>
         </Card>
       </div>

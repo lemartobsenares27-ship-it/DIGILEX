@@ -410,6 +410,19 @@ export interface JntVipBillRow {
   note: string
   /** Last month settled, 'YYYY-MM'. Empty means never recorded as paid. */
   paidThrough: string
+  /**
+   * What is owed on the card in total, in centavos, as last read from the app.
+   *
+   * Separate from `amount`, which is only what falls due this month. A card can
+   * show nothing due and still carry a large balance — PNB's statement of
+   * 3 Nov 2026 read PHP0.00 due against PHP44,006.14 outstanding. Treating the
+   * two as one number is how a card looks settled while the debt grows.
+   */
+  outstanding?: number
+  /** The card's credit limit in centavos, as shown in its app. */
+  creditLimit?: number
+  /** When outstanding and creditLimit were last read, 'YYYY-MM-DD'. */
+  balanceAsOf?: string
   /** False retires a bill without erasing that it existed. */
   active: boolean
   updatedAt: string
