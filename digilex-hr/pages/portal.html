@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Attendance — DIGILEX HR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../css/styles.css">
+</head>
+<body style="background:var(--dlx-bg)">
+
+  <header class="topbar" style="padding-left:24px;padding-right:24px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="brand-mark">D</div>
+      <div>
+        <div style="font-weight:800;color:var(--dlx-primary)">DIGILEX HR</div>
+        <div style="font-size:.72rem;color:#94A3B8">Employee Self-Service</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div style="text-align:right">
+        <div id="portal-name" style="font-weight:700;font-size:.85rem"></div>
+        <div id="portal-role" style="font-size:.72rem;color:#94A3B8"></div>
+      </div>
+      <div class="avatar avatar-sm" id="portal-avatar"></div>
+    </div>
+  </header>
+
+  <div class="page-body" style="max-width:980px;margin:0 auto">
+
+    <div class="dlx-card" style="margin-bottom:16px">
+      <div id="portal-greeting" style="font-size:1.3rem;font-weight:800;color:var(--dlx-primary)"></div>
+      <div id="portal-today-date" style="color:#64748B;font-size:.85rem;margin-top:2px"></div>
+    </div>
+
+    <div class="dlx-split-wide" style="margin-bottom:16px">
+      <div class="dlx-card">
+        <div style="font-weight:700;margin-bottom:14px">Today's Schedule</div>
+
+        <div id="portal-step-checkin" class="portal-step">
+          <div class="portal-step-icon"><i class="fa-solid fa-check"></i></div>
+          <div class="portal-step-body">
+            <div class="portal-step-label">Check-in</div>
+            <div class="portal-step-time" id="portal-step-checkin-time">—</div>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btn-time-in"><i class="fa-solid fa-right-to-bracket"></i> Time In</button>
+        </div>
+
+        <div id="portal-breaks-list" style="margin:4px 0 4px 15px;padding-left:23px;border-left:2px dashed #E2E8F0"></div>
+
+        <div class="portal-step" style="border:none;padding-top:0">
+          <div class="portal-step-icon portal-step-icon-neutral"><i class="fa-solid fa-mug-saucer"></i></div>
+          <div class="portal-step-body">
+            <div class="portal-step-label">Break</div>
+            <div class="portal-step-time" id="portal-break-status">Clock in to start tracking breaks.</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <select class="field-select" id="portal-break-type" style="max-width:130px;padding:6px 8px;font-size:.78rem">
+              <option>Lunch Break</option>
+              <option>Short Break</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="btn-break-start"><i class="fa-solid fa-play"></i> Start</button>
+            <button class="btn btn-secondary btn-sm" id="btn-break-end"><i class="fa-solid fa-pause"></i> End</button>
+          </div>
+        </div>
+
+        <div id="portal-step-checkout" class="portal-step" style="border-bottom:none">
+          <div class="portal-step-icon"><i class="fa-solid fa-check"></i></div>
+          <div class="portal-step-body">
+            <div class="portal-step-label">Check-out</div>
+            <div class="portal-step-time" id="portal-step-checkout-time">—</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-time-out"><i class="fa-solid fa-right-from-bracket"></i> Time Out</button>
+        </div>
+      </div>
+
+      <div style="display:grid;gap:16px">
+        <div class="dlx-card" style="text-align:center">
+          <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#94A3B8;font-weight:600;margin-bottom:6px"><i class="fa-solid fa-stopwatch"></i> Time Elapsed</div>
+          <div id="portal-time-elapsed" style="font-size:2rem;font-weight:800;color:var(--dlx-primary);font-variant-numeric:tabular-nums">00:00:00</div>
+          <div id="portal-clock-status" style="font-size:.8rem;color:#64748B;margin-top:6px"></div>
+        </div>
+        <div class="dlx-card">
+          <div style="font-weight:700;margin-bottom:10px;font-size:.85rem">Quick Actions</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <button class="portal-quick-tile" id="btn-portal-change-password-tile"><i class="fa-solid fa-key"></i><span>Change Password</span></button>
+            <button class="portal-quick-tile" id="btn-portal-export"><i class="fa-solid fa-file-csv"></i><span>Export My Attendance</span></button>
+            <button class="portal-quick-tile" id="btn-portal-history-tile"><i class="fa-solid fa-clock-rotate-left"></i><span>View History</span></button>
+            <button class="portal-quick-tile" id="btn-portal-logout-tile"><i class="fa-solid fa-right-from-bracket"></i><span>Logout</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="portal-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:14px;margin-bottom:16px"></div>
+
+    <div class="dlx-split-wide" style="margin-bottom:16px">
+      <div class="dlx-card" id="portal-leave-card">
+        <div style="font-weight:700;margin-bottom:4px"><i class="fa-solid fa-plane-departure"></i> Request Leave</div>
+        <div style="font-size:.78rem;color:#94A3B8;margin-bottom:14px">Your request goes to HR for approval. You'll see the status below.</div>
+        <form id="portal-leave-form">
+          <div class="field-group">
+            <label class="field-label">Leave Type</label>
+            <select class="field-select" id="portal-lv-type" required></select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="field-group"><label class="field-label">From</label><input type="date" class="field-input" id="portal-lv-from" required></div>
+            <div class="field-group"><label class="field-label">To</label><input type="date" class="field-input" id="portal-lv-to" required></div>
+          </div>
+          <div style="font-size:.8rem;color:#64748B;margin-bottom:12px">Duration: <strong id="portal-lv-days">0 day(s)</strong></div>
+          <div class="field-group"><label class="field-label">Reason</label><textarea class="field-textarea" id="portal-lv-reason" rows="2" placeholder="Briefly explain your request"></textarea></div>
+          <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center"><i class="fa-solid fa-paper-plane"></i> Submit Request</button>
+        </form>
+      </div>
+
+      <div class="dlx-card">
+        <div style="font-weight:700;margin-bottom:12px">My Leave Requests</div>
+        <div id="portal-leave-list"></div>
+      </div>
+    </div>
+
+    <div class="dlx-card" id="portal-history-card">
+      <div style="font-weight:700;margin-bottom:12px">My Attendance History</div>
+      <div style="overflow-x:auto">
+        <table class="dlx-table">
+          <thead><tr><th>Date</th><th>Status</th><th>Time In</th><th>Time Out</th><th>Hours</th><th>Break Time</th></tr></thead>
+          <tbody id="portal-history-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+<script src="../js/data.js"></script>
+<script src="../js/auth.js"></script>
+<script src="../js/app.js"></script>
+<script src="../js/portal.js"></script>
+</body>
+</html>

@@ -1,0 +1,466 @@
+/* DIGILEX HR ERP — Payroll + Payslip module */
+
+(function () {
+  "use strict";
+  var X = window.Digilex;
+  var D = window.DigilexData;
+  var Store = X.Store;
+
+  var now = new Date();
+  var state = {
+    year: now.getFullYear(),
+    month: now.getMonth() + 1,
+    half: now.getDate() <= 15 ? 1 : 2,
+  };
+
+  function fullName(e) { return e.firstName + " " + e.lastName; }
+  function pad2(n) { return X.pad2(n); }
+
+  function periodId() { return "PR-" + state.year + "-" + pad2(state.month) + "-H" + state.half; }
+  function periodRange() {
+    var from = state.half === 1 ? 1 : 16;
+    var to = state.half === 1 ? 15 : new Date(state.year, state.month, 0).getDate();
+    return {
+      fromIso: state.year + "-" + pad2(state.month) + "-" + pad2(from),
+      toIso: state.year + "-" + pad2(state.month) + "-" + pad2(to),
+      from: from, to: to,
+    };
+  }
+  function periodLabel() {
+    var r = periodRange();
+    var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    return months[state.month - 1] + " " + r.from + "–" + r.to + ", " + state.year;
+  }
+
+  function getRun() {
+    var runs = Store.getPayrollRuns();
+    var run = runs.find(function (r) { return r.id === periodId(); });
+    if (!run) {
+      run = { id: periodId(), year: state.year, month: state.month, half: state.half, processed: false, entries: {} };
+      runs.push(run);
+      Store.setPayrollRuns(runs);
+    }
+    return run;
+  }
+  function saveRun(run) {
+    var runs = Store.getPayrollRuns();
+    var idx = runs.findIndex(function (r) { return r.id === run.id; });
+    if (idx === -1) runs.push(run); else runs[idx] = run;
+    Store.setPayrollRuns(runs);
+  }
+  function entryFor(run, employeeId) {
+    if (!run.entries[employeeId]) {
+      run.entries[employeeId] = { otHours: 0, otRate: 0, holidayPay: 0, transportAllowance: 0, mealAllowance: 0, otherAllowance: 0, otherDeductions: 0, weeklyRateOverride: "" };
+    }
+    if (run.entries[employeeId].weeklyRateOverride === undefined) run.entries[employeeId].weeklyRateOverride = "";
+    return run.entries[employeeId];
+  }
+
+  function daysWorkedInPeriod(employeeId) {
+    var r = periodRange();
+    return daysWorkedInRange(employeeId, r.fromIso, r.toIso);
+  }
+
+  function daysWorkedInRange(employeeId, fromIso, toIso) {
+    var attendance = Store.getAttendance().filter(function (a) { return a.employeeId === employeeId && a.date >= fromIso && a.date <= toIso; });
+    var days = 0;
+    attendance.forEach(function (a) {
+      if (a.status === "Present" || a.status === "Late") days += 1;
+      else if (a.status === "Half Day") days += 0.5;
+    });
+    return days;
+  }
+
+  // Splits the current (semi-monthly) payroll period into calendar weeks
+  // (Monday-Sunday, clipped to the period's own start/end) so daily-rate
+  // staff — who think and get paid in weekly chunks — can be handed one
+  // total per week instead of one lump sum covering up to half a month.
+  function isoOfDate(d) { return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()); }
+  function mondayOnOrBefore(d) {
+    var nd = new Date(d);
+    var day = nd.getDay();
+    nd.setDate(nd.getDate() + (day === 0 ? -6 : 1 - day));
+    return nd;
+  }
+  function weeksWithinPeriod() {
+    var r = periodRange();
+    var periodStart = new Date(r.fromIso + "T00:00:00");
+    var periodEnd = new Date(r.toIso + "T00:00:00");
+    var weeks = [];
+    var cur = mondayOnOrBefore(periodStart);
+    while (cur <= periodEnd) {
+      var weekStart = cur < periodStart ? periodStart : cur;
+      var weekEndFull = new Date(cur);
+      weekEndFull.setDate(weekEndFull.getDate() + 6);
+      var weekEnd = weekEndFull > periodEnd ? periodEnd : weekEndFull;
+      weeks.push({ fromIso: isoOfDate(weekStart), toIso: isoOfDate(weekEnd) });
+      cur.setDate(cur.getDate() + 7);
+    }
+    return weeks;
+  }
+
+  function currentDailyRateOverride(e, entry) {
+    return entry.weeklyRateOverride !== "" && entry.weeklyRateOverride !== undefined && entry.weeklyRateOverride !== null
+      ? Number(entry.weeklyRateOverride) || 0
+      : (e.weeklyRate || 0);
+  }
+
+  function computePayrollLine(e, run) {
+    var entry = entryFor(run, e.id);
+    var daysWorked = daysWorkedInPeriod(e.id);
+    var isWeekly = e.payFrequency === "Weekly";
+    // "Weekly" staff (e.g. a trainee on a per-day ramp) are paid a direct
+    // daily rate — no division. The rate can be bumped per payroll run via
+    // the Daily Pay Rates tab, so a ramp (e.g. ₱350 -> ₱450 -> ₱550/day) is
+    // entered as it progresses.
+    var dailyRateValue = isWeekly ? currentDailyRateOverride(e, entry) : 0;
+    var dailyRate = isWeekly ? dailyRateValue : (e.monthlySalary || 0) / 26;
+    var basicPay = dailyRate * daysWorked;
+    var otPay = (Number(entry.otHours) || 0) * (Number(entry.otRate) || 0);
+    var holidayPay = Number(entry.holidayPay) || 0;
+    var transport = Number(entry.transportAllowance) || 0;
+    var meal = Number(entry.mealAllowance) || 0;
+    var otherAllow = Number(entry.otherAllowance) || 0;
+    var grossPay = basicPay + otPay + holidayPay + transport + meal + otherAllow;
+
+    // Government contribution tables are keyed off a monthly salary; a
+    // daily-rate employee's equivalent monthly figure uses the same /26
+    // working-days convention as monthly-salary staff.
+    var monthlyEquivalent = isWeekly ? dailyRate * 26 : (e.monthlySalary || 0);
+
+    // No statutory deductions when there's nothing earned this period
+    // (e.g. an owner on ₱0 draw, or a new hire with no attendance logged yet),
+    // or when the employee is explicitly marked exempt (e.g. an agreed
+    // no-deductions training/trial arrangement).
+    var hasEarnings = monthlyEquivalent > 0 && grossPay > 0 && !e.noGovernmentDeductions;
+    var sssRow = D.computeSss(monthlyEquivalent);
+    var sssDeduction = hasEarnings ? sssRow.ee / 2 : 0; // semi-monthly share
+    var philhealth = D.computePhilHealth(monthlyEquivalent);
+    var philhealthDeduction = hasEarnings ? philhealth.monthly / 2 : 0;
+    var pagibigDeduction = hasEarnings ? D.computePagibig().perCutoff : 0;
+
+    var taxableIncome = Math.max(0, grossPay - sssDeduction - philhealthDeduction - pagibigDeduction);
+    var tax = hasEarnings ? D.computeWithholdingTax(taxableIncome) : 0;
+
+    var otherDeductions = Number(entry.otherDeductions) || 0;
+    var totalDeductions = sssDeduction + philhealthDeduction + pagibigDeduction + tax + otherDeductions;
+    // Statutory minimum-floor deductions can exceed a very small partial-period
+    // paycheck (e.g. a trainee's first day). A payslip should never show a
+    // negative net pay, so cap deductions at what was actually earned.
+    if (totalDeductions > grossPay) totalDeductions = grossPay;
+    var netPay = grossPay - totalDeductions;
+
+    return {
+      employee: e, daysWorked: daysWorked, dailyRate: dailyRate, basicPay: basicPay, otPay: otPay, holidayPay: holidayPay,
+      transport: transport, meal: meal, otherAllow: otherAllow, grossPay: grossPay,
+      sssDeduction: sssDeduction, philhealthDeduction: philhealthDeduction, pagibigDeduction: pagibigDeduction, tax: tax,
+      otherDeductions: otherDeductions, totalDeductions: totalDeductions, netPay: netPay, entry: entry,
+      isWeekly: isWeekly, weeklyRate: dailyRateValue,
+    };
+  }
+
+  function activeEmployees() {
+    return Store.getEmployees().filter(function (e) { return !e.archived && e.status !== "Terminated" && e.status !== "Resigned"; });
+  }
+
+  function renderTable() {
+    var run = getRun();
+    document.getElementById("payroll-period-label").textContent = periodLabel();
+    document.getElementById("payroll-lock-badge").style.display = run.processed ? "inline-flex" : "none";
+    document.getElementById("btn-process-payroll").disabled = run.processed;
+    document.getElementById("btn-process-payroll").innerHTML = run.processed ? '<i class="fa-solid fa-lock"></i> Processed' : '<i class="fa-solid fa-lock"></i> Process Payroll';
+
+    var employees = activeEmployees();
+    var totalGross = 0, totalDed = 0, totalNet = 0;
+    var rows = employees.map(function (e) {
+      var line = computePayrollLine(e, run);
+      totalGross += line.grossPay; totalDed += line.totalDeductions; totalNet += line.netPay;
+      var disabled = run.processed ? "disabled" : "";
+      return (
+        "<tr>" +
+        '<td data-label="Employee"><div style="font-weight:600">' + X.escapeHtml(fullName(e)) + '</div><div style="font-size:.7rem;color:#94A3B8">' + e.id + "</div></td>" +
+        '<td data-label="Days" style="text-align:center">' + line.daysWorked + "</td>" +
+        '<td data-label="Basic Pay" style="text-align:right">' +
+        X.peso(line.basicPay) +
+        (line.isWeekly ? '<div style="font-size:.68rem;color:#94A3B8">weekly rate — see tab</div>' : "") +
+        "</td>" +
+        '<td data-label="OT (hrs x rate)"><div style="display:flex;gap:4px"><input ' + disabled + ' type="number" min="0" step="0.5" class="field-input pr-ot-hours" data-id="' + e.id + '" value="' + line.entry.otHours + '" style="width:60px" placeholder="hrs"><input ' + disabled + ' type="number" min="0" class="field-input pr-ot-rate" data-id="' + e.id + '" value="' + line.entry.otRate + '" style="width:70px" placeholder="₱/hr"></div></td>' +
+        '<td data-label="Holiday Pay"><input ' + disabled + ' type="number" min="0" class="field-input pr-holiday" data-id="' + e.id + '" value="' + line.entry.holidayPay + '" style="width:80px"></td>' +
+        '<td data-label="Transport"><input ' + disabled + ' type="number" min="0" class="field-input pr-transport" data-id="' + e.id + '" value="' + line.entry.transportAllowance + '" style="width:80px"></td>' +
+        '<td data-label="Meal"><input ' + disabled + ' type="number" min="0" class="field-input pr-meal" data-id="' + e.id + '" value="' + line.entry.mealAllowance + '" style="width:80px"></td>' +
+        '<td data-label="Other Allow"><input ' + disabled + ' type="number" min="0" class="field-input pr-otherallow" data-id="' + e.id + '" value="' + line.entry.otherAllowance + '" style="width:80px"></td>' +
+        '<td data-label="Gross Pay" style="text-align:right;font-weight:700">' + X.peso(line.grossPay) + "</td>" +
+        '<td data-label="SSS" style="text-align:right">' + X.peso(line.sssDeduction) + "</td>" +
+        '<td data-label="PhilHealth" style="text-align:right">' + X.peso(line.philhealthDeduction) + "</td>" +
+        '<td data-label="Pag-IBIG" style="text-align:right">' + X.peso(line.pagibigDeduction) + "</td>" +
+        '<td data-label="Tax" style="text-align:right">' + X.peso(line.tax) + "</td>" +
+        '<td data-label="Other Ded."><input ' + disabled + ' type="number" min="0" class="field-input pr-otherded" data-id="' + e.id + '" value="' + line.entry.otherDeductions + '" style="width:80px"></td>' +
+        '<td data-label="Total Ded." style="text-align:right">' + X.peso(line.totalDeductions) + "</td>" +
+        '<td data-label="Net Pay" style="text-align:right;font-weight:800;color:#166534">' + X.peso(line.netPay) + "</td>" +
+        '<td data-label="Payslip"><button class="btn btn-secondary btn-sm" data-payslip="' + e.id + '"><i class="fa-solid fa-file-invoice-dollar"></i></button></td>' +
+        "</tr>"
+      );
+    }).join("");
+
+    document.getElementById("payroll-body").innerHTML = rows;
+    document.getElementById("payroll-summary").innerHTML =
+      summaryTile("Total Gross Pay", totalGross, "#0EA5E9") +
+      summaryTile("Total Deductions", totalDed, "#EF4444") +
+      summaryTile("Total Net Pay", totalNet, "#22C55E");
+
+    bindEditableInputs(run);
+  }
+
+  function summaryTile(label, value, color) {
+    return '<div class="dlx-card kpi-card"><div class="kpi-label">' + label + '</div><div class="kpi-value" style="color:' + color + '">' + X.peso(value) + "</div></div>";
+  }
+
+  function bindEditableInputs(run) {
+    var map = {
+      "pr-ot-hours": "otHours", "pr-ot-rate": "otRate", "pr-holiday": "holidayPay",
+      "pr-transport": "transportAllowance", "pr-meal": "mealAllowance", "pr-otherallow": "otherAllowance", "pr-otherded": "otherDeductions",
+    };
+    Object.keys(map).forEach(function (cls) {
+      document.querySelectorAll("." + cls).forEach(function (input) {
+        input.addEventListener("change", function () {
+          var id = input.getAttribute("data-id");
+          var entry = entryFor(run, id);
+          entry[map[cls]] = Number(input.value) || 0;
+          saveRun(run);
+          setTimeout(renderAll, 0); // deferred — see note in bindWeeklyPayInputs
+        });
+      });
+    });
+    document.querySelectorAll("[data-payslip]").forEach(function (btn) {
+      btn.addEventListener("click", function () { openPayslip(btn.getAttribute("data-payslip")); });
+    });
+  }
+
+  function processPayroll() {
+    var run = getRun();
+    if (run.processed) return;
+    if (!confirm("Process payroll for " + periodLabel() + "? This will lock the period from further edits.")) return;
+    run.processed = true;
+    saveRun(run);
+    renderAll();
+    X.toast("Payroll processed and locked for " + periodLabel() + ".", "success");
+  }
+
+  // ---------------------------------------------------------------------
+  // Payslip
+  // ---------------------------------------------------------------------
+  function openPayslip(employeeId) {
+    var run = getRun();
+    var e = Store.getEmployees().find(function (x) { return x.id === employeeId; });
+    if (!e) return;
+    var line = computePayrollLine(e, run);
+    var settings = Store.getSettings();
+    var html =
+      '<div style="text-align:center;margin-bottom:16px">' +
+      '<div style="font-size:1.3rem;font-weight:800;color:#0F172A">' + X.escapeHtml(settings.companyName || "DIGILEX") + "</div>" +
+      '<div style="font-size:.8rem;color:#64748B">' + X.escapeHtml(settings.companyAddress || "") + "</div>" +
+      '<div style="font-size:.9rem;font-weight:700;margin-top:8px;text-transform:uppercase;letter-spacing:.05em">Payslip</div>' +
+      "</div>" +
+      '<div style="display:flex;justify-content:space-between;font-size:.85rem;margin-bottom:14px;border-top:1px solid #E2E8F0;border-bottom:1px solid #E2E8F0;padding:10px 0">' +
+      '<div><strong>' + X.escapeHtml(fullName(e)) + "</strong><br>" + X.escapeHtml(e.position) + " &middot; " + X.escapeHtml(e.department) + "<br>ID: " + e.id + "</div>" +
+      '<div style="text-align:right">Period Covered:<br><strong>' + periodLabel() + "</strong></div>" +
+      "</div>" +
+      '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:14px">' +
+      "<tr><td colspan='2' style='font-weight:700;padding:6px 0'>Earnings</td></tr>" +
+      payslipRow(line.isWeekly ? "Basic Pay (₱" + line.weeklyRate.toFixed(2) + "/day, " + line.daysWorked + " days)" : "Basic Pay (" + line.daysWorked + " days)", line.basicPay) +
+      payslipRow("Overtime Pay", line.otPay) +
+      payslipRow("Holiday Pay", line.holidayPay) +
+      payslipRow("Transportation Allowance", line.transport) +
+      payslipRow("Meal Allowance", line.meal) +
+      payslipRow("Other Allowance", line.otherAllow) +
+      "<tr style='border-top:1px solid #E2E8F0'><td style='padding:6px 0;font-weight:700'>GROSS PAY</td><td style='text-align:right;font-weight:700;padding:6px 0'>" + X.peso(line.grossPay) + "</td></tr>" +
+      "<tr><td colspan='2' style='font-weight:700;padding:10px 0 6px'>Deductions" +
+      (e.noGovernmentDeductions ? ' <span style="font-weight:400;font-size:.72rem;color:#94A3B8">(exempt per agreement)</span>' : "") +
+      "</td></tr>" +
+      payslipRow("SSS Contribution", line.sssDeduction) +
+      payslipRow("PhilHealth Contribution", line.philhealthDeduction) +
+      payslipRow("Pag-IBIG Contribution", line.pagibigDeduction) +
+      payslipRow("Withholding Tax", line.tax) +
+      payslipRow("Other Deductions", line.otherDeductions) +
+      "<tr style='border-top:1px solid #E2E8F0'><td style='padding:6px 0;font-weight:700'>TOTAL DEDUCTIONS</td><td style='text-align:right;font-weight:700;padding:6px 0'>" + X.peso(line.totalDeductions) + "</td></tr>" +
+      "</table>" +
+      '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;padding:14px;text-align:center;margin-bottom:20px">' +
+      '<div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:#166534">Net Pay</div>' +
+      '<div style="font-size:1.8rem;font-weight:800;color:#166534">' + X.peso(line.netPay) + "</div>" +
+      "</div>" +
+      '<div style="display:flex;justify-content:space-between;margin-top:40px;font-size:.8rem">' +
+      '<div style="text-align:center;width:45%"><div style="border-top:1px solid #1E293B;padding-top:4px">Prepared by</div></div>' +
+      '<div style="text-align:center;width:45%"><div style="border-top:1px solid #1E293B;padding-top:4px">Received by</div></div>' +
+      "</div>";
+    document.getElementById("payslip-print-area").innerHTML = html;
+    document.getElementById("payslip-modal-title").textContent = "Payslip — " + fullName(e);
+    X.openModal("payslip-modal");
+  }
+  function payslipRow(label, value) {
+    return "<tr><td style='padding:3px 0;color:#475569'>" + label + "</td><td style='text-align:right;padding:3px 0'>" + X.peso(value) + "</td></tr>";
+  }
+
+  function populatePeriodControls() {
+    var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    var monthSel = document.getElementById("pr-month");
+    monthSel.innerHTML = months.map(function (m, i) { return '<option value="' + (i + 1) + '">' + m + "</option>"; }).join("");
+    monthSel.value = state.month;
+    document.getElementById("pr-year").value = state.year;
+    document.getElementById("pr-half").value = state.half;
+  }
+
+  function bindControls() {
+    document.getElementById("pr-month").addEventListener("change", function (e) { state.month = Number(e.target.value); renderAll(); });
+    document.getElementById("pr-year").addEventListener("change", function (e) { state.year = Number(e.target.value); renderAll(); });
+    document.getElementById("pr-half").addEventListener("change", function (e) { state.half = Number(e.target.value); renderAll(); });
+    document.getElementById("btn-process-payroll").addEventListener("click", processPayroll);
+    document.getElementById("btn-print-payslip").addEventListener("click", function () { window.print(); });
+  }
+
+  function renderAll() {
+    renderTable();
+    renderWeeklyPayCards();
+  }
+
+  // ---------------------------------------------------------------------
+  // "Daily Pay Rates" tab — a dedicated, legible home for the daily-rate
+  // control, which used to be a tiny input buried inside the Basic Pay
+  // column of the dense payroll table (easy to miss, hard to use on
+  // mobile). Reuses the exact same computePayrollLine()/entryFor() engine
+  // as the main table, so there is only one source of truth for the math.
+  // ---------------------------------------------------------------------
+  function renderWeeklyPayCards() {
+    var container = document.getElementById("weekly-pay-cards");
+    if (!container) return;
+    var run = getRun();
+    var employees = activeEmployees().filter(function (e) { return e.payFrequency === "Weekly"; });
+
+    if (!employees.length) {
+      container.innerHTML =
+        '<div class="dlx-card" style="grid-column:1/-1;text-align:center;padding:40px 20px">' +
+        '<i class="fa-solid fa-calendar-week" style="font-size:1.8rem;color:#CBD5E1;margin-bottom:12px"></i>' +
+        '<div style="font-weight:700;margin-bottom:6px">No daily-rate staff yet</div>' +
+        '<div style="font-size:.85rem;color:#94A3B8;max-width:420px;margin:0 auto 16px">Add someone, or open an existing employee\'s profile and set <strong>Pay Frequency</strong> to <strong>Daily Rate</strong>, to see them here.</div>' +
+        '<a href="employees.html?add=1&payFrequency=Weekly" class="btn btn-primary btn-sm"><i class="fa-solid fa-user-plus"></i> Add Daily-Rate Employee</a>' +
+        "</div>";
+      return;
+    }
+
+    var weeks = weeksWithinPeriod();
+
+    container.innerHTML = employees.map(function (e) {
+      var line = computePayrollLine(e, run);
+      var disabled = run.processed ? "disabled" : "";
+      var hasOverride = line.entry.weeklyRateOverride !== "" && line.entry.weeklyRateOverride !== undefined && line.entry.weeklyRateOverride !== null;
+      var rateNow = currentDailyRateOverride(e, line.entry);
+
+      var weekRows = weeks.map(function (wk) {
+        var wkDays = daysWorkedInRange(e.id, wk.fromIso, wk.toIso);
+        var wkPay = rateNow * wkDays;
+        return (
+          '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F5F9;font-size:.82rem">' +
+          '<div><div style="font-weight:600">' + X.fmtDate(wk.fromIso) + " – " + X.fmtDate(wk.toIso) + "</div>" +
+          '<div style="font-size:.72rem;color:#94A3B8">' + wkDays + " day(s) × " + X.peso(rateNow) + "</div></div>" +
+          '<div style="font-weight:700;color:var(--dlx-primary)">' + X.peso(wkPay) + "</div>" +
+          "</div>"
+        );
+      }).join("");
+
+      return (
+        '<div class="dlx-card" data-wp-card="' + e.id + '">' +
+        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">' +
+        '<div class="avatar avatar-sm" style="background:' + X.avatarColor(e.id) + '">' + X.initials(e.firstName, e.lastName) + "</div>" +
+        '<div><div style="font-weight:700">' + X.escapeHtml(fullName(e)) + '</div><div style="font-size:.72rem;color:#94A3B8">' + X.escapeHtml(e.position || "") + "</div></div>" +
+        "</div>" +
+
+        '<div style="font-size:.72rem;color:#94A3B8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Standing Rate (Employee Profile)</div>' +
+        '<div style="font-size:.9rem;color:#475569;margin-bottom:18px">' + X.peso(e.weeklyRate || 0) + "/day</div>" +
+
+        '<label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--dlx-primary);display:block;margin-bottom:6px">This Period\'s Daily Rate</label>' +
+        '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">' +
+        '<input ' + disabled + ' type="number" min="0" step="0.01" class="field-input wp-rate-input" data-id="' + e.id + '" value="' + line.entry.weeklyRateOverride + '" placeholder="' + (e.weeklyRate || 0) + '" style="font-size:1.1rem;font-weight:700">' +
+        (hasOverride && !run.processed ? '<button type="button" class="btn btn-secondary btn-sm wp-reset-btn" data-id="' + e.id + '" title="Clear override — use the standing rate instead"><i class="fa-solid fa-rotate-left"></i></button>' : "") +
+        "</div>" +
+        '<div style="font-size:.72rem;color:#94A3B8;margin-bottom:20px">' + (hasOverride ? "Overridden for " + periodLabel() + " only — standing rate is unchanged." : "Using the standing rate. Type a number above to override just this period.") + "</div>" +
+
+        '<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--dlx-primary);margin-bottom:4px">Per-Week Total — ready to send</div>' +
+        '<div style="margin-bottom:12px">' + weekRows + "</div>" +
+
+        '<div style="background:#F8FAFC;border-radius:10px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center">' +
+        '<div style="font-size:.78rem;color:#64748B">' + line.daysWorked + " day(s) total this period</div>" +
+        '<div style="text-align:right"><div style="font-size:.7rem;color:#94A3B8;text-transform:uppercase;letter-spacing:.04em">Period Total</div><div style="font-size:1.3rem;font-weight:800;color:var(--dlx-primary)">' + X.peso(line.basicPay) + "</div></div>" +
+        "</div>" +
+        "</div>"
+      );
+    }).join("");
+
+    bindWeeklyPayInputs(run);
+  }
+
+  function bindWeeklyPayInputs(run) {
+    document.querySelectorAll(".wp-rate-input").forEach(function (input) {
+      input.addEventListener("change", function () {
+        var id = input.getAttribute("data-id");
+        var entry = entryFor(run, id);
+        entry.weeklyRateOverride = input.value === "" ? "" : (Number(input.value) || 0);
+        saveRun(run);
+        // Deferred: this fires on blur, so rebuilding (and removing) this
+        // same input's card synchronously races the browser's own
+        // in-flight focus/blur bookkeeping ("node ... no longer a child").
+        setTimeout(renderAll, 0);
+      });
+    });
+    document.querySelectorAll(".wp-reset-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var id = btn.getAttribute("data-id");
+        var entry = entryFor(run, id);
+        entry.weeklyRateOverride = "";
+        saveRun(run);
+        setTimeout(renderAll, 0);
+      });
+    });
+  }
+
+  function setView(view) {
+    document.getElementById("payroll-table-view").style.display = view === "table" ? "block" : "none";
+    document.getElementById("payroll-weekly-view").style.display = view === "weekly" ? "block" : "none";
+    document.getElementById("btn-view-table").classList.toggle("active", view === "table");
+    document.getElementById("btn-view-weekly").classList.toggle("active", view === "weekly");
+  }
+
+  function bindViewToggle() {
+    document.getElementById("btn-view-table").addEventListener("click", function () { setView("table"); });
+    document.getElementById("btn-view-weekly").addEventListener("click", function () { setView("weekly"); });
+  }
+
+  // Exposed so other pages (e.g. the Dashboard) can show payroll totals
+  // using the exact same computation as this page, instead of duplicating
+  // the PH statutory-deduction math.
+  window.DigilexPayroll = {
+    computeRunTotals: function (run) {
+      if (!run) return null;
+      var totalGross = 0, totalDeductions = 0, totalNet = 0;
+      var employees = activeEmployees();
+      employees.forEach(function (e) {
+        var line = computePayrollLine(e, run);
+        totalGross += line.grossPay; totalDeductions += line.totalDeductions; totalNet += line.netPay;
+      });
+      return { totalGross: totalGross, totalDeductions: totalDeductions, totalNet: totalNet, employeeCount: employees.length };
+    },
+    periodLabelFor: function (run) {
+      var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      var from = run.half === 1 ? 1 : 16;
+      var to = run.half === 1 ? 15 : new Date(run.year, run.month, 0).getDate();
+      return months[run.month - 1] + " " + from + "–" + to + ", " + run.year;
+    },
+  };
+
+  document.addEventListener("DOMContentLoaded", function () {
+    if (!document.getElementById("payroll-period-label")) return; // this page's DOM isn't present (e.g. loaded on Dashboard just for DigilexPayroll)
+    X.renderChrome("payroll", "Payroll & Payslips");
+    populatePeriodControls();
+    bindControls();
+    bindViewToggle();
+    renderAll();
+  });
+})();
