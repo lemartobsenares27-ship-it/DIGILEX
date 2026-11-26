@@ -9,16 +9,47 @@ export interface AdScoringBenchmarks {
   fatigueCtrDropPct: number
 }
 
-// Seeded from real historical CPA (May-Jun 2026 actuals were ~PHP 182-185/order,
-// per Facebook Ads Tracker + Orders Database) - editable in Settings.
+/**
+ * Calibrated to break-even economics, NOT to historical performance.
+ *
+ * The previous default (185) was seeded from actual May-Jun 2026 CPA - but
+ * those were loss-making months, so scoring against them marked ads as
+ * acceptable at costs that lose money on every order.
+ *
+ * The real ceiling, on the PHP 399 SKU that is 64% of all orders:
+ *
+ *   COD collected                              399.00
+ *   - COD fee 2.75% + VAT 0.33%                -12.29
+ *   - cost of goods                            -53.55
+ *   - courier, insurance, fulfilment           -66.39
+ *   - RTS drag at 20.8% return rate            -17.92
+ *   - operating overhead at ~7% of revenue     -24.88
+ *   = most that can be paid to acquire one delivered order   224.97
+ *
+ * Ads Manager counts orders PLACED, and 20.8% of those are returned and never
+ * collected, so per order placed the ceiling is PHP 174.97 - break-even, where
+ * profit is exactly zero. Targeting break-even is targeting no profit, so the
+ * benchmark is the CPA that leaves a 20% margin: PHP 111.77.
+ *
+ * With the ratios below that puts the Loser boundary at PHP 167.66, just under
+ * break-even - deliberately conservative while the business is loss-making.
+ * Calibrated on the PHP 399 SKU; higher-value SKUs can carry a higher CPA, so
+ * an ad pushing mostly bundles is judged slightly harshly here.
+ *
+ * All editable in Settings. Recompute these whenever the RTS rate, product
+ * costs or courier rates move materially.
+ */
 export const DEFAULT_AD_BENCHMARKS: AdScoringBenchmarks = {
-  targetCostPerResult: 185,
+  targetCostPerResult: 111.77,
   winnerRatio: 0.8,
   loserRatio: 1.5,
-  minResultsForVerdict: 3,
-  fatigueFrequency: 3.5,
+  minResultsForVerdict: 5,
+  fatigueFrequency: 2.5,
   fatigueCtrDropPct: 0.2,
 }
+
+/** Max CPA per order PLACED at which profit is exactly zero, on the PHP 399 SKU. */
+export const BREAK_EVEN_COST_PER_RESULT = 174.97
 
 export interface AdClassification {
   lifecycle: AdLifecycle

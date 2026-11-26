@@ -243,8 +243,8 @@ async function loadJson<T>(name: string): Promise<T> {
  * a data refresh can never wipe manual edits; corrections to those go through
  * their own targeted migrations above.
  */
-export const DATA_VERSION = '2026-10-02-sep2229b'
-export const DATA_VERSION_LABEL = 'Oct 2, 2026 — Sep 22–29 SOA (NPMCM stated figures) + POS orders_19/20'
+export const DATA_VERSION = '2026-11-26-breakeven-benchmarks'
+export const DATA_VERSION_LABEL = 'Nov 26, 2026 — ad scoring recalibrated to break-even CPA'
 
 async function ensureDerivedDataFresh(): Promise<void> {
   const stored = await db.meta.get('dataVersion')
@@ -310,6 +310,10 @@ async function ensureDerivedDataFresh(): Promise<void> {
       await db.followUp.bulkAdd(followUpList.rows)
       await db.income.clear()
       await db.income.bulkAdd(incomeTracker.rows)
+      // The old ad-scoring benchmark was calibrated to loss-making months, so
+      // any copy saved in Settings carries the same error. Drop it once so the
+      // break-even defaults take effect; it can be re-edited in Settings.
+      await db.meta.delete('adScoringBenchmarks')
       await db.meta.put({ key: 'dataVersion', value: DATA_VERSION })
     },
   )
